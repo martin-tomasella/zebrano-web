@@ -9,6 +9,7 @@ import Ventas     from './pages/Ventas'
 import Produccion from './pages/Produccion'
 import Cotizador  from './pages/Cotizador'
 import LandingPreview from './pages/Landing'
+import Usuarios from './pages/Usuarios'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/produccion"element={<PrivateRoute><Produccion /></PrivateRoute>} />
       <Route path="/cotizador" element={<PrivateRoute><Cotizador /></PrivateRoute>} />
       <Route path="/landing"   element={<PrivateRoute><LandingPreview /></PrivateRoute>} />
+      <Route path="/usuarios"  element={<PrivateRoute><Usuarios /></PrivateRoute>} />
       <Route path="*"          element={<Navigate to="/" replace />} />
     </Routes>
   )

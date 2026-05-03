@@ -12,8 +12,10 @@ const NAV = [
   { path: '/ventas',    label: 'Ventas',       icon: '◈' },
   { path: '/produccion',label: 'Producción',   icon: '⚙' },
   { section: 'Herramientas' },
-  { path: '/cotizador', label: 'Cotizador AI', icon: '✦' },
+  { path: '/cotizador', label: 'Cotizador AI',    icon: '✦' },
   { path: '/landing',   label: 'Landing pública', icon: '◉' },
+  { section: 'Administración' },
+  { path: '/usuarios',  label: 'Usuarios',        icon: '⊕', adminOnly: true },
 ]
 
 export function Layout({ children }) {
@@ -38,6 +40,7 @@ export function Layout({ children }) {
         {/* Nav */}
         <nav style={{ flex:1, overflowY:'auto', padding:'8px 0' }}>
           {NAV.map((item, i) => {
+            if (item.adminOnly && profile?.rol !== 'admin') return null
             if (item.section) return (
               <div key={i} style={{ padding:'10px 20px 4px', fontSize:10, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.08em' }}>
                 {item.section}

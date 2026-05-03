@@ -1,32 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400;500&display=swap');
 
 :root {
-  --z-green:    #1D9E75;
-  --z-green-lt: #E1F5EE;
-  --z-green-dk: #0F6E56;
-  --z-bg:       #F7F6F2;
-  --z-surface:  #FFFFFF;
-  --z-border:   rgba(0,0,0,0.08);
-  --z-text:     #1A1A18;
-  --z-muted:    #6B6B68;
-  --z-hint:     #A8A8A4;
-  --z-danger:   #E24B4A;
-  --z-amber:    #EF9F27;
-  --z-blue:     #378ADD;
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
-  --shadow:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --z-bg:         #0A0D08;
+  --z-bg2:        #080B06;
+  --z-bg3:        #0F1A0A;
+  --z-surface:    #0D120A;
+  --z-surface2:   #111A0C;
+  --z-border:     rgba(74,107,54,0.14);
+  --z-border2:    rgba(74,107,54,0.22);
+  --z-green:      #4A6B36;
+  --z-green-lt:   rgba(74,107,54,0.08);
+  --z-green-mid:  #7AAE5A;
+  --z-green-dk:   #2E4A22;
+  --z-text:       #E8DFD0;
+  --z-text2:      #C8D9B8;
+  --z-muted:      #8A9E82;
+  --z-hint:       #3A5030;
+  --z-ghost:      #2E4A22;
+  --z-wood:       #8B5E3C;
+  --z-danger:     #A0402A;
+  --z-amber:      #B07B30;
+  --radius-sm:    5px;
+  --radius-md:    8px;
+  --radius-lg:    12px;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body:    'Jost', sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--z-bg); color: var(--z-text); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-
+body {
+  font-family: var(--font-body);
+  background: var(--z-bg);
+  color: var(--z-text2);
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
 a { color: inherit; text-decoration: none; }
-button { font-family: inherit; cursor: pointer; }
-input, textarea, select { font-family: inherit; }
-
-/* Scrollbar sutil */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+button { font-family: var(--font-body); cursor: pointer; }
+input, textarea, select { font-family: var(--font-body); }
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--z-border); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--z-border2); border-radius: 2px; }

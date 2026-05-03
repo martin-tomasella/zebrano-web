@@ -25,13 +25,22 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
-      .from('empleados')
-      .select('*')
-      .eq('auth_user_id', userId)
-      .single()
-    setProfile(data)
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('empleados')
+        .select('*')
+        .eq('auth_user_id', userId)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.error('Error fetching profile:', error)
+      }
+      setProfile(data || null)
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const signIn = (email, password) =>

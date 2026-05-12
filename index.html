@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zebrano — Carpintería Premium a Medida</title>
+  <meta name="description" content="Diseñamos y fabricamos muebles a medida de alta gama en Buenos Aires. Placards, cocinas, bibliotecas y más."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --negro: #0a0a08;
+      --oscuro: #111410;
+      --card: #181a16;
+      --oro: #c9a84c;
+      --oro-claro: #e0c27a;
+      --marfil: #f5f0e8;
+      --texto: rgba(245,240,232,0.9);
+      --texto-2: rgba(245,240,232,0.55);
+      --texto-3: rgba(245,240,232,0.28);
+      --borde: rgba(201,168,76,0.15);
+      --borde-sutil: rgba(245,240,232,0.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--negro);
+      color: var(--texto);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ─── GRAIN OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0; opacity: 0.4;
+    }
+
+    /* ─── NAVEGACIÓN ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(10,10,8,0.95), transparent);
+      backdrop-filter: blur(8px);
+    }
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px; font-weight: 300; letter-spacing: 0.15em;
+      color: var(--oro); text-decoration: none;
+    }
+    .logo span { color: var(--texto-3); font-size: 11px; display: block; letter-spacing: 0.3em; margin-top: -4px; font-family: 'DM Sans', sans-serif; }
+    nav a { color: var(--texto-2); text-decoration: none; font-size: 13px; letter-spacing: 0.08em; transition: color 0.3s; }
+    nav a:hover { color: var(--oro); }
+    .nav-links { display: flex; gap: 32px; align-items: center; }
+    .nav-cta {
+      background: transparent; border: 1px solid var(--oro);
+      color: var(--oro); padding: 8px 20px; font-size: 12px;
+      letter-spacing: 0.12em; cursor: pointer; transition: all 0.3s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .nav-cta:hover { background: var(--oro); color: var(--negro); }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; text-align: center;
+      padding: 120px 40px 80px;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 60%, rgba(201,168,76,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 20% 20%, rgba(201,168,76,0.03) 0%, transparent 60%);
+    }
+    .hero-content { position: relative; max-width: 800px; }
+    .hero-eyebrow {
+      font-size: 11px; letter-spacing: 0.35em; color: var(--oro);
+      text-transform: uppercase; margin-bottom: 24px;
+      animation: fadeUp 1s ease both;
+    }
+    .hero h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(52px, 8vw, 96px);
+      font-weight: 300; line-height: 1.05;
+      color: var(--marfil);
+      animation: fadeUp 1s ease 0.1s both;
+    }
+    .hero h1 em { font-style: italic; color: var(--oro-claro); }
+    .hero-sub {
+      font-size: 16px; color: var(--texto-2); margin: 28px auto 0;
+      max-width: 500px; line-height: 1.8;
+      animation: fadeUp 1s ease 0.2s both;
+    }
+    .hero-actions {
+      display: flex; gap: 16px; justify-content: center; margin-top: 48px;
+      animation: fadeUp 1s ease 0.3s both;
+    }
+    .btn-primary {
+      background: var(--oro); color: var(--negro);
+      padding: 14px 36px; font-size: 13px; letter-spacing: 0.12em;
+      border: none; cursor: pointer; transition: all 0.3s;
+      font-family: 'DM Sans', sans-serif; font-weight: 500;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--oro-claro); }
+    .btn-secondary {
+      background: transparent; color: var(--texto-2);
+      padding: 14px 36px; font-size: 13px; letter-spacing: 0.12em;
+      border: 1px solid var(--borde-sutil); cursor: pointer; transition: all 0.3s;
+      font-family: 'DM Sans', sans-serif;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { border-color: var(--borde); color: var(--texto); }
+
+    /* ─── SECCIÓN SERVICIOS ─── */
+    .section { padding: 100px 40px; max-width: 1100px; margin: 0 auto; }
+    .section-eyebrow {
+      font-size: 11px; letter-spacing: 0.35em; color: var(--oro);
+      text-transform: uppercase; margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(36px, 5vw, 60px); font-weight: 300;
+      line-height: 1.1; color: var(--marfil);
+    }
+    .section-title em { font-style: italic; color: var(--oro-claro); }
+
+    .servicios-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px; margin-top: 64px;
+      border: 1px solid var(--borde-sutil);
+    }
+    .servicio-card {
+      padding: 48px 36px;
+      background: var(--card);
+      border: 1px solid var(--borde-sutil);
+      transition: background 0.4s;
+      cursor: default;
+    }
+    .servicio-card:hover { background: #1e2119; }
+    .servicio-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 48px; color: var(--borde); font-weight: 300;
+      line-height: 1; margin-bottom: 24px;
+    }
+    .servicio-nombre {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px; font-weight: 400; color: var(--marfil);
+      margin-bottom: 12px;
+    }
+    .servicio-desc { font-size: 14px; color: var(--texto-2); line-height: 1.8; }
+
+    /* ─── PROCESO ─── */
+    .proceso-wrap { margin-top: 64px; }
+    .proceso-step {
+      display: grid; grid-template-columns: 80px 1fr;
+      gap: 32px; align-items: start;
+      padding: 36px 0;
+      border-bottom: 1px solid var(--borde-sutil);
+    }
+    .proceso-step:last-child { border-bottom: none; }
+    .paso-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 64px; color: rgba(201,168,76,0.2);
+      font-weight: 300; line-height: 0.8;
+    }
+    .paso-content h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 400; color: var(--marfil);
+      margin-bottom: 8px;
+    }
+    .paso-content p { font-size: 14px; color: var(--texto-2); }
+
+    /* ─── SEPARADOR ─── */
+    .separador {
+      text-align: center; padding: 40px;
+      border-top: 1px solid var(--borde-sutil);
+      border-bottom: 1px solid var(--borde-sutil);
+    }
+    .separador-linea {
+      display: flex; align-items: center; gap: 24px;
+      max-width: 400px; margin: 0 auto;
+    }
+    .separador-linea::before, .separador-linea::after {
+      content: ''; flex: 1; height: 1px; background: var(--borde);
+    }
+    .separador-icon {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px; color: var(--oro); letter-spacing: 0.2em;
+    }
+
+    /* ─── FORMULARIO ─── */
+    #contacto {
+      padding: 100px 40px;
+      background: var(--oscuro);
+    }
+    .contacto-inner {
+      max-width: 720px; margin: 0 auto;
+    }
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px; margin-top: 48px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 11px; letter-spacing: 0.2em; color: var(--texto-3); text-transform: uppercase; }
+    input, select, textarea {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--borde-sutil);
+      color: var(--texto);
+      padding: 14px 16px; font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none; transition: border-color 0.3s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(201,168,76,0.4);
+    }
+    select option { background: var(--oscuro); }
+    textarea { resize: vertical; min-height: 120px; }
+
+    /* Honeypot - invisible */
+    .hp-field { display: none !important; }
+
+    .form-submit {
+      margin-top: 24px; text-align: center;
+    }
+    .btn-submit {
+      background: var(--oro); color: var(--negro);
+      padding: 16px 48px; font-size: 13px; letter-spacing: 0.15em;
+      border: none; cursor: pointer; transition: all 0.3s;
+      font-family: 'DM Sans', sans-serif; font-weight: 500;
+      text-transform: uppercase;
+    }
+    .btn-submit:hover { background: var(--oro-claro); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .form-nota { font-size: 12px; color: var(--texto-3); margin-top: 16px; text-align: center; }
+
+    #form-respuesta {
+      margin-top: 24px; padding: 20px 24px;
+      border-radius: 0; display: none;
+      font-size: 14px; line-height: 1.6;
+    }
+    #form-respuesta.ok { background: rgba(107,191,132,0.1); border: 1px solid rgba(107,191,132,0.2); color: #6bbf84; }
+    #form-respuesta.error { background: rgba(224,96,96,0.1); border: 1px solid rgba(224,96,96,0.2); color: #e06060; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 60px 40px;
+      border-top: 1px solid var(--borde-sutil);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 24px;
+    }
+    .footer-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px; color: var(--oro); letter-spacing: 0.15em;
+    }
+    .footer-info { font-size: 12px; color: var(--texto-3); line-height: 1.8; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 12px; color: var(--texto-3); text-decoration: none; transition: color 0.3s; }
+    .footer-links a:hover { color: var(--oro); }
+
+    /* ─── ANIMACIONES ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .nav-links { gap: 16px; }
+      .hero { padding: 100px 24px 60px; }
+      .section { padding: 60px 24px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .proceso-step { grid-template-columns: 48px 1fr; }
+      footer { flex-direction: column; text-align: center; padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVEGACIÓN -->
+  <nav>
+    <a href="#" class="logo">
+      ZEBRANO
+      <span>CARPINTERÍA PREMIUM</span>
+    </a>
+    <div class="nav-links">
+      <a href="#servicios">Servicios</a>
+      <a href="#proceso">Proceso</a>
+      <a href="#contacto" class="nav-cta">CONSULTAR</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Buenos Aires · Carpintería a medida</p>
+      <h1>Muebles que <em>duran</em><br/>generaciones</h1>
+      <p class="hero-sub">Diseñamos y fabricamos placards, cocinas, bibliotecas y espacios completos con materiales premium y precisión artesanal.</p>
+      <div class="hero-actions">
+        <a href="#contacto" class="btn-primary">SOLICITAR PRESUPUESTO</a>
+        <a href="#servicios" class="btn-secondary">VER TRABAJOS</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICIOS -->
+  <section class="section" id="servicios">
+    <p class="section-eyebrow">Lo que hacemos</p>
+    <h2 class="section-title">Cada espacio,<br/><em>una solución a medida</em></h2>
+    <div class="servicios-grid">
+      <div class="servicio-card">
+        <div class="servicio-num">01</div>
+        <div class="servicio-nombre">Placards & Vestidores</div>
+        <p class="servicio-desc">Diseño interior inteligente, materiales premium, herrajes europeos de primera línea.</p>
+      </div>
+      <div class="servicio-card">
+        <div class="servicio-num">02</div>
+        <div class="servicio-nombre">Cocinas</div>
+        <p class="servicio-desc">Funcionalidad y estética en armonía. Melamina, laqueado o madera maciza.</p>
+      </div>
+      <div class="servicio-card">
+        <div class="servicio-num">03</div>
+        <div class="servicio-nombre">Living & Biblioteca</div>
+        <p class="servicio-desc">Muebles de TV, bibliotecas empotradas y módulos de living que transforman el espacio.</p>
+      </div>
+      <div class="servicio-card">
+        <div class="servicio-num">04</div>
+        <div class="servicio-nombre">Home Office</div>
+        <p class="servicio-desc">Escritorios, estanterías y espacios de trabajo diseñados para la productividad.</p>
+      </div>
+      <div class="servicio-card">
+        <div class="servicio-num">05</div>
+        <div class="servicio-nombre">Baños & Vanitorios</div>
+        <p class="servicio-desc">Muebles bajo mesada, espejos y soluciones de almacenaje con acabados resistentes.</p>
+      </div>
+      <div class="servicio-card">
+        <div class="servicio-num">06</div>
+        <div class="servicio-nombre">Proyectos Completos</div>
+        <p class="servicio-desc">Coordinamos toda la carpintería de tu hogar o local comercial bajo un mismo proyecto.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="separador">
+    <div class="separador-linea">
+      <span class="separador-icon">◇</span>
+    </div>
+  </div>
+
+  <!-- PROCESO -->
+  <section class="section" id="proceso">
+    <p class="section-eyebrow">Cómo trabajamos</p>
+    <h2 class="section-title">Del <em>boceto</em><br/>a la instalación</h2>
+    <div class="proceso-wrap">
+      <div class="proceso-step">
+        <div class="paso-num">1</div>
+        <div class="paso-content">
+          <h3>Consulta inicial</h3>
+          <p>Nos contás qué necesitás. En 24hs te respondemos con preguntas concretas y un presupuesto orientativo.</p>
+        </div>
+      </div>
+      <div class="proceso-step">
+        <div class="paso-num">2</div>
+        <div class="paso-content">
+          <h3>Diseño técnico con render</h3>
+          <p>Generamos un plano técnico con cotas reales y un render fotorrealista para que veas el resultado antes de producir.</p>
+        </div>
+      </div>
+      <div class="proceso-step">
+        <div class="paso-num">3</div>
+        <div class="paso-content">
+          <h3>Presupuesto detallado</h3>
+          <p>Precio final sin sorpresas. Anticipo 50% al confirmar, saldo contra entrega.</p>
+        </div>
+      </div>
+      <div class="proceso-step">
+        <div class="paso-num">4</div>
+        <div class="paso-content">
+          <h3>Producción y entrega</h3>
+          <p>10 a 25 días hábiles según el proyecto. Instalación incluida con garantía de 12 meses.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORMULARIO CONTACTO -->
+  <section id="contacto">
+    <div class="contacto-inner">
+      <p class="section-eyebrow">Contacto</p>
+      <h2 class="section-title">Contanos<br/><em>tu proyecto</em></h2>
+      <p style="color:var(--texto-2);font-size:14px;margin-top:16px;">
+        Respondemos en menos de 24 horas. Para consultas urgentes escribinos por WhatsApp.
+      </p>
+
+      <form id="form-contacto" novalidate>
+        <!-- HONEYPOT anti-spam -->
+        <div class="hp-field" aria-hidden="true">
+          <input type="text" name="website" id="hp-website" tabindex="-1" autocomplete="off"/>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nombre">Nombre *</label>
+            <input type="text" id="nombre" name="nombre" placeholder="Tu nombre" required maxlength="100"/>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="tu@email.com" maxlength="200"/>
+          </div>
+          <div class="form-group">
+            <label for="telefono">Teléfono / WhatsApp</label>
+            <input type="tel" id="telefono" name="telefono" placeholder="+54 11 ..." maxlength="30"/>
+          </div>
+          <div class="form-group">
+            <label for="tipo_trabajo">¿Qué necesitás?</label>
+            <select id="tipo_trabajo" name="tipo_trabajo">
+              <option value="">Seleccioná...</option>
+              <option value="placard">Placard / Vestidor</option>
+              <option value="cocina">Cocina</option>
+              <option value="living">Living / Biblioteca</option>
+              <option value="home_office">Home Office</option>
+              <option value="bano">Baño / Vanitory</option>
+              <option value="otro">Otro / Proyecto completo</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="mensaje">Contanos tu proyecto *</label>
+            <textarea id="mensaje" name="mensaje" placeholder="Describí qué tenés en mente: ambiente, medidas aproximadas, estilo, materiales que te gustan..." required maxlength="2000"></textarea>
+          </div>
+        </div>
+
+        <div class="form-submit">
+          <button type="submit" class="btn-submit" id="btn-enviar">ENVIAR CONSULTA</button>
+          <p class="form-nota">Tu información es confidencial y nunca será compartida.</p>
+        </div>
+        <div id="form-respuesta"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">ZEBRANO</div>
+    <div class="footer-info">
+      Buenos Aires, Argentina<br/>
+      Lunes a Viernes · 9 a 18hs
+    </div>
+    <div class="footer-links">
+      <a href="#servicios">Servicios</a>
+      <a href="#proceso">Proceso</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+  </footer>
+
+  <script>
+    const ROBLE_URL = 'https://xsciujuvkbubnhhnpcix.supabase.co/functions/v1/roble-ventas';
+
+    // Rate limiting client-side (complementario al del servidor)
+    let envios = 0;
+    const MAX_ENVIOS = 3;
+
+    document.getElementById('form-contacto').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      if (envios >= MAX_ENVIOS) {
+        mostrarRespuesta('error', 'Demasiados intentos. Refrescá la página para continuar.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-enviar');
+      const nombre = document.getElementById('nombre').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const telefono = document.getElementById('telefono').value.trim();
+      const tipo_trabajo = document.getElementById('tipo_trabajo').value;
+      const mensaje = document.getElementById('mensaje').value.trim();
+      const honeypot = document.getElementById('hp-website').value;
+
+      // Validación básica
+      if (!nombre) { mostrarRespuesta('error', 'Por favor ingresá tu nombre.'); return; }
+      if (!mensaje) { mostrarRespuesta('error', 'Por favor describí tu proyecto.'); return; }
+      if (mensaje.length < 10) { mostrarRespuesta('error', 'El mensaje es muy corto.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'ENVIANDO...';
+      envios++;
+
+      try {
+        const resp = await fetch(ROBLE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accion: 'nuevo_prospecto',
+            nombre, email, telefono, tipo_trabajo, mensaje,
+            honeypot // el servidor lo verifica
+          })
+        });
+
+        const data = await resp.json();
+
+        if (data.ok) {
+          mostrarRespuesta('ok', data.mensaje_cliente || `¡Gracias ${nombre}! Recibimos tu consulta y te contactamos en las próximas 24 horas.`);
+          document.getElementById('form-contacto').reset();
+        } else {
+          mostrarRespuesta('error', data.error || 'Hubo un problema. Intentá de nuevo o escribinos por WhatsApp.');
+        }
+      } catch (err) {
+        mostrarRespuesta('error', 'Error de conexión. Por favor intentá de nuevo.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'ENVIAR CONSULTA';
+      }
+    });
+
+    function mostrarRespuesta(tipo, texto) {
+      const el = document.getElementById('form-respuesta');
+      el.className = tipo;
+      el.textContent = texto;
+      el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Scroll suave para nav
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
+  </script>
+</body>
+</html>

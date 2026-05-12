@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zebrano ERP — Roble · Ventas</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d0f0e; --card: #1a2020; --raised: #1f2826;
+      --gold: #c9a84c; --amber: #f0c97a; --green: #6bbf84;
+      --red: #e06060; --blue: #60a8e0;
+      --t1: rgba(255,255,255,0.92); --t2: rgba(255,255,255,0.55);
+      --t3: rgba(255,255,255,0.28); --t4: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.06); --border-gold: rgba(201,168,76,0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--t1); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; }
+
+    /* LAYOUT */
+    .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: #111714; border-right: 1px solid var(--border);
+      padding: 24px 0; position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-logo {
+      padding: 0 20px 24px; border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .sidebar-logo .mark { font-size: 18px; font-weight: 500; color: var(--gold); letter-spacing: 0.1em; }
+    .sidebar-logo .sub { font-size: 10px; color: var(--t3); letter-spacing: 0.2em; margin-top: 2px; }
+    .nav-section { padding: 8px 20px 4px; font-size: 10px; color: var(--t3); letter-spacing: 0.2em; text-transform: uppercase; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; color: var(--t2); cursor: pointer;
+      transition: all 0.2s; border-left: 2px solid transparent;
+      font-size: 13px;
+    }
+    .nav-item:hover { color: var(--t1); background: rgba(255,255,255,0.03); }
+    .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(201,168,76,0.06); }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* MAIN */
+    .main { padding: 32px; overflow-y: auto; }
+    .page-header { margin-bottom: 32px; }
+    .page-title { font-size: 24px; font-weight: 500; color: var(--t1); }
+    .page-sub { font-size: 13px; color: var(--t3); margin-top: 4px; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .tab {
+      padding: 10px 20px; font-size: 13px; color: var(--t2);
+      cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: all 0.2s;
+    }
+    .tab:hover { color: var(--t1); }
+    .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* STATS CARDS */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      padding: 20px; border-radius: 8px;
+    }
+    .stat-label { font-size: 11px; color: var(--t3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 500; color: var(--t1); }
+    .stat-sub { font-size: 11px; color: var(--t3); margin-top: 4px; }
+    .stat-card.gold .stat-value { color: var(--gold); }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.red .stat-value { color: var(--red); }
+
+    /* KANBAN */
+    .kanban { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; overflow-x: auto; }
+    .kanban-col {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; min-width: 180px;
+    }
+    .kanban-header {
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .kanban-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .kanban-title { font-size: 12px; font-weight: 500; color: var(--t2); }
+    .kanban-count {
+      margin-left: auto; font-size: 11px; color: var(--t3);
+      background: var(--raised); padding: 2px 7px; border-radius: 10px;
+    }
+    .kanban-cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 100px; }
+    .kanban-card {
+      background: var(--raised); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .kanban-card:hover { border-color: var(--border-gold); }
+    .kcard-nombre { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+    .kcard-tipo { font-size: 11px; color: var(--t3); margin-bottom: 8px; }
+    .kcard-footer { display: flex; align-items: center; justify-content: space-between; }
+    .temp-badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      font-weight: 500; letter-spacing: 0.05em;
+    }
+    .temp-frio { background: rgba(96,168,224,0.15); color: var(--blue); }
+    .temp-tibio { background: rgba(201,168,76,0.15); color: var(--amber); }
+    .temp-caliente { background: rgba(224,96,96,0.15); color: var(--red); }
+    .kcard-fecha { font-size: 10px; color: var(--t4); }
+
+    /* TABLA */
+    .tabla-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .tabla-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .tabla-title { font-size: 14px; font-weight: 500; }
+    .search-input {
+      margin-left: auto; background: var(--raised); border: 1px solid var(--border);
+      color: var(--t1); padding: 7px 12px; font-size: 12px;
+      font-family: 'DM Sans', sans-serif; outline: none; border-radius: 6px; width: 200px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 12px 16px; text-align: left; font-size: 11px; color: var(--t3); font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    td { padding: 14px 16px; font-size: 13px; color: var(--t2); border-bottom: 1px solid rgba(255,255,255,0.03); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .td-name { color: var(--t1); font-weight: 500; }
+
+    /* BADGES */
+    .badge {
+      display: inline-block; font-size: 10px; padding: 3px 10px;
+      border-radius: 10px; font-weight: 500; letter-spacing: 0.05em;
+    }
+    .badge-lead { background: rgba(255,255,255,0.08); color: var(--t2); }
+    .badge-contactado { background: rgba(96,168,224,0.15); color: var(--blue); }
+    .badge-cotizando { background: rgba(201,168,76,0.15); color: var(--amber); }
+    .badge-propuesta { background: rgba(107,191,132,0.15); color: var(--green); }
+    .badge-ganado { background: rgba(107,191,132,0.25); color: var(--green); }
+    .badge-perdido { background: rgba(224,96,96,0.15); color: var(--red); }
+
+    /* ACCIONES */
+    .btn {
+      padding: 7px 14px; font-size: 12px; border: none;
+      cursor: pointer; border-radius: 6px; font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s; font-weight: 500;
+    }
+    .btn-gold { background: var(--gold); color: #0d0f0e; }
+    .btn-gold:hover { background: var(--amber); }
+    .btn-ghost { background: transparent; color: var(--t2); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--border-gold); color: var(--t1); }
+    .btn-green { background: rgba(107,191,132,0.15); color: var(--green); border: 1px solid rgba(107,191,132,0.2); }
+    .btn-green:hover { background: rgba(107,191,132,0.25); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.8); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border-gold);
+      border-radius: 12px; padding: 32px; width: 560px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-title { font-size: 18px; font-weight: 500; margin-bottom: 24px; color: var(--t1); }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 11px; color: var(--t3); letter-spacing: 0.1em; text-transform: uppercase; }
+    .field input, .field select, .field textarea {
+      background: var(--raised); border: 1px solid var(--border);
+      color: var(--t1); padding: 10px 12px; font-size: 13px;
+      font-family: 'DM Sans', sans-serif; outline: none; border-radius: 6px;
+      transition: border-color 0.2s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--border-gold); }
+    .field select option { background: var(--card); }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 60px; color: var(--t3); }
+    .loading-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); animation: pulse 1.2s ease-in-out infinite; margin: 0 3px; }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+
+    /* PROSPECTO DETAIL */
+    .detail-row { display: flex; gap: 8px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 11px; color: var(--t3); width: 120px; flex-shrink: 0; letter-spacing: 0.08em; text-transform: uppercase; }
+    .detail-value { font-size: 13px; color: var(--t1); }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 48px; color: var(--t3); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; }
+
+    /* NOTIF */
+    .notif {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--raised); border: 1px solid var(--border-gold);
+      padding: 14px 20px; border-radius: 8px; font-size: 13px;
+      color: var(--t1); z-index: 9999; display: none;
+      animation: slideIn 0.3s ease;
+    }
+    .notif.ok { border-color: rgba(107,191,132,0.3); }
+    .notif.error { border-color: rgba(224,96,96,0.3); }
+    @keyframes slideIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="mark">◇ ZEBRANO</div>
+      <div class="sub">ERP · SISTEMA INTERNO</div>
+    </div>
+    <div class="nav-section">Agentes</div>
+    <div class="nav-item active" onclick="showPage('roble')">
+      <span class="nav-icon">🌳</span> Roble · Ventas
+    </div>
+    <div class="nav-item" onclick="showPage('nogal')">
+      <span class="nav-icon">🪵</span> Nogal · Cotizaciones
+    </div>
+    <div class="nav-section">Producción</div>
+    <div class="nav-item" onclick="showPage('ot')">
+      <span class="nav-icon">⚙️</span> Órdenes de Trabajo
+    </div>
+    <div class="nav-section">Gestión</div>
+    <div class="nav-item" onclick="showPage('clientes')">
+      <span class="nav-icon">👥</span> Clientes
+    </div>
+  </aside>
+
+  <!-- MAIN ROBLE -->
+  <main class="main" id="page-roble">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <span style="font-size:24px;">🌳</span>
+        <div>
+          <div class="page-title">Roble · Ventas</div>
+          <div class="page-sub">Embudo de prospectos y seguimiento comercial</div>
+        </div>
+        <button class="btn btn-gold" style="margin-left:auto;" onclick="openModalNuevo()">+ Nuevo prospecto</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats" id="stats-roble">
+      <div class="stat-card"><div class="stat-label">Total activos</div><div class="stat-value" id="stat-total">—</div></div>
+      <div class="stat-card gold"><div class="stat-label">Calientes 🔥</div><div class="stat-value" id="stat-cal">—</div></div>
+      <div class="stat-card"><div class="stat-label">Cotizando</div><div class="stat-value" id="stat-cot">—</div></div>
+      <div class="stat-card green"><div class="stat-label">Ganados</div><div class="stat-value" id="stat-gan">—</div></div>
+      <div class="stat-card"><div class="stat-label">Seguimiento hoy</div><div class="stat-value" id="stat-seg">—</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="setTab('kanban',this)">Embudo</div>
+      <div class="tab" onclick="setTab('lista',this)">Lista</div>
+      <div class="tab" onclick="setTab('seguimiento',this)">Seguimiento pendiente</div>
+    </div>
+
+    <!-- KANBAN VIEW -->
+    <div id="view-kanban">
+      <div class="kanban" id="kanban-board">
+        <div class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+      </div>
+    </div>
+
+    <!-- LISTA VIEW -->
+    <div id="view-lista" style="display:none">
+      <div class="tabla-wrap">
+        <div class="tabla-header">
+          <div class="tabla-title">Todos los prospectos</div>
+          <input class="search-input" id="search-lista" placeholder="Buscar..." oninput="filtrarLista()"/>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Prospecto</th><th>Tipo</th><th>Estado</th><th>Temperatura</th>
+              <th>Origen</th><th>Ingreso</th><th>Seguimiento</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-lista">
+            <tr><td colspan="8" class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SEGUIMIENTO VIEW -->
+    <div id="view-seguimiento" style="display:none">
+      <div class="tabla-wrap">
+        <div class="tabla-header">
+          <div class="tabla-title">Pendientes de seguimiento</div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Prospecto</th><th>Tipo</th><th>Temperatura</th><th>Último contacto</th><th>Días sin contacto</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="tbody-seg"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- OTRAS PÁGINAS (placeholder) -->
+  <main class="main" id="page-nogal" style="display:none">
+    <div class="page-header"><div class="page-title">Nogal · Cotizaciones</div><div class="page-sub">Abrí la app mobile para gestionar cotizaciones y renders</div></div>
+    <div class="empty"><div class="empty-icon">🪵</div><div class="empty-text">Las cotizaciones se gestionan desde la app Android.<br/>Acá próximamente: listado completo con versiones.</div></div>
+  </main>
+  <main class="main" id="page-ot" style="display:none">
+    <div class="page-header"><div class="page-title">Órdenes de Trabajo</div></div>
+    <div class="empty"><div class="empty-icon">⚙️</div><div class="empty-text">Próximamente: gestión de OT, avance y empleados.</div></div>
+  </main>
+  <main class="main" id="page-clientes" style="display:none">
+    <div class="page-header"><div class="page-title">Clientes</div></div>
+    <div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Próximamente: ficha completa de clientes y proyectos.</div></div>
+  </main>
+</div>
+
+<!-- MODAL NUEVO PROSPECTO -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal">
+    <div class="modal-title">Nuevo prospecto</div>
+    <div class="modal-grid">
+      <div class="field"><label>Nombre *</label><input id="n-nombre" type="text" placeholder="Nombre del prospecto"/></div>
+      <div class="field"><label>Teléfono</label><input id="n-tel" type="tel" placeholder="+54 11 ..."/></div>
+      <div class="field"><label>Email</label><input id="n-email" type="email" placeholder="email@ejemplo.com"/></div>
+      <div class="field"><label>Tipo de trabajo</label>
+        <select id="n-tipo">
+          <option value="">Seleccioná...</option>
+          <option value="placard">Placard / Vestidor</option>
+          <option value="cocina">Cocina</option>
+          <option value="living">Living / Biblioteca</option>
+          <option value="home_office">Home Office</option>
+          <option value="bano">Baño</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="field"><label>Temperatura</label>
+        <select id="n-temp">
+          <option value="tibio">Tibio</option>
+          <option value="frio">Frío</option>
+          <option value="caliente">Caliente 🔥</option>
+        </select>
+      </div>
+      <div class="field"><label>Origen</label>
+        <select id="n-origen">
+          <option value="referido">Referido</option>
+          <option value="instagram">Instagram</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="web">Sitio web</option>
+          <option value="showroom">Showroom</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="field full"><label>Descripción / Mensaje</label>
+        <textarea id="n-desc" placeholder="Qué necesita el cliente..."></textarea>
+      </div>
+      <div class="field full"><label>Fecha de seguimiento</label>
+        <input id="n-fecha" type="date"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nuevo')">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarProspecto()">Guardar prospecto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE / ACCIONES -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal">
+    <div class="modal-title" id="detalle-nombre">Prospecto</div>
+    <div id="detalle-body"></div>
+    <div id="detalle-acciones" style="margin-top:24px;display:flex;flex-wrap:wrap;gap:10px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+const SUPA = 'https://xsciujuvkbubnhhnpcix.supabase.co';
+const KEY  = 'sb_publishable_gI_zCp__hlMim3bIhXX7jg_QwY5MwzZ';
+const ROBLE = `${SUPA}/functions/v1/roble-ventas`;
+
+const ESTADOS = ['lead','contactado','cotizando','propuesta_enviada','ganado','perdido'];
+const ESTADO_LABELS = { lead:'Lead', contactado:'Contactado', cotizando:'Cotizando', propuesta_enviada:'Propuesta enviada', ganado:'Ganado', perdido:'Perdido' };
+const ESTADO_COLORS = { lead:'#888', contactado:'#60a8e0', cotizando:'#c9a84c', propuesta_enviada:'#6bbf84', ganado:'#6bbf84', perdido:'#e06060' };
+const TIPO_LABELS = { placard:'Placard', cocina:'Cocina', living:'Living', home_office:'Home Office', bano:'Baño', otro:'Otro', dormitorio:'Dormitorio' };
+
+let oportunidades = [];
+let tabActual = 'kanban';
+
+// ─── CARGAR DATOS ───────────────────────────────────────────────
+async function cargarOportunidades() {
+  try {
+    const resp = await fetch(ROBLE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'listar_oportunidades', limit: 200 })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      oportunidades = data.oportunidades;
+      actualizarStats();
+      renderVista();
+    }
+  } catch(e) { console.error(e); }
+}
+
+function actualizarStats() {
+  const activos = oportunidades.filter(o => !['ganado','perdido'].includes(o.estado_funnel));
+  document.getElementById('stat-total').textContent = activos.length;
+  document.getElementById('stat-cal').textContent = oportunidades.filter(o => o.temperatura === 'caliente').length;
+  document.getElementById('stat-cot').textContent = oportunidades.filter(o => o.estado_funnel === 'cotizando').length;
+  document.getElementById('stat-gan').textContent = oportunidades.filter(o => o.estado_funnel === 'ganado').length;
+
+  const hoy = new Date().toISOString().split('T')[0];
+  const seg = oportunidades.filter(o => o.fecha_seguimiento && o.fecha_seguimiento <= hoy && !['ganado','perdido'].includes(o.estado_funnel));
+  document.getElementById('stat-seg').textContent = seg.length;
+}
+
+// ─── VISTAS ────────────────────────────────────────────────────
+function setTab(tab, el) {
+  tabActual = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['kanban','lista','seguimiento'].forEach(v => {
+    document.getElementById(`view-${v}`).style.display = v === tab ? 'block' : 'none';
+  });
+  renderVista();
+}
+
+function renderVista() {
+  if (tabActual === 'kanban') renderKanban();
+  else if (tabActual === 'lista') renderLista();
+  else if (tabActual === 'seguimiento') renderSeguimiento();
+}
+
+// ─── KANBAN ────────────────────────────────────────────────────
+function renderKanban() {
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = ESTADOS.map(estado => {
+    const ops = oportunidades.filter(o => o.estado_funnel === estado);
+    const cards = ops.map(o => `
+      <div class="kanban-card" onclick="abrirDetalle('${o.id}')">
+        <div class="kcard-nombre">${o.nombre_prospecto || o.clientes?.nombre || '—'}</div>
+        <div class="kcard-tipo">${TIPO_LABELS[o.tipo_trabajo] || o.tipo_trabajo || 'Sin especificar'}</div>
+        <div class="kcard-footer">
+          <span class="temp-badge temp-${o.temperatura}">${o.temperatura}</span>
+          <span class="kcard-fecha">${formatFecha(o.created_at)}</span>
+        </div>
+      </div>
+    `).join('') || '<div style="font-size:11px;color:var(--t4);padding:8px;text-align:center;">Sin prospectos</div>';
+
+    return `
+      <div class="kanban-col">
+        <div class="kanban-header">
+          <div class="kanban-dot" style="background:${ESTADO_COLORS[estado]}"></div>
+          <div class="kanban-title">${ESTADO_LABELS[estado]}</div>
+          <span class="kanban-count">${ops.length}</span>
+        </div>
+        <div class="kanban-cards">${cards}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── LISTA ─────────────────────────────────────────────────────
+function renderLista(filtro = '') {
+  const ops = filtro
+    ? oportunidades.filter(o => (o.nombre_prospecto || '').toLowerCase().includes(filtro.toLowerCase()) || (o.clientes?.nombre || '').toLowerCase().includes(filtro.toLowerCase()))
+    : oportunidades;
+
+  document.getElementById('tbody-lista').innerHTML = ops.map(o => `
+    <tr onclick="abrirDetalle('${o.id}')" style="cursor:pointer">
+      <td class="td-name">${o.nombre_prospecto || o.clientes?.nombre || '—'}</td>
+      <td>${TIPO_LABELS[o.tipo_trabajo] || o.tipo_trabajo || '—'}</td>
+      <td><span class="badge badge-${o.estado_funnel}">${ESTADO_LABELS[o.estado_funnel]}</span></td>
+      <td><span class="temp-badge temp-${o.temperatura}">${o.temperatura}</span></td>
+      <td>${o.origen || '—'}</td>
+      <td>${formatFecha(o.fecha_ingreso || o.created_at)}</td>
+      <td>${o.fecha_seguimiento ? formatFecha(o.fecha_seguimiento) : '—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();derivarANogal('${o.id}')">→ Nogal</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="8" class="empty"><div class="empty-text">Sin resultados</div></td></tr>';
+}
+
+function filtrarLista() {
+  renderLista(document.getElementById('search-lista').value);
+}
+
+// ─── SEGUIMIENTO ───────────────────────────────────────────────
+function renderSeguimiento() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const pendientes = oportunidades.filter(o =>
+    o.fecha_seguimiento && o.fecha_seguimiento <= hoy &&
+    !['ganado','perdido'].includes(o.estado_funnel)
+  ).sort((a,b) => a.fecha_seguimiento.localeCompare(b.fecha_seguimiento));
+
+  const diasSin = (o) => {
+    const ref = o.ultimo_contacto_at || o.created_at;
+    return Math.floor((Date.now() - new Date(ref)) / 86400000);
+  };
+
+  document.getElementById('tbody-seg').innerHTML = pendientes.map(o => {
+    const dias = diasSin(o);
+    const color = dias > 7 ? 'var(--red)' : dias > 3 ? 'var(--amber)' : 'var(--t2)';
+    return `
+    <tr onclick="abrirDetalle('${o.id}')" style="cursor:pointer">
+      <td class="td-name">${o.nombre_prospecto || '—'}</td>
+      <td>${TIPO_LABELS[o.tipo_trabajo] || '—'}</td>
+      <td><span class="temp-badge temp-${o.temperatura}">${o.temperatura}</span></td>
+      <td>${o.ultimo_contacto_at ? formatFecha(o.ultimo_contacto_at) : '—'}</td>
+      <td style="color:${color};font-weight:500">${dias} días</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();registrarSeguimiento('${o.id}')">✓ Registrar</button>
+        <button class="btn btn-green btn-sm" onclick="event.stopPropagation();derivarANogal('${o.id}')">→ Nogal</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty"><div class="empty-icon" style="font-size:24px">✓</div><div class="empty-text">Sin seguimientos pendientes</div></td></tr>`;
+}
+
+// ─── DETALLE PROSPECTO ─────────────────────────────────────────
+function abrirDetalle(id) {
+  const o = oportunidades.find(x => x.id === id);
+  if (!o) return;
+
+  document.getElementById('detalle-nombre').textContent = o.nombre_prospecto || o.clientes?.nombre || 'Prospecto';
+  document.getElementById('detalle-body').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${o.clientes?.email || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Teléfono</span><span class="detail-value">${o.clientes?.telefono || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Tipo trabajo</span><span class="detail-value">${TIPO_LABELS[o.tipo_trabajo] || o.tipo_trabajo || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Estado</span><span class="detail-value"><span class="badge badge-${o.estado_funnel}">${ESTADO_LABELS[o.estado_funnel]}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Temperatura</span><span class="detail-value"><span class="temp-badge temp-${o.temperatura}">${o.temperatura}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Origen</span><span class="detail-value">${o.origen || '—'} ${o.canal_detalle ? '· '+o.canal_detalle : ''}</span></div>
+    <div class="detail-row"><span class="detail-label">Ingreso</span><span class="detail-value">${formatFecha(o.fecha_ingreso || o.created_at)}</span></div>
+    <div class="detail-row"><span class="detail-label">Seguimiento</span><span class="detail-value">${o.fecha_seguimiento || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Descripción</span><span class="detail-value" style="white-space:pre-wrap">${o.descripcion || '—'}</span></div>
+    ${o.notas ? `<div class="detail-row"><span class="detail-label">Notas Roble</span><span class="detail-value" style="color:var(--amber)">${o.notas}</span></div>` : ''}
+  `;
+
+  const acciones = document.getElementById('detalle-acciones');
+  const nextEstados = ESTADOS.filter(e => e !== o.estado_funnel && e !== 'perdido');
+  acciones.innerHTML = `
+    <button class="btn btn-gold" onclick="closeModal('modal-detalle');derivarANogal('${o.id}')">→ Pasar a Nogal</button>
+    ${nextEstados.slice(0,2).map(e => `<button class="btn btn-ghost" onclick="cambiarEstado('${o.id}','${e}')">${ESTADO_LABELS[e]}</button>`).join('')}
+    <button class="btn btn-ghost" onclick="closeModal('modal-detalle');registrarSeguimiento('${o.id}')">✓ Registrar seguimiento</button>
+    <button class="btn" style="background:rgba(224,96,96,0.1);color:var(--red);border:1px solid rgba(224,96,96,0.2)" onclick="cambiarEstado('${o.id}','perdido')">✗ Perdido</button>
+  `;
+
+  document.getElementById('modal-detalle').classList.add('open');
+}
+
+// ─── ACCIONES ─────────────────────────────────────────────────
+async function cambiarEstado(id, estado) {
+  closeModal('modal-detalle');
+  await fetch(ROBLE, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'actualizar_estado', oportunidad_id: id, nuevo_estado: estado })
+  });
+  notif(`Estado actualizado: ${ESTADO_LABELS[estado]}`, 'ok');
+  cargarOportunidades();
+}
+
+async function derivarANogal(id) {
+  closeModal('modal-detalle');
+  await fetch(ROBLE, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'actualizar_estado', oportunidad_id: id, nuevo_estado: 'cotizando' })
+  });
+  notif('✓ Derivado a Nogal — sesión de cotización creada', 'ok');
+  cargarOportunidades();
+}
+
+async function registrarSeguimiento(id) {
+  const o = oportunidades.find(x => x.id === id);
+  const contenido = prompt(`Seguimiento para ${o?.nombre_prospecto || 'prospecto'}:\n¿Qué pasó?`);
+  if (!contenido) return;
+  await fetch(ROBLE, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'seguimiento', oportunidad_id: id, cliente_id: o?.cliente_id, canal: 'whatsapp', contenido, resultado: 'interesado' })
+  });
+  notif('✓ Seguimiento registrado', 'ok');
+  cargarOportunidades();
+}
+
+// ─── NUEVO PROSPECTO ──────────────────────────────────────────
+function openModalNuevo() {
+  const hoy = new Date();
+  hoy.setDate(hoy.getDate() + 1);
+  document.getElementById('n-fecha').value = hoy.toISOString().split('T')[0];
+  document.getElementById('modal-nuevo').classList.add('open');
+}
+
+async function guardarProspecto() {
+  const nombre = document.getElementById('n-nombre').value.trim();
+  const mensaje = document.getElementById('n-desc').value.trim();
+  if (!nombre) { notif('El nombre es requerido', 'error'); return; }
+
+  const resp = await fetch(ROBLE, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accion: 'nuevo_prospecto',
+      nombre,
+      email: document.getElementById('n-email').value.trim(),
+      telefono: document.getElementById('n-tel').value.trim(),
+      tipo_trabajo: document.getElementById('n-tipo').value,
+      mensaje: mensaje || nombre + ' — ingresado manualmente',
+      honeypot: ''
+    })
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    closeModal('modal-nuevo');
+    notif('✓ Prospecto guardado', 'ok');
+    cargarOportunidades();
+  } else {
+    notif(data.error || 'Error al guardar', 'error');
+  }
+}
+
+// ─── UTILS ────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function notif(msg, tipo = 'ok') {
+  const el = document.getElementById('notif');
+  el.textContent = msg; el.className = `notif ${tipo}`;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function formatFecha(str) {
+  if (!str) return '—';
+  const d = new Date(str);
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+function showPage(page) {
+  ['roble','nogal','ot','clientes'].forEach(p => {
+    document.getElementById(`page-${p}`).style.display = p === page ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (page === 'roble') cargarOportunidades();
+}
+
+// Cerrar modales con click fuera
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// Init
+cargarOportunidades();
+setInterval(cargarOportunidades, 60000); // refresh cada minuto
+</script>
+</body>
+</html>

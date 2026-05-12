@@ -1,103 +1,80 @@
-# Zebrano ERP Web
+# Zebrano — Sitio Web
 
-Sistema de gestión interno para Zebrano — carpintería y mueblería premium a medida.
+## Deploy en Vercel (5 minutos)
 
-## Stack
-
-- **Frontend**: React 18 + React Router
-- **Backend/DB**: Supabase (PostgreSQL + Auth)
-- **Agente AI**: Claude (via n8n webhooks)
-- **Hosting recomendado**: Vercel (deploy automático desde GitHub)
-
-## Páginas
-
-| Ruta | Descripción |
-|------|-------------|
-| `/` | Dashboard con KPIs, proyectos activos y seguimientos |
-| `/proyectos` | Lista completa de trabajos con filtros por estado |
-| `/clientes` | Base de clientes con historial y facturación |
-| `/ventas` | Pipeline kanban de oportunidades |
-| `/produccion` | OTs activas con barras de avance |
-| `/cotizador` | Chat con el agente AI cotizador |
-| `/landing` | Preview de la landing pública |
-
-## Instalación local
-
+### Paso 1: Subir a GitHub
 ```bash
-git clone https://github.com/martin-tomasella/zebrano
-cd zebrano-web
-cp .env.example .env
-# Completar .env con las keys reales
-npm install
-npm start
+# Crear repo nuevo en github.com/nuevo
+git init
+git add .
+git commit -m "feat: sitio Zebrano v1.0"
+git remote add origin https://github.com/TU_USUARIO/zebrano-web.git
+git push -u origin main
 ```
 
-## Variables de entorno
+### Paso 2: Conectar con Vercel
+1. Ir a https://vercel.com
+2. "Add New Project"
+3. Importar el repo `zebrano-web`
+4. Click "Deploy" — no necesita variables de entorno (la Edge Function URL está en el código)
+5. En ~30 segundos tenés el sitio online con HTTPS automático
+
+### Paso 3: Dominio personalizado (opcional)
+- En Vercel: Settings → Domains → Add Domain
+- Si tenés Hostinger: apuntá el DNS del dominio a Vercel
+
+---
+
+## Archivos incluidos
+
+| Archivo | Descripción |
+|---------|-------------|
+| `index.html` | Landing page con formulario de contacto |
+| `vercel.json` | Headers de seguridad (CSP, HSTS, X-Frame-Options) |
+| `erp-roble.html` | ERP interno — módulo Roble (abrir localmente o subir a ruta protegida) |
+
+---
+
+## Seguridad implementada
+
+✅ HTTPS automático (Vercel)  
+✅ Headers de seguridad (CSP, HSTS, X-Frame-Options, X-XSS-Protection)  
+✅ Honeypot anti-spam en el formulario  
+✅ Rate limiting client-side (3 envíos máx por sesión)  
+✅ Rate limiting server-side en Edge Function (10 req/min por IP)  
+✅ Validación de inputs (nombre, email, longitud)  
+✅ La anon key de Supabase nunca se expone — el formulario llama a la Edge Function  
+✅ La Edge Function usa service_role internamente  
+✅ RLS activo en todas las tablas  
+
+---
+
+## Flujo Roble → Nogal
 
 ```
-REACT_APP_SUPABASE_URL=
-REACT_APP_SUPABASE_ANON_KEY=
-REACT_APP_N8N_COTIZADOR=
-REACT_APP_N8N_LEADER=
+Prospecto llena formulario web
+        ↓
+Edge Function roble-ventas analiza con Claude
+        ↓
+Crea oportunidad en tabla oportunidades
+        ↓
+Si listo_para_cotizar = true:
+  → Crea cotizacion_sesion automáticamente
+  → Nogal puede continuar desde la app
+        ↓
+Si necesita seguimiento:
+  → Aparece en ERP (erp-roble.html) con temperatura
+  → El equipo hace seguimiento manual
+  → Cuando confirma, click "→ Pasar a Nogal"
 ```
 
-## Deploy en Vercel
+---
 
-1. Push a GitHub
-2. Importar repo en vercel.com
-3. Agregar variables de entorno en el panel de Vercel
-4. Deploy automático en cada push a `main`
+## Google Drive de fotos (pendiente)
 
-## Auth
+Cuando tengas el link del Drive, ir a Supabase → tabla `zebrano_drive_config` y completar:
+- `drive_folder_id`: el ID de la carpeta (lo que viene después de /folders/ en la URL)
+- `drive_folder_url`: la URL completa
 
-Usa Supabase Auth. Los usuarios se crean en el panel de Supabase (Authentication > Users).
-La tabla `empleados` tiene un campo `auth_user_id` que linkea el usuario al perfil.
-
-### Crear usuario admin
-
-1. Ir a Supabase → Authentication → Add user
-2. Email: `martin@zebrano.com`, password a elección
-3. Copiar el UUID del usuario creado
-4. Ejecutar en SQL:
-
-```sql
-UPDATE empleados SET auth_user_id = 'UUID-AQUI' WHERE nombre = 'Jorge Ramírez';
-```
-
-O insertar nuevo empleado:
-
-```sql
-INSERT INTO empleados (nombre, rol, costo_hora, auth_user_id)
-VALUES ('Martín Tomasella', 'admin', 0, 'UUID-AQUI');
-```
-
-## Estructura del proyecto
-
-```
-zebrano-web/
-├── public/
-│   └── index.html
-├── src/
-│   ├── components/
-│   │   ├── Layout.jsx      # Sidebar + Topbar
-│   │   └── ui.jsx          # Badge, Table, Card, KpiCard...
-│   ├── hooks/
-│   │   └── useAuth.js      # Auth context con Supabase
-│   ├── lib/
-│   │   └── supabase.js     # Cliente Supabase + constantes
-│   ├── pages/
-│   │   ├── Login.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── Proyectos.jsx
-│   │   ├── Clientes.jsx
-│   │   ├── Ventas.jsx
-│   │   ├── Produccion.jsx
-│   │   ├── Cotizador.jsx
-│   │   └── Landing.jsx
-│   ├── App.js
-│   ├── index.js
-│   └── index.css
-├── .env.example
-├── .gitignore
-└── package.json
-```
+El agente Nogal ya está preparado para consultar la base de conocimiento de trabajos anteriores.
+Para agregar fotos del Drive a la base de conocimiento: insertar en tabla `conocimiento_fotos` con la URL pública de cada foto.

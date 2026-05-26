@@ -1,21 +1,34 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Login() {
-  const { signIn } = useAuth()
+  const { signIn, user, loading } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!loading && user) navigate('/')
+  }, [user, loading, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    setLoading(true)
+    setSubmitting(true)
     const { error } = await signIn(email, password)
     if (error) setError(error.message)
-    setLoading(false)
+    setSubmitting(false)
   }
+
+  if (loading) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0A0D08' }}>
+      <div style={{ width:24, height:24, border:'2px solid #4A6B36', borderTop:'2px solid #E8DFD0', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+    </div>
+  )
 
   return (
     <div style={{
@@ -28,20 +41,12 @@ export default function Login() {
           <polygon points="250,60 120,240 380,240"/>
           <polygon points="250,100 100,280 400,280"/>
           <rect x="225" y="270" width="50" height="50"/>
-          <polygon points="80,40 10,170 150,170"/>
-          <polygon points="80,70 5,200 155,200"/>
-          <rect x="65" y="195" width="30" height="35"/>
-          <polygon points="420,30 350,160 490,160"/>
-          <polygon points="420,60 345,190 495,190"/>
-          <rect x="405" y="185" width="30" height="35"/>
         </g>
       </svg>
 
       <div style={{
-        background:'#080B06',
-        border:'1px solid rgba(74,107,54,0.2)',
-        borderRadius:12, padding:'44px 40px',
-        width:'100%', maxWidth:380,
+        background:'#080B06', border:'1px solid rgba(74,107,54,0.2)',
+        borderRadius:12, padding:'44px 40px', width:'100%', maxWidth:380,
         position:'relative', zIndex:1,
       }}>
         <div style={{ textAlign:'center', marginBottom:36 }}>
@@ -51,19 +56,14 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           {[
-            { label:'Email', type:'email', value:email, set:setEmail, placeholder:'nombre@zebrano.com' },
-            { label:'Contraseña', type:'password', value:password, set:setPassword, placeholder:'••••••••' },
+            { label:'Email', type:'email', value:email, set:setEmail },
+            { label:'Contraseña', type:'password', value:password, set:setPassword },
           ].map(f => (
             <div key={f.label} style={{ marginBottom:14 }}>
               <label style={{ display:'block', fontSize:9, color:'#2E4A22', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.1em' }}>{f.label}</label>
               <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
-                placeholder={f.placeholder} required autoFocus={f.label==='Email'}
-                style={{
-                  width:'100%', padding:'9px 12px', borderRadius:5,
-                  border:'1px solid rgba(74,107,54,0.2)',
-                  background:'#0A0D08', color:'#E8DFD0',
-                  fontSize:13, outline:'none', fontFamily:"'Jost',sans-serif",
-                }}
+                required autoFocus={f.label==='Email'}
+                style={{ width:'100%', padding:'9px 12px', borderRadius:5, border:'1px solid rgba(74,107,54,0.2)', background:'#0A0D08', color:'#E8DFD0', fontSize:13, outline:'none' }}
                 onFocus={e => e.target.style.borderColor='#4A6B36'}
                 onBlur={e  => e.target.style.borderColor='rgba(74,107,54,0.2)'}
               />
@@ -76,19 +76,18 @@ export default function Login() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{
+          <button type="submit" disabled={submitting} style={{
             width:'100%', marginTop:6, padding:'10px',
-            background: loading ? 'rgba(74,107,54,0.5)' : '#4A6B36',
+            background: submitting ? 'rgba(74,107,54,0.5)' : '#4A6B36',
             color:'#E8DFD0', border:'none', borderRadius:6,
-            fontSize:12, fontWeight:400, letterSpacing:'0.1em',
-            textTransform:'uppercase', cursor: loading ? 'not-allowed' : 'pointer',
-            fontFamily:"'Jost',sans-serif",
+            fontSize:12, letterSpacing:'0.1em', textTransform:'uppercase',
+            cursor: submitting ? 'not-allowed' : 'pointer',
           }}>
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {submitting ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
 
-        <div style={{ textAlign:'center', marginTop:28, fontSize:10, color:'#1E3014', letterSpacing:'0.05em' }}>
+        <div style={{ textAlign:'center', marginTop:28, fontSize:10, color:'#1E3014' }}>
           Zebrano m+a · uso interno
         </div>
       </div>

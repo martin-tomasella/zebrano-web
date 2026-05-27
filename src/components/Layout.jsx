@@ -5,17 +5,18 @@ import { Avatar } from './ui'
 
 const NAV = [
   { section: 'Principal' },
-  { path: '/',           label: 'Dashboard',       icon: 'M2 7L7 2l5 5' },
+  { path: '/'          , label: 'Dashboard'      , icon: 'M2 7L7 2l5 5' },
   { section: 'Gestión' },
-  { path: '/proyectos',  label: 'Proyectos',       icon: 'rect' },
-  { path: '/clientes',   label: 'Clientes',        icon: 'circle' },
-  { path: '/ventas',     label: 'Ventas',          icon: 'trend' },
-  { path: '/produccion', label: 'Producción',      icon: 'gear' },
+  { path: '/proyectos' , label: 'Proyectos'      , icon: 'rect' },
+  { path: '/clientes'  , label: 'Clientes'       , icon: 'circle' },
+  { path: '/ventas'    , label: 'Ventas'         , icon: 'trend' },
+  { path: '/produccion', label: 'Producción'     , icon: 'gear' },
   { section: 'Herramientas' },
-  { path: '/cotizador',  label: 'Cotizador AI',    icon: 'spark' },
-  { path: '/landing',    label: 'Landing pública', icon: 'globe' },
+  { path: '/cotizador' , label: 'Cotizador AI'   , icon: 'spark' },
+  { path: '/rrss'      , label: 'Publicaciones'  , icon: 'rrss' },
+  { path: '/landing'   , label: 'Landing pública', icon: 'globe' },
   { section: 'Administración' },
-  { path: '/usuarios',   label: 'Usuarios',        icon: 'user', adminOnly: true },
+  { path: '/usuarios'  , label: 'Usuarios'       , icon: 'user', adminOnly: true },
 ]
 
 function NavIcon({ type, active }) {
@@ -29,6 +30,7 @@ function NavIcon({ type, active }) {
     spark:  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 12L5 2l2 4 2-2 3 8" stroke={c} strokeWidth="1" strokeLinejoin="round"/></svg>,
     globe:  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke={c} strokeWidth="1"/><ellipse cx="7" cy="7" rx="2.5" ry="6" stroke={c} strokeWidth="1"/><line x1="1" y1="7" x2="13" y2="7" stroke={c} strokeWidth="1"/></svg>,
     user:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4" r="3" stroke={c} strokeWidth="1"/><path d="M1 13c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke={c} strokeWidth="1"/></svg>,
+    rrss:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke={c} strokeWidth="1"/><circle cx="4.5" cy="4.5" r="1" fill={c}/><path d="M1 8l3-2 2 1.5 3-3 4 4" stroke={c} strokeWidth="1" strokeLinejoin="round"/></svg>,
   }
   return icons[type] || null
 }
@@ -47,7 +49,7 @@ export function Layout({ children }) {
         display:'flex', flexDirection:'column', height:'100vh',
       }}>
         <div style={{ padding:'22px 18px 16px', borderBottom:'1px solid rgba(74,107,54,0.1)' }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:20, fontWeight:300, fontStyle:'italic', color:'#E8DFD0', letterSpacing:'0.04em' }}>Zebrano</div>
+          <div style={{ fontFamily:""'Cormorant Garamond',Georgia,serif"", fontSize:20, fontWeight:300, fontStyle:'italic', color:'#E8DFD0', letterSpacing:'0.04em' }}>Zebrano</div>
           <div style={{ fontSize:9, color:'#2E4A22', letterSpacing:'0.18em', textTransform:'uppercase', marginTop:4 }}>mueblería a medida</div>
         </div>
 
@@ -115,7 +117,7 @@ export function Topbar({ title, subtitle, actions }) {
       minHeight:54,
     }}>
       <div>
-        <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#E8DFD0' }}>{title}</div>
+        <div style={{ fontFamily:""'Cormorant Garamond',Georgia,serif"", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#E8DFD0' }}>{title}</div>
         {subtitle && <div style={{ fontSize:10, color:'#2E4A22', marginTop:1, letterSpacing:'0.04em' }}>{subtitle}</div>}
       </div>
       {actions && <div style={{ display:'flex', gap:8 }}>{actions}</div>}

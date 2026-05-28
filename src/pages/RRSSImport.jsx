@@ -1,275 +1,208 @@
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-const INSTRUCCIONES = `Cómo obtener las URLs de tus fotos:
-
-1. Abrí Google Fotos en el navegador (photos.google.com)
-2. Abrí una foto → click derecho sobre la imagen → "Copiar dirección de imagen"
-3. Pegá cada URL acá (una por línea)
-
-Las URLs tienen este formato:
-https://lh3.googleusercontent.com/XXXX...
-
-También podés pegar el link directo de cada foto de Google Fotos.`;
-
 export default function RRSSImport() {
-  const [urlsText, setUrlsText] = useState('');
-  const [fase, setFase] = useState('idle');
-  const [progreso, setProgreso] = useState({ actual: 0, total: 0, aptas: 0, descartadas: 0, errores: 0 });
-  const [log, setLog] = useState([]);
-  const [mostrarInstrucciones, setMostrarInstrucciones] = useState(false);
+  const [archivos, setArchivos] = useState([]);
+  const [procesando, setProcesando] = useState(false);
+  const [resultados, setResultados] = useState([]);
+  const [drag, setDrag] = useState(false);
+  const inputRef = useRef();
 
-  const addLog = (msg, tipo = 'info') =>
-    setLog(prev => [...prev.slice(-99), { msg, tipo, ts: new Date().toLocaleTimeString('es-AR') }]);
+  const agregarArchivos = useCallback((files) => {
+    const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
+    setArchivos(prev => {
+      const existentes = new Set(prev.map(f => f.name + f.size));
+      const nuevos = imgs.filter(f => !existentes.has(f.name + f.size));
+      return [...prev, ...nuevos];
+    });
+  }, []);
 
-  const parsearURLs = (texto) => {
-    const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
-    const urls = [];
-    for (const linea of lineas) {
-      // URL directa de lh3.googleusercontent.com
-      if (linea.startsWith('https://lh3.googleusercontent.com/')) {
-        urls.push(linea.split('=')[0]); // sacar parámetros de tamaño
-      }
-      // Link de Google Fotos (photos.google.com/photo/...)
-      else if (linea.includes('photos.google.com')) {
-        urls.push(linea); // se procesará como link de fotos
-      }
-    }
-    return [...new Set(urls)]; // deduplicar
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDrag(false);
+    agregarArchivos(e.dataTransfer.files);
   };
 
-  const clasificarFotos = async () => {
-    const fotos = parsearURLs(urlsText);
-    if (fotos.length === 0) {
-      addLog('No se encontraron URLs válidas. Revisá el formato.', 'error');
-      return;
-    }
+  const clasificar = async () => {
+    if (!archivos.length) return;
+    setProcesando(true);
+    setResultados([]);
+    const res = [];
 
-    setFase('clasificando');
-    setProgreso({ actual: 0, total: fotos.length, aptas: 0, descartadas: 0, errores: 0 });
-    addLog(`Iniciando clasificación de ${fotos.length} fotos...`, 'info');
-
-    let aptas = 0, descartadas = 0, errores = 0;
-
-    for (let i = 0; i < fotos.length; i++) {
-      const url = fotos[i];
+    for (let i = 0; i < archivos.length; i++) {
+      const file = archivos[i];
       try {
-        // Agregar parámetro de tamaño para optimizar la descarga
-        const urlConTamaño = url.includes('lh3.googleusercontent.com')
-          ? url + '=w1200-h1200'
-          : url;
-
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/fotos-classifier-url`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ANON_KEY}`,
-          },
-          body: JSON.stringify({ image_url: urlConTamaño }),
+        // Convertir a base64
+        const base64 = await new Promise((ok, err) => {
+          const reader = new FileReader();
+          reader.onload = e => ok(e.target.result.split(',')[1]);
+          reader.onerror = err;
+          reader.readAsDataURL(file);
         });
 
-        if (!resp.ok) {
-          throw new Error(`HTTP ${resp.status}`);
-        }
-
-        const result = await resp.json();
-
-        if (result.ya_procesada) {
-          addLog(`[${i+1}/${fotos.length}] Ya procesada anteriormente`, 'info');
-        } else if (result.ok) {
-          if (result.apto_rrss) {
-            aptas++;
-            addLog(`✓ [${i+1}/${fotos.length}] APTA — ${result.tipo_trabajo || 'trabajo'} · score ${result.score_calidad}/5`, 'ok');
-          } else {
-            descartadas++;
-            addLog(`✗ [${i+1}/${fotos.length}] Descartada: ${result.motivo_descarte || 'no apta para RRSS'}`, 'warn');
-          }
-        } else {
-          errores++;
-          addLog(`! [${i+1}/${fotos.length}] Error: ${result.error}`, 'error');
-        }
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/fotos-classifier-upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+          body: JSON.stringify({
+            base64,
+            media_type: file.type,
+            filename: file.name,
+          }),
+        });
+        const data = await resp.json();
+        res.push({ nombre: file.name, ...data });
       } catch (e) {
-        errores++;
-        addLog(`! [${i+1}/${fotos.length}] ${e.message}`, 'error');
+        res.push({ nombre: file.name, ok: false, error: e.message });
       }
-
-      setProgreso({ actual: i + 1, total: fotos.length, aptas, descartadas, errores });
-      await new Promise(r => setTimeout(r, 600));
+      setResultados([...res]);
     }
 
-    addLog(`─── Terminado: ${aptas} aptas · ${descartadas} descartadas · ${errores} errores`, 'info');
-    setFase('clasificado');
+    setProcesando(false);
   };
 
-  const generarContenido = async () => {
-    setFase('generando');
-    addLog('Generando captions con IA...', 'info');
-    try {
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/rrss-content-generator`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-        body: JSON.stringify({ limite: 20 }),
-      });
-      const data = await resp.json();
-      if (data.ok) {
-        addLog(`✓ ${data.generadas} borradores creados`, 'ok');
-        setFase('listo');
-      } else {
-        addLog('Error: ' + (data.error || 'desconocido'), 'error');
-        setFase('clasificado');
-      }
-    } catch (e) {
-      addLog('Error: ' + e.message, 'error');
-      setFase('clasificado');
+  const generarCaptions = async () => {
+    setProcesando(true);
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/rrss-content-generator`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+      body: JSON.stringify({ limite: 20 }),
+    });
+    const data = await resp.json();
+    setProcesando(false);
+    if (data.ok) {
+      window.location.href = '/rrss';
     }
   };
 
-  const pct = progreso.total > 0 ? Math.round((progreso.actual / progreso.total) * 100) : 0;
+  const aptas = resultados.filter(r => r.apto_rrss === true).length;
+  const descartadas = resultados.filter(r => r.apto_rrss === false).length;
+  const errores = resultados.filter(r => r.ok === false).length;
+  const terminado = resultados.length === archivos.length && archivos.length > 0 && !procesando;
 
-  const st = {
-    page:  { padding: 24, maxWidth: 860, margin: '0 auto', color: '#E8DFD0' },
-    h1:    { fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 28, fontWeight: 300, fontStyle: 'italic', color: '#E8DFD0', margin: '0 0 4px' },
-    sub:   { color: '#3A5030', fontSize: 12, marginBottom: 28 },
-    card:  { background: '#080B06', border: '1px solid rgba(74,107,54,0.15)', borderRadius: 12, padding: '20px 24px', marginBottom: 16 },
-    lbl:   { fontSize: 10, color: '#3A5030', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, display: 'block' },
-    btn:   (bg, dis) => ({ padding: '9px 18px', fontSize: 12, background: dis ? '#111' : bg, color: dis ? '#2E4A22' : '#C8D9B8', border: 'none', borderRadius: 8, cursor: dis ? 'not-allowed' : 'pointer', opacity: dis ? 0.5 : 1, transition: 'opacity 0.15s' }),
-    ghost: { padding: '7px 14px', fontSize: 11, background: 'transparent', color: '#3A5030', border: '1px solid rgba(74,107,54,0.2)', borderRadius: 8, cursor: 'pointer' },
-    bar:   { background: 'rgba(74,107,54,0.1)', borderRadius: 20, height: 5, overflow: 'hidden', marginTop: 8 },
-    fill:  { background: '#4A6B36', height: '100%', width: pct + '%', transition: 'width 0.3s', borderRadius: 20 },
-    log:   { background: '#050805', border: '1px solid rgba(74,107,54,0.08)', borderRadius: 8, padding: '10px 14px', maxHeight: 280, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11 },
+  const s = {
+    page: { padding: '32px 24px', maxWidth: 700, margin: '0 auto', color: '#E8DFD0' },
+    titulo: { fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', color: '#E8DFD0', marginBottom: 4 },
+    sub: { fontSize: 12, color: '#3A5030', marginBottom: 32 },
+    zona: {
+      border: `2px dashed ${drag ? '#4A6B36' : 'rgba(74,107,54,0.25)'}`,
+      borderRadius: 16, padding: '48px 32px', textAlign: 'center',
+      background: drag ? 'rgba(74,107,54,0.06)' : 'transparent',
+      cursor: 'pointer', transition: 'all 0.2s', marginBottom: 20,
+    },
+    btn: (bg, dis) => ({
+      padding: '10px 22px', fontSize: 13, background: dis ? '#111' : bg,
+      color: dis ? '#2E4A22' : '#C8D9B8', border: 'none', borderRadius: 8,
+      cursor: dis ? 'not-allowed' : 'pointer', opacity: dis ? 0.5 : 1,
+    }),
   };
-
-  const logC = { ok: '#7AAE5A', warn: '#fbbf24', error: '#f87171', info: '#4A6B36' };
-
-  const urlCount = parsearURLs(urlsText).length;
 
   return (
-    <div style={st.page}>
-      <h1 style={st.h1}>Importar fotos</h1>
-      <p style={st.sub}>Clasificá fotos desde Google Fotos y generá contenido para RRSS</p>
+    <div style={s.page}>
+      <h1 style={s.titulo}>Subir fotos</h1>
+      <p style={s.sub}>Seleccioná fotos desde tu computadora o arrástralas acá</p>
 
-      {/* Paso 1: pegar URLs */}
-      <div style={st.card}>
-        <span style={st.lbl}>Paso 1 — Pegá las URLs de las fotos</span>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <p style={{ fontSize: 12, color: '#3A5030', margin: 0 }}>
-            Pegá una URL por línea (formato <code style={{ color: '#4A6B36', fontSize: 11 }}>lh3.googleusercontent.com/...</code>)
-          </p>
-          <button style={st.ghost} onClick={() => setMostrarInstrucciones(v => !v)}>
-            {mostrarInstrucciones ? 'Ocultar ayuda' : '? Cómo obtener las URLs'}
-          </button>
+      {/* Zona de drop */}
+      <div
+        style={s.zona}
+        onDragOver={e => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={onDrop}
+        onClick={() => inputRef.current.click()}
+      >
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📁</div>
+        <div style={{ fontSize: 14, color: '#C8D9B8', marginBottom: 6 }}>
+          Arrastrá las fotos acá o hacé click para seleccionar
         </div>
+        <div style={{ fontSize: 11, color: '#3A5030' }}>
+          JPG, PNG, WEBP — podés seleccionar varias a la vez
+        </div>
+        <input ref={inputRef} type="file" multiple accept="image/*"
+          style={{ display: 'none' }}
+          onChange={e => agregarArchivos(e.target.files)} />
+      </div>
 
-        {mostrarInstrucciones && (
-          <pre style={{ background: 'rgba(74,107,54,0.06)', border: '1px solid rgba(74,107,54,0.1)', borderRadius: 8, padding: 14, fontSize: 11, color: '#8A9E82', whiteSpace: 'pre-wrap', marginBottom: 12, lineHeight: 1.7 }}>
-            {INSTRUCCIONES}
-          </pre>
-        )}
-
-        <textarea
-          value={urlsText}
-          onChange={e => setUrlsText(e.target.value)}
-          placeholder={'https://lh3.googleusercontent.com/abc123...\nhttps://lh3.googleusercontent.com/def456...\n...'}
-          rows={8}
-          style={{
-            width: '100%', background: '#050805', border: '1px solid rgba(74,107,54,0.2)',
-            borderRadius: 8, padding: '10px 14px', color: '#C8D9B8', fontSize: 12,
-            fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box',
-            outline: 'none', lineHeight: 1.6,
-          }}
-        />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-          {urlCount > 0 && (
-            <span style={{ fontSize: 12, color: '#7AAE5A' }}>
-              ✓ {urlCount} URL{urlCount !== 1 ? 's' : ''} válida{urlCount !== 1 ? 's' : ''}
-            </span>
-          )}
-          {urlsText && (
-            <button style={st.ghost} onClick={() => { setUrlsText(''); setLog([]); setFase('idle'); }}>
+      {/* Lista de archivos */}
+      {archivos.length > 0 && (
+        <div style={{ background: '#080B06', border: '1px solid rgba(74,107,54,0.15)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 12 }}>
+            <span style={{ color: '#C8D9B8' }}>{archivos.length} foto{archivos.length !== 1 ? 's' : ''} seleccionada{archivos.length !== 1 ? 's' : ''}</span>
+            <button onClick={() => { setArchivos([]); setResultados([]); }}
+              style={{ background: 'none', border: 'none', color: '#3A5030', cursor: 'pointer', fontSize: 11 }}>
               Limpiar
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Paso 2: clasificar */}
-      <div style={{ ...st.card, opacity: urlCount === 0 ? 0.4 : 1 }}>
-        <span style={st.lbl}>Paso 2 — Clasificar con Claude Vision</span>
-        <p style={{ fontSize: 12, color: '#3A5030', marginBottom: 12 }}>
-          La IA analiza cada foto y decide si es apta para publicar. Las fotos originales no se modifican.
-        </p>
-        <button
-          style={st.btn('#4A6B36', urlCount === 0 || fase === 'clasificando')}
-          onClick={clasificarFotos}
-          disabled={urlCount === 0 || fase === 'clasificando'}>
-          {fase === 'clasificando' ? '⏳ Clasificando...' : `🤖 Clasificar ${urlCount > 0 ? urlCount + ' fotos' : ''}`}
-        </button>
-
-        {(fase === 'clasificando' || fase === 'clasificado') && progreso.total > 0 && (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#3A5030', marginBottom: 4 }}>
-              <span>{progreso.actual} / {progreso.total}</span>
-              <span>{pct}%</span>
-            </div>
-            <div style={st.bar}><div style={st.fill} /></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 12 }}>
-              {[['Aptas', progreso.aptas, '#7AAE5A'], ['Descartadas', progreso.descartadas, '#fbbf24'], ['Errores', progreso.errores, '#f87171']].map(([l, v, c]) => (
-                <div key={l} style={{ background: 'rgba(74,107,54,0.05)', borderRadius: 8, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(74,107,54,0.1)' }}>
-                  <div style={{ fontSize: 22, fontWeight: 300, color: c }}>{v}</div>
-                  <div style={{ fontSize: 10, color: '#3A5030', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{l}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 8 }}>
+            {archivos.map((f, i) => {
+              const r = resultados[i];
+              return (
+                <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#0A0D08' }}>
+                  <img src={URL.createObjectURL(f)} alt={f.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {r && (
+                    <div style={{
+                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: r.ok === false ? 'rgba(239,68,68,0.7)' : r.apto_rrss ? 'rgba(34,197,94,0.6)' : 'rgba(0,0,0,0.6)',
+                      fontSize: 20,
+                    }}>
+                      {r.ok === false ? '✗' : r.apto_rrss ? '✓' : '—'}
+                    </div>
+                  )}
+                  {procesando && !r && i === resultados.length && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                      ⏳
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Paso 3: generar contenido */}
-      <div style={{ ...st.card, opacity: fase !== 'clasificado' && fase !== 'generando' && fase !== 'listo' ? 0.4 : 1 }}>
-        <span style={st.lbl}>Paso 3 — Generar captions con IA</span>
-        <p style={{ fontSize: 12, color: '#3A5030', marginBottom: 12 }}>
-          Genera texto para Instagram y Facebook de cada foto apta. Quedan como borradores para revisar.
-        </p>
-        <button
-          style={st.btn('#4A6B36', fase !== 'clasificado')}
-          onClick={generarContenido}
-          disabled={fase !== 'clasificado'}>
-          {fase === 'generando' ? '⏳ Generando...' : fase === 'listo' ? '✓ Captions generados' : '✨ Generar captions'}
-        </button>
-      </div>
-
-      {/* Log */}
-      {log.length > 0 && (
-        <div style={st.card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={st.lbl}>Log</span>
-            <button style={{ ...st.ghost, padding: '3px 10px', fontSize: 10 }} onClick={() => setLog([])}>Limpiar</button>
-          </div>
-          <div style={st.log} ref={el => el && (el.scrollTop = el.scrollHeight)}>
-            {log.map((l, i) => (
-              <div key={i} style={{ color: logC[l.tipo], marginBottom: 2, lineHeight: 1.5 }}>
-                <span style={{ color: '#1E3014' }}>[{l.ts}]</span> {l.msg}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Listo */}
-      {fase === 'listo' && (
-        <div style={{ ...st.card, borderColor: 'rgba(122,174,90,0.3)' }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
-          <p style={{ color: '#7AAE5A', fontSize: 14, marginBottom: 16 }}>
-            Proceso completo. Los borradores están listos para revisar y aprobar.
-          </p>
-          <a href="/rrss" style={{ padding: '9px 18px', background: '#4A6B36', color: '#C8D9B8', borderRadius: 8, textDecoration: 'none', fontSize: 13 }}>
-            Ver publicaciones →
-          </a>
+      {/* Progreso */}
+      {resultados.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
+          {[['✓ Aptas', aptas, '#7AAE5A'], ['— Descartadas', descartadas, '#fbbf24'], ['✗ Errores', errores, '#f87171']].map(([l, v, c]) => (
+            <div key={l} style={{ background: '#080B06', border: '1px solid rgba(74,107,54,0.15)', borderRadius: 10, padding: '12px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 24, fontWeight: 300, color: c }}>{v}</div>
+              <div style={{ fontSize: 10, color: '#3A5030', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Botones */}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button style={s.btn('#4A6B36', !archivos.length || procesando)}
+          onClick={clasificar} disabled={!archivos.length || procesando}>
+          {procesando && !terminado ? `⏳ Analizando ${resultados.length}/${archivos.length}...` : '🤖 Analizar con IA'}
+        </button>
+
+        {terminado && aptas > 0 && (
+          <button style={s.btn('#2E4A22', procesando)} onClick={generarCaptions} disabled={procesando}>
+            {procesando ? '⏳ Generando...' : `✨ Generar captions (${aptas} fotos aptas)`}
+          </button>
+        )}
+      </div>
+
+      {/* Resultados individuales */}
+      {resultados.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          {resultados.filter(r => r.ok !== false && r.tipo_trabajo).map((r, i) => (
+            <div key={i} style={{ background: '#080B06', border: '1px solid rgba(74,107,54,0.1)', borderRadius: 8, padding: '8px 14px', marginBottom: 6, fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#8A9E82', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nombre}</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {r.tipo_trabajo && <span style={{ color: '#3A5030', textTransform: 'capitalize' }}>{r.tipo_trabajo}</span>}
+                <span style={{ color: r.apto_rrss ? '#7AAE5A' : '#3A5030' }}>{'⭐'.repeat(r.score_calidad || 0)}</span>
+                <span style={{ color: r.apto_rrss ? '#7AAE5A' : '#fbbf24', fontWeight: 500 }}>
+                  {r.apto_rrss ? 'APTA' : r.motivo_descarte || 'no apta'}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

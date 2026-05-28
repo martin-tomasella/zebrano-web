@@ -11,6 +11,7 @@ import Cotizador  from './pages/Cotizador'
 import LandingPreview from './pages/Landing'
 import Usuarios from './pages/Usuarios'
 import RRSS from './pages/RRSS'
+import RRSSImport from './pages/RRSSImport'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -26,17 +27,18 @@ function PrivateRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login"     element={<Login />} />
-      <Route path="/"          element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-      <Route path="/proyectos" element={<PrivateRoute><Proyectos /></PrivateRoute>} />
-      <Route path="/clientes"  element={<PrivateRoute><Clientes /></PrivateRoute>} />
-      <Route path="/ventas"    element={<PrivateRoute><Ventas /></PrivateRoute>} />
-      <Route path="/produccion"element={<PrivateRoute><Produccion /></PrivateRoute>} />
-      <Route path="/cotizador" element={<PrivateRoute><Cotizador /></PrivateRoute>} />
-      <Route path="/landing"   element={<PrivateRoute><LandingPreview /></PrivateRoute>} />
-      <Route path="/usuarios"  element={<PrivateRoute><Usuarios /></PrivateRoute>} />
-      <Route path="/rrss"      element={<PrivateRoute><RRSS /></PrivateRoute>} />
-      <Route path="*"          element={<Navigate to="/" replace />} />
+      <Route path="/login"        element={<Login />} />
+      <Route path="/"             element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/proyectos"    element={<PrivateRoute><Proyectos /></PrivateRoute>} />
+      <Route path="/clientes"     element={<PrivateRoute><Clientes /></PrivateRoute>} />
+      <Route path="/ventas"       element={<PrivateRoute><Ventas /></PrivateRoute>} />
+      <Route path="/produccion"   element={<PrivateRoute><Produccion /></PrivateRoute>} />
+      <Route path="/cotizador"    element={<PrivateRoute><Cotizador /></PrivateRoute>} />
+      <Route path="/landing"      element={<PrivateRoute><LandingPreview /></PrivateRoute>} />
+      <Route path="/usuarios"     element={<PrivateRoute><Usuarios /></PrivateRoute>} />
+      <Route path="/rrss"         element={<PrivateRoute><RRSS /></PrivateRoute>} />
+      <Route path="/rrss/importar" element={<PrivateRoute><RRSSImport /></PrivateRoute>} />
+      <Route path="*"             element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

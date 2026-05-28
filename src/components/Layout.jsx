@@ -5,24 +5,25 @@ import { Avatar } from './ui'
 
 const NAV = [
   { section: 'Principal' },
-  { path: '/'          , label: 'Dashboard'      , icon: 'M2 7L7 2l5 5' },
+  { path: '/'             , label: 'Dashboard'      , icon: 'grid' },
   { section: 'Gestión' },
-  { path: '/proyectos' , label: 'Proyectos'      , icon: 'rect' },
-  { path: '/clientes'  , label: 'Clientes'       , icon: 'circle' },
-  { path: '/ventas'    , label: 'Ventas'         , icon: 'trend' },
-  { path: '/produccion', label: 'Producción'     , icon: 'gear' },
+  { path: '/proyectos'    , label: 'Proyectos'      , icon: 'rect' },
+  { path: '/clientes'     , label: 'Clientes'       , icon: 'circle' },
+  { path: '/ventas'       , label: 'Ventas'         , icon: 'trend' },
+  { path: '/produccion'   , label: 'Producción'     , icon: 'gear' },
   { section: 'Herramientas' },
-  { path: '/cotizador' , label: 'Cotizador AI'   , icon: 'spark' },
-  { path: '/rrss'      , label: 'Publicaciones'  , icon: 'rrss' },
-  { path: '/landing'   , label: 'Landing pública', icon: 'globe' },
+  { path: '/cotizador'    , label: 'Cotizador AI'   , icon: 'spark' },
+  { path: '/rrss'         , label: 'Publicaciones'  , icon: 'rrss' },
+  { path: '/rrss/importar', label: 'Importar fotos' , icon: 'import' },
+  { path: '/landing'      , label: 'Landing pública', icon: 'globe' },
   { section: 'Administración' },
-  { path: '/usuarios'  , label: 'Usuarios'       , icon: 'user', adminOnly: true },
+  { path: '/usuarios'     , label: 'Usuarios'       , icon: 'user', adminOnly: true },
 ]
 
 function NavIcon({ type, active }) {
   const c = active ? '#7AAE5A' : '#2E4A22'
   const icons = {
-    'M2 7L7 2l5 5': <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/><rect x="8" y="1" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/><rect x="1" y="8" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/><rect x="8" y="8" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/></svg>,
+    grid:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/><rect x="8" y="1" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/><rect x="1" y="8" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/><rect x="8" y="8" width="5" height="5" rx="1" stroke={c} strokeWidth="1"/></svg>,
     rect:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="1.5" stroke={c} strokeWidth="1"/><line x1="1" y1="5" x2="13" y2="5" stroke={c} strokeWidth="1"/></svg>,
     circle: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="3" stroke={c} strokeWidth="1"/><path d="M1 13c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke={c} strokeWidth="1"/></svg>,
     trend:  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polyline points="1,10 4,6 7,8 10,3 13,5" stroke={c} strokeWidth="1" fill="none"/></svg>,
@@ -31,6 +32,7 @@ function NavIcon({ type, active }) {
     globe:  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke={c} strokeWidth="1"/><ellipse cx="7" cy="7" rx="2.5" ry="6" stroke={c} strokeWidth="1"/><line x1="1" y1="7" x2="13" y2="7" stroke={c} strokeWidth="1"/></svg>,
     user:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4" r="3" stroke={c} strokeWidth="1"/><path d="M1 13c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke={c} strokeWidth="1"/></svg>,
     rrss:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke={c} strokeWidth="1"/><circle cx="4.5" cy="4.5" r="1" fill={c}/><path d="M1 8l3-2 2 1.5 3-3 4 4" stroke={c} strokeWidth="1" strokeLinejoin="round"/></svg>,
+    import: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3" stroke={c} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke={c} strokeWidth="1" strokeLinecap="round"/></svg>,
   }
   return icons[type] || null
 }
@@ -49,7 +51,7 @@ export function Layout({ children }) {
         display:'flex', flexDirection:'column', height:'100vh',
       }}>
         <div style={{ padding:'22px 18px 16px', borderBottom:'1px solid rgba(74,107,54,0.1)' }}>
-          <div style={{ fontFamily:""'Cormorant Garamond',Georgia,serif"", fontSize:20, fontWeight:300, fontStyle:'italic', color:'#E8DFD0', letterSpacing:'0.04em' }}>Zebrano</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:20, fontWeight:300, fontStyle:'italic', color:'#E8DFD0', letterSpacing:'0.04em' }}>Zebrano</div>
           <div style={{ fontSize:9, color:'#2E4A22', letterSpacing:'0.18em', textTransform:'uppercase', marginTop:4 }}>mueblería a medida</div>
         </div>
 
@@ -62,19 +64,21 @@ export function Layout({ children }) {
               </div>
             )
             const active = location.pathname === item.path
+            const isSubItem = item.path.split('/').length > 2
             return (
               <div key={item.path} onClick={() => navigate(item.path)}
                 style={{
                   display:'flex', alignItems:'center', gap:9,
-                  padding:'7px 18px', cursor:'pointer', fontSize:12,
+                  padding: isSubItem ? '5px 18px 5px 30px' : '7px 18px',
+                  cursor:'pointer', fontSize: isSubItem ? 11 : 12,
                   fontWeight:300, letterSpacing:'0.02em',
-                  color: active ? '#C8D9B8' : '#3A5030',
+                  color: active ? '#C8D9B8' : isSubItem ? '#2E4A22' : '#3A5030',
                   background: active ? 'rgba(74,107,54,0.08)' : 'transparent',
                   borderLeft: active ? '2px solid #4A6B36' : '2px solid transparent',
                   transition:'all 0.12s',
                 }}
                 onMouseEnter={e => { if(!active) { e.currentTarget.style.background='rgba(74,107,54,0.04)'; e.currentTarget.style.color='#8A9E82' }}}
-                onMouseLeave={e => { if(!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#3A5030' }}}
+                onMouseLeave={e => { if(!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color= active ? '#C8D9B8' : isSubItem ? '#2E4A22' : '#3A5030' }}}
               >
                 <NavIcon type={item.icon} active={active} />
                 {item.label}
@@ -117,7 +121,7 @@ export function Topbar({ title, subtitle, actions }) {
       minHeight:54,
     }}>
       <div>
-        <div style={{ fontFamily:""'Cormorant Garamond',Georgia,serif"", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#E8DFD0' }}>{title}</div>
+        <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#E8DFD0' }}>{title}</div>
         {subtitle && <div style={{ fontSize:10, color:'#2E4A22', marginTop:1, letterSpacing:'0.04em' }}>{subtitle}</div>}
       </div>
       {actions && <div style={{ display:'flex', gap:8 }}>{actions}</div>}

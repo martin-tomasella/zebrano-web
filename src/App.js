@@ -1,19 +1,20 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
-import Login         from './pages/Login'
-import Dashboard     from './pages/Dashboard'
-import Proyectos     from './pages/Proyectos'
-import Clientes      from './pages/Clientes'
-import Ventas        from './pages/Ventas'
-import Produccion    from './pages/Produccion'
-import Cotizador     from './pages/Cotizador'
-import LandingPreview from './pages/Landing'
-import Usuarios      from './pages/Usuarios'
-import RRSS          from './pages/RRSS'
-import RRSSImport    from './pages/RRSSImport'
-import Prospectos    from './pages/Prospectos'
+import Login            from './pages/Login'
+import Dashboard        from './pages/Dashboard'
+import Proyectos        from './pages/Proyectos'
+import Clientes         from './pages/Clientes'
+import Ventas           from './pages/Ventas'
+import Produccion       from './pages/Produccion'
+import Cotizador        from './pages/Cotizador'
+import LandingPreview   from './pages/Landing'
+import Usuarios         from './pages/Usuarios'
+import RRSS             from './pages/RRSS'
+import RRSSImport       from './pages/RRSSImport'
+import Prospectos       from './pages/Prospectos'
 import ProspectoDetalle from './pages/ProspectoDetalle'
+import TikTok           from './pages/TikTok'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -40,6 +41,7 @@ function AppRoutes() {
       <Route path="/usuarios"         element={<PrivateRoute><Usuarios /></PrivateRoute>} />
       <Route path="/rrss"             element={<PrivateRoute><RRSS /></PrivateRoute>} />
       <Route path="/rrss/importar"    element={<PrivateRoute><RRSSImport /></PrivateRoute>} />
+      <Route path="/tiktok"           element={<PrivateRoute><TikTok /></PrivateRoute>} />
       <Route path="/prospectos"       element={<PrivateRoute><Prospectos /></PrivateRoute>} />
       <Route path="/prospectos/:id"   element={<PrivateRoute><ProspectoDetalle /></PrivateRoute>} />
       <Route path="*"                 element={<Navigate to="/" replace />} />

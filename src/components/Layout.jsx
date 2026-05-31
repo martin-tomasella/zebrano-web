@@ -14,7 +14,8 @@ const NAV = [
   { path: '/proyectos',     label: 'Proyectos',       icon: 'rect' },
   { path: '/produccion',    label: 'Producción',      icon: 'gear' },
   { section: 'Marketing' },
-  { path: '/rrss',          label: 'Publicaciones',   icon: 'rrss' },
+  { path: '/tiktok',        label: 'TikTok',          icon: 'tiktok' },
+  { path: '/rrss',          label: 'Instagram/FB',    icon: 'rrss' },
   { path: '/rrss/importar', label: 'Importar fotos',  icon: 'import' },
   { section: 'Configuración' },
   { path: '/landing',       label: 'Landing pública', icon: 'globe' },
@@ -34,6 +35,7 @@ function NavIcon({ type, active }) {
     user:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4" r="3" stroke={c} strokeWidth="1"/><path d="M1 13c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke={c} strokeWidth="1"/></svg>,
     rrss:   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke={c} strokeWidth="1"/><circle cx="4.5" cy="4.5" r="1" fill={c}/><path d="M1 8l3-2 2 1.5 3-3 4 4" stroke={c} strokeWidth="1" strokeLinejoin="round"/></svg>,
     import: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3" stroke={c} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke={c} strokeWidth="1" strokeLinecap="round"/></svg>,
+    tiktok: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 1c0 2 1.5 3 3 3v2c-1 0-2-.3-3-1v4a4 4 0 11-3-3.9V7.2A2 2 0 106 10V1h3z" stroke={c} strokeWidth="1" strokeLinejoin="round"/></svg>,
   }
   return icons[type] || null
 }

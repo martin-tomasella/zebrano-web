@@ -1,96 +1,139 @@
-import React, { useState, useEffect } from 'react'
+
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 
 export default function Login() {
-  const { signIn, user, loading } = useAuth()
-  const navigate = useNavigate()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    if (!loading && user) navigate('/')
-  }, [user, loading, navigate])
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/', { replace: true })
+    })
+  }, [navigate])
 
-  async function handleSubmit(e) {
+  const handleLogin = async (e) => {
     e.preventDefault()
+    setLoading(true)
     setError('')
-    setSubmitting(true)
-    const { error } = await signIn(email, password)
-    if (error) setError(error.message)
-    setSubmitting(false)
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+    if (err) { setError(err.message); return }
+    navigate('/', { replace: true })
   }
-
-  if (loading) return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0A0D08' }}>
-      <div style={{ width:24, height:24, border:'2px solid #4A6B36', borderTop:'2px solid #E8DFD0', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
-    </div>
-  )
 
   return (
     <div style={{
-      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      background:'#0A0D08', position:'relative', overflow:'hidden',
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--z-bg)', position: 'relative', overflow: 'hidden',
+      fontFamily: 'var(--z-font)',
     }}>
-      <svg style={{ position:'absolute', right:0, bottom:0, opacity:0.06 }} width="500" height="400" viewBox="0 0 500 400">
-        <g fill="#4A6B36">
-          <polygon points="250,20 140,200 360,200"/>
-          <polygon points="250,60 120,240 380,240"/>
-          <polygon points="250,100 100,280 400,280"/>
-          <rect x="225" y="270" width="50" height="50"/>
-        </g>
-      </svg>
-
+      {/* Decoración de fondo */}
       <div style={{
-        background:'#080B06', border:'1px solid rgba(74,107,54,0.2)',
-        borderRadius:12, padding:'44px 40px', width:'100%', maxWidth:380,
-        position:'relative', zIndex:1,
+        position: 'absolute', top: -200, left: -200,
+        width: 600, height: 600, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(143,47,254,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: -200, right: -200,
+        width: 500, height: 500, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(223,83,254,0.06) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Card de login */}
+      <div style={{
+        width: 400, padding: '40px 36px',
+        background: 'var(--z-card)',
+        border: '1px solid var(--z-border)',
+        borderRadius: 'var(--z-radius-xl)',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+        position: 'relative', zIndex: 1,
+        animation: 'fadeIn 0.35s ease',
       }}>
-        <div style={{ textAlign:'center', marginBottom:36 }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:28, fontWeight:300, fontStyle:'italic', color:'#E8DFD0', letterSpacing:'0.04em' }}>Zebrano</div>
-          <div style={{ fontSize:9, color:'#2E4A22', letterSpacing:'0.2em', textTransform:'uppercase', marginTop:6 }}>sistema de gestión interno</div>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
+            background: 'linear-gradient(135deg, #8F2FFE, #DF53FE)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 40px rgba(143,47,254,0.35)',
+          }}>
+            <span style={{ color: '#fff', fontWeight: 800, fontSize: 26 }}>Z</span>
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--z-text)', marginBottom: 4 }}>
+            Zebrano ERP
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--z-text-3)' }}>
+            Ingresá a tu cuenta
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {[
-            { label:'Email', type:'email', value:email, set:setEmail },
-            { label:'Contraseña', type:'password', value:password, set:setPassword },
-          ].map(f => (
-            <div key={f.label} style={{ marginBottom:14 }}>
-              <label style={{ display:'block', fontSize:9, color:'#2E4A22', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.1em' }}>{f.label}</label>
-              <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
-                required autoFocus={f.label==='Email'}
-                style={{ width:'100%', padding:'9px 12px', borderRadius:5, border:'1px solid rgba(74,107,54,0.2)', background:'#0A0D08', color:'#E8DFD0', fontSize:13, outline:'none' }}
-                onFocus={e => e.target.style.borderColor='#4A6B36'}
-                onBlur={e  => e.target.style.borderColor='rgba(74,107,54,0.2)'}
-              />
-            </div>
-          ))}
+        {/* Formulario */}
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--z-text-2)', display: 'block', marginBottom: 6 }}>
+              Email
+            </label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="martin@zebrano.com.ar" required autoComplete="email"
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--z-text-2)', display: 'block', marginBottom: 6 }}>
+              Contraseña
+            </label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••" required autoComplete="current-password"
+            />
+          </div>
 
           {error && (
-            <div style={{ background:'rgba(160,64,42,0.12)', color:'#C0604A', border:'1px solid rgba(160,64,42,0.25)', padding:'8px 12px', borderRadius:5, fontSize:12, marginBottom:14 }}>
+            <div style={{
+              padding: '10px 14px', borderRadius: 8, fontSize: 13,
+              background: 'rgba(248,113,113,0.1)', color: 'var(--z-error)',
+              border: '1px solid rgba(248,113,113,0.2)',
+            }}>
               {error}
             </div>
           )}
 
-          <button type="submit" disabled={submitting} style={{
-            width:'100%', marginTop:6, padding:'10px',
-            background: submitting ? 'rgba(74,107,54,0.5)' : '#4A6B36',
-            color:'#E8DFD0', border:'none', borderRadius:6,
-            fontSize:12, letterSpacing:'0.1em', textTransform:'uppercase',
-            cursor: submitting ? 'not-allowed' : 'pointer',
-          }}>
-            {submitting ? 'Ingresando...' : 'Ingresar'}
+          <button
+            type="submit" disabled={loading}
+            style={{
+              marginTop: 6, padding: '12px', borderRadius: 10, border: 'none',
+              background: loading ? 'var(--z-text-muted)' : 'linear-gradient(135deg, #8F2FFE, #DF53FE)',
+              color: '#fff', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
+              boxShadow: loading ? 'none' : '0 0 30px rgba(143,47,254,0.3)',
+              transition: 'var(--z-transition)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            {loading ? (
+              <>
+                <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                Ingresando...
+              </>
+            ) : 'Ingresar'}
           </button>
         </form>
 
-        <div style={{ textAlign:'center', marginTop:28, fontSize:10, color:'#1E3014' }}>
-          Zebrano m+a · uso interno
-        </div>
+        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: 'var(--z-text-muted)' }}>
+          Zebrano · Mueblería a medida
+        </p>
       </div>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin   { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   )
 }

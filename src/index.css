@@ -1,21 +1,18 @@
 
 /* ============================================
-   ZEBRANO ERP — Design System v2
-   Inspirado en PowerAI Astro (sitepins)
-   Paleta: Purple/Violet dark theme
+   ZEBRANO ERP — Design System v2.1
+   PowerAI theme — fuentes mejoradas
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* — Colores primarios (PowerAI palette) — */
   --z-primary:        #8F2FFE;
   --z-primary-light:  #A855FF;
   --z-primary-glow:   rgba(143,47,254,0.25);
   --z-secondary:      #DF53FE;
   --z-accent:         #6366f1;
 
-  /* — Fondos — */
   --z-bg:             #0E0912;
   --z-bg-2:           #120D17;
   --z-card:           #151019;
@@ -23,42 +20,33 @@
   --z-border:         rgba(143,47,254,0.15);
   --z-border-hover:   rgba(143,47,254,0.35);
 
-  /* — Sidebar — */
   --z-sidebar-bg:     #0A0710;
   --z-sidebar-w:      56px;
 
-  /* — Texto — */
   --z-text:           #F1EBF8;
-  --z-text-2:         #A89DC0;
-  --z-text-3:         #6B5F82;
-  --z-text-muted:     #3D3450;
+  --z-text-2:         #C4B8D8;
+  --z-text-3:         #8070A0;
+  --z-text-muted:     #4D4060;
 
-  /* — Estados — */
   --z-success:        #4ade80;
   --z-warning:        #fbbf24;
   --z-error:          #f87171;
   --z-info:           #60a5fa;
 
-  /* — Sombras y efectos — */
   --z-shadow:         0 4px 24px rgba(0,0,0,0.4);
   --z-shadow-primary: 0 0 30px rgba(143,47,254,0.2);
   --z-glow:           0 0 20px rgba(143,47,254,0.3);
 
-  /* — Gradients — */
   --z-gradient:       linear-gradient(135deg, #8F2FFE 0%, #DF53FE 100%);
   --z-gradient-dark:  linear-gradient(135deg, rgba(143,47,254,0.1) 0%, rgba(223,83,254,0.05) 100%);
 
-  /* — Tipografía — */
   --z-font:           'Inter', -apple-system, sans-serif;
-  --z-font-display:   'Inter', sans-serif;
 
-  /* — Radios — */
   --z-radius-sm:      6px;
   --z-radius:         10px;
-  --z-radius-lg:      16px;
-  --z-radius-xl:      24px;
+  --z-radius-lg:      14px;
+  --z-radius-xl:      20px;
 
-  /* — Transiciones — */
   --z-transition:     all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -70,10 +58,14 @@ html, body, #root {
   background: var(--z-bg);
   color: var(--z-text);
   font-family: var(--z-font);
-  font-size: 14px;
+  font-size: 15px; /* aumentado de 14px */
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Forzar fondo oscuro en TODAS las páginas */
+*, div, section, main, aside, nav, article {
+  background-color: inherit;
 }
 
 /* — Scrollbar — */
@@ -83,30 +75,31 @@ html, body, #root {
 ::-webkit-scrollbar-thumb:hover { background: var(--z-primary); }
 
 /* — Tipografía — */
-h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; color: var(--z-text); }
-h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; color: var(--z-text); }
+h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: var(--z-text); }
+h2 { font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em; color: var(--z-text); }
 h3 { font-size: 1rem; font-weight: 600; color: var(--z-text); }
-p  { color: var(--z-text-2); }
+p  { color: var(--z-text-2); font-size: 14px; }
 
-/* — Botones base — */
+/* — Botones — */
 .btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: var(--z-radius);
-  font-size: 13px; font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: var(--z-radius);
+  font-size: 13.5px; font-weight: 500; cursor: pointer;
   border: none; transition: var(--z-transition);
-  text-decoration: none; white-space: nowrap;
+  text-decoration: none; white-space: nowrap; font-family: var(--z-font);
 }
 .btn-primary {
   background: var(--z-gradient); color: #fff;
-  box-shadow: var(--z-shadow-primary);
+  box-shadow: 0 0 20px rgba(143,47,254,0.3);
 }
-.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: var(--z-glow); }
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .btn-ghost {
   background: transparent; color: var(--z-text-2);
   border: 1px solid var(--z-border);
 }
 .btn-ghost:hover { border-color: var(--z-primary); color: var(--z-text); background: var(--z-primary-glow); }
-.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-sm { padding: 6px 14px; font-size: 12.5px; }
 .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
 
 /* — Cards — */
@@ -123,7 +116,7 @@ p  { color: var(--z-text-2); }
 .badge {
   display: inline-flex; align-items: center;
   padding: 3px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 500;
+  font-size: 12px; font-weight: 500;
 }
 .badge-primary { background: var(--z-primary-glow); color: var(--z-primary-light); border: 1px solid rgba(143,47,254,0.3); }
 .badge-success { background: rgba(74,222,128,0.1); color: var(--z-success); border: 1px solid rgba(74,222,128,0.2); }
@@ -134,37 +127,51 @@ p  { color: var(--z-text-2); }
 input, textarea, select {
   background: var(--z-bg-2); color: var(--z-text);
   border: 1px solid var(--z-border); border-radius: var(--z-radius);
-  padding: 8px 12px; font-size: 13px; font-family: var(--z-font);
+  padding: 9px 13px; font-size: 14px; font-family: var(--z-font);
   transition: var(--z-transition); outline: none; width: 100%;
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--z-primary);
   box-shadow: 0 0 0 3px rgba(143,47,254,0.12);
 }
-input::placeholder { color: var(--z-text-muted); }
+input::placeholder, textarea::placeholder { color: var(--z-text-muted); }
+select option { background: var(--z-bg-2); color: var(--z-text); }
 
 /* — Tabla — */
 table { width: 100%; border-collapse: collapse; }
-th { font-size: 11px; font-weight: 600; color: var(--z-text-3); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 14px; border-bottom: 1px solid var(--z-border); text-align: left; }
-td { padding: 12px 14px; color: var(--z-text); font-size: 13px; border-bottom: 1px solid rgba(143,47,254,0.06); }
-tr:hover td { background: rgba(143,47,254,0.03); }
+th { 
+  font-size: 11.5px; font-weight: 600; color: var(--z-text-3); 
+  text-transform: uppercase; letter-spacing: 0.08em; 
+  padding: 12px 16px; border-bottom: 1px solid var(--z-border); text-align: left; 
+}
+td { 
+  padding: 13px 16px; color: var(--z-text); font-size: 14px; 
+  border-bottom: 1px solid rgba(143,47,254,0.06); 
+}
+tr:hover td { background: rgba(143,47,254,0.04); }
 
-/* — Divider — */
-.divider { height: 1px; background: var(--z-border); margin: 16px 0; }
+/* — Overrides críticos para fondos blancos — */
+/* Forzar tema oscuro en iframes y contenido embebido */
+iframe { background: var(--z-bg) !important; }
 
-/* — Glow decorativo (fondo) — */
-.bg-glow {
-  position: fixed; pointer-events: none; z-index: 0;
-  width: 600px; height: 600px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(143,47,254,0.06) 0%, transparent 70%);
+/* Pages wrapper */
+.page-wrapper {
+  background: var(--z-bg);
+  color: var(--z-text);
+  min-height: 100%;
 }
 
 /* — Animaciones — */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse-glow { 0%,100% { box-shadow: var(--z-shadow-primary); } 50% { box-shadow: var(--z-glow); } }
-.animate-in { animation: fadeIn 0.25s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin   { to { transform: rotate(360deg); } }
+@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.animate-in { animation: fadeIn 0.22s ease forwards; }
+.animate-pulse { animation: pulse 1.5s ease infinite; }
 
 /* — Utilidades — */
 .text-gradient { background: var(--z-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .surface { background: var(--z-card); border: 1px solid var(--z-border); border-radius: var(--z-radius-lg); }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-muted { color: var(--z-text-muted); }
+.text-sm { font-size: 12.5px; }
+.text-xs { font-size: 11px; }

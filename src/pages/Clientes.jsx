@@ -1,48 +1,59 @@
-import React, { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { Layout, Topbar, PageContent } from '../components/Layout'
-import { Table, Badge, Avatar, Spinner } from '../components/ui'
 
-const fmt = n => n ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Layout, Topbar, PageContent } from '../components/Layout';
 
 export default function Clientes() {
-  const [clientes, setClientes] = useState([])
-  const [proyectos, setProyectos] = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [clientes, setClientes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from('clientes').select('*').order('created_at',{ascending:false});
+      setClientes(data||[]); setLoading(false);
+    };
+    load();
+  }, []);
 
-  async function load() {
-    const [{ data: c }, { data: p }] = await Promise.all([
-      supabase.from('clientes').select('*').order('created_at'),
-      supabase.from('proyectos').select('cliente_id, valor_final, estado'),
-    ])
-    setClientes(c || [])
-    setProyectos(p || [])
-    setLoading(false)
-  }
-
-  const cols = [
-    { label:'Cliente', render: r => <div style={{display:'flex',alignItems:'center',gap:10}}><Avatar name={r.nombre} size={30}/><div><div style={{fontWeight:500}}>{r.nombre}</div>{r.email && <div style={{fontSize:11,color:'var(--z-hint)'}}>{r.email}</div>}</div></div> },
-    { label:'Teléfono', render: r => <span style={{color:'var(--z-muted)',fontSize:12}}>{r.telefono || '—'}</span> },
-    { label:'Origen', render: r => <Badge value={r.origen_lead || 'otro'} /> },
-    { label:'Proyectos', render: r => {
-      const ps = proyectos.filter(p => p.cliente_id === r.id)
-      return <span style={{color:'var(--z-muted)'}}>{ps.length} {ps.length===1?'proyecto':'proyectos'}</span>
-    }},
-    { label:'Facturado', render: r => {
-      const total = proyectos.filter(p => p.cliente_id === r.id && p.estado === 'entregado').reduce((s,p)=>s+(p.valor_final||0),0)
-      return <strong>{fmt(total) || '—'}</strong>
-    }},
-    { label:'Estado', render: r => <Badge value={r.activo ? 'aprobado' : 'cancelado'} /> },
-  ]
+  const filtrados = clientes.filter(c => {
+    if (!busqueda) return true;
+    const q = busqueda.toLowerCase();
+    return (c.nombre||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.telefono||'').includes(q);
+  });
 
   return (
     <Layout>
-      <Topbar title="Clientes" subtitle={`${clientes.length} clientes en base`} />
+      <Topbar title="Clientes" subtitle={`${clientes.length} registrados`}
+        actions={<input placeholder="Buscar..." value={busqueda} onChange={e=>setBusqueda(e.target.value)} style={{width:200,padding:'6px 12px',fontSize:12,background:'var(--z-card)',border:'1px solid var(--z-border)',borderRadius:8,color:'var(--z-text)',outline:'none'}} />}
+      />
       <PageContent>
-        {loading ? <Spinner /> : <Table cols={cols} rows={clientes} empty="Sin clientes registrados" />}
+        {loading ? (
+          <div style={{textAlign:'center',padding:48,color:'var(--z-text-muted)'}}>Cargando...</div>
+        ) : filtrados.length === 0 ? (
+          <div style={{textAlign:'center',padding:64,border:'1px dashed var(--z-border)',borderRadius:'var(--z-radius-xl)',color:'var(--z-text-muted)'}}>
+            <div style={{fontSize:40,marginBottom:12}}>👤</div>
+            <p>Sin clientes registrados</p>
+          </div>
+        ) : (
+          <div style={{background:'var(--z-card)',border:'1px solid var(--z-border)',borderRadius:'var(--z-radius-lg)',overflow:'hidden'}}>
+            <table>
+              <thead><tr>{['Nombre','Email','Teléfono','Localidad','Creado'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {filtrados.map(c => (
+                  <tr key={c.id}>
+                    <td style={{fontWeight:500}}>{c.nombre||'—'} {c.apellido||''}</td>
+                    <td style={{color:'var(--z-text-2)'}}>{c.email||'—'}</td>
+                    <td style={{color:'var(--z-text-2)'}}>{c.telefono||'—'}</td>
+                    <td style={{color:'var(--z-text-3)'}}>{c.localidad||'—'}</td>
+                    <td style={{fontSize:11,color:'var(--z-text-muted)'}}>{c.created_at?new Date(c.created_at).toLocaleDateString('es-AR'):'—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </PageContent>
     </Layout>
-  )
+  );
 }

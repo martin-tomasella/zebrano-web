@@ -1,58 +1,52 @@
-import React, { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { Layout, Topbar, PageContent } from '../components/Layout'
-import { Table, Badge, Avatar, Spinner, SectionTitle } from '../components/ui'
 
-const fmt = n => n ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Layout, Topbar, PageContent } from '../components/Layout';
+
+const EC = { activo:'#4ade80', en_pausa:'#fbbf24', entregado:'#60a5fa', cancelado:'#f87171' };
 
 export default function Proyectos() {
-  const [proyectos, setProyectos] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [filtro, setFiltro]       = useState('todos')
+  const [proyectos, setProyectos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    const { data } = await supabase
-      .from('proyectos')
-      .select('*, clientes(nombre)')
-      .order('created_at', { ascending: false })
-    setProyectos(data || [])
-    setLoading(false)
-  }
-
-  const ESTADOS = ['todos','en_produccion','propuesta_enviada','cotizando','entregado','cancelado']
-  const filtrados = filtro === 'todos' ? proyectos : proyectos.filter(p => p.estado === filtro)
-
-  const cols = [
-    { label:'#', render: (_,i) => <span style={{color:'var(--z-hint)',fontSize:11,fontFamily:'var(--font-mono)'}}>{'#'+String(i+1).padStart(2,'0')}</span> },
-    { label:'Cliente', render: r => <div style={{display:'flex',alignItems:'center',gap:8}}><Avatar name={r.clientes?.nombre} size={26}/><strong>{r.clientes?.nombre}</strong></div> },
-    { label:'Proyecto', render: r => <span style={{color:'var(--z-muted)',fontSize:12}}>{r.nombre}</span> },
-    { label:'Tipo', render: r => <Badge value={r.tipo_trabajo} /> },
-    { label:'Estado', render: r => <Badge value={r.estado} /> },
-    { label:'Entrega', render: r => <span style={{color:'var(--z-hint)',fontSize:12}}>{r.fecha_entrega_estimada || '—'}</span> },
-    { label:'Valor', render: r => <strong>{fmt(r.valor_final)}</strong> },
-  ]
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from('proyectos').select('*, clientes(nombre,apellido)').order('created_at',{ascending:false});
+      setProyectos(data||[]); setLoading(false);
+    };
+    load();
+  }, []);
 
   return (
     <Layout>
-      <Topbar title="Proyectos" subtitle={`${proyectos.length} trabajos registrados`} />
+      <Topbar title="Proyectos" subtitle={`${proyectos.length} en total`} />
       <PageContent>
-        <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
-          {ESTADOS.map(e => (
-            <button key={e} onClick={() => setFiltro(e)} style={{
-              padding:'5px 12px', borderRadius:99, fontSize:12, cursor:'pointer',
-              background: filtro===e ? 'var(--z-green)' : '#fff',
-              color: filtro===e ? '#fff' : 'var(--z-muted)',
-              border: filtro===e ? 'none' : '0.5px solid var(--z-border)',
-              fontWeight: filtro===e ? 500 : 400,
-            }}>
-              {e === 'todos' ? 'Todos' : e.replace('_',' ')}
-            </button>
-          ))}
-        </div>
-        {loading ? <Spinner /> : <Table cols={cols} rows={filtrados.map((r,i) => ({...r, _i:i}))} empty="Sin proyectos" />}
+        {loading ? (
+          <div style={{textAlign:'center',padding:48,color:'var(--z-text-muted)'}}>Cargando...</div>
+        ) : proyectos.length === 0 ? (
+          <div style={{textAlign:'center',padding:64,border:'1px dashed var(--z-border)',borderRadius:'var(--z-radius-xl)',color:'var(--z-text-muted)'}}>
+            <div style={{fontSize:40,marginBottom:12}}>📋</div><p>Sin proyectos registrados</p>
+          </div>
+        ) : (
+          <div style={{background:'var(--z-card)',border:'1px solid var(--z-border)',borderRadius:'var(--z-radius-lg)',overflow:'hidden'}}>
+            <table>
+              <thead><tr>{['Proyecto','Cliente','Tipo','Estado','Entrega','Presupuesto'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {proyectos.map(p => (
+                  <tr key={p.id}>
+                    <td style={{fontWeight:500}}>{p.nombre||p.descripcion||'Sin nombre'}</td>
+                    <td style={{color:'var(--z-text-2)'}}>{p.clientes?.nombre||'—'} {p.clientes?.apellido||''}</td>
+                    <td style={{color:'var(--z-text-3)',textTransform:'capitalize'}}>{p.tipo_trabajo||'—'}</td>
+                    <td><span className="badge" style={{background:(EC[p.estado]||'#6b7280')+'18',color:EC[p.estado]||'#6b7280',border:`1px solid ${(EC[p.estado]||'#6b7280')}33`,textTransform:'capitalize'}}>{p.estado||'—'}</span></td>
+                    <td style={{fontSize:12,color:'var(--z-text-2)'}}>{p.fecha_entrega_estimada?new Date(p.fecha_entrega_estimada).toLocaleDateString('es-AR'):'—'}</td>
+                    <td style={{color:'var(--z-success)'}}>{p.presupuesto_final?`$${p.presupuesto_final.toLocaleString('es-AR')}`:p.presupuesto_estimado?`$${p.presupuesto_estimado.toLocaleString('es-AR')}`:'—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </PageContent>
     </Layout>
-  )
+  );
 }

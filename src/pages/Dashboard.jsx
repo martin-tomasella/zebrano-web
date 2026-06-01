@@ -1,113 +1,303 @@
-import React, { useEffect, useState } from 'react'
+
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Layout, Topbar, PageContent } from '../components/Layout'
-import { KpiCard, SectionTitle, Table, Badge, Avatar, Spinner } from '../components/ui'
+import { Layout, Topbar, PageContent, Icon } from '../components/Layout'
 
-const fmt  = n => n ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
-const fmtM = n => n ? '$' + Math.round(n/1000).toLocaleString('es-AR') + 'k' : '—'
+// ─── Módulos del sistema ───────────────────────────────────────────────────────
+const MODULES = [
+  {
+    section: 'Ventas',
+    color: '#8F2FFE',
+    items: [
+      { path: '/prospectos', icon: 'funnel', label: 'Prospectos', desc: 'Pipeline de oportunidades y seguimiento', stat_key: 'prospectos' },
+      { path: '/clientes',   icon: 'users',  label: 'Clientes',   desc: 'Base de clientes y historial de compras', stat_key: 'clientes' },
+      { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', desc: 'Generación de presupuestos con IA', stat_key: null },
+    ]
+  },
+  {
+    section: 'Producción',
+    color: '#6366f1',
+    items: [
+      { path: '/proyectos',  icon: 'layers', label: 'Proyectos',  desc: 'Estado y seguimiento de obras', stat_key: 'proyectos' },
+      { path: '/produccion', icon: 'gear',   label: 'Producción', desc: 'Órdenes de trabajo y carpinteros', stat_key: null },
+    ]
+  },
+  {
+    section: 'Marketing & RRSS',
+    color: '#DF53FE',
+    items: [
+      { path: '/tiktok',        icon: 'tiktok',  label: 'TikTok',          desc: 'Publicaciones y gestión de cuenta @zebrano.ma', stat_key: null },
+      { path: '/rrss',          icon: 'rrss',    label: 'Instagram / FB',  desc: 'Borradores, aprobación y programación', stat_key: 'publicaciones' },
+      { path: '/rrss/importar', icon: 'upload',  label: 'Importar fotos',  desc: 'Clasificación con IA desde galería', stat_key: null },
+    ]
+  },
+]
 
-function HeroBanner({ profile, activos }) {
-  const hour = new Date().getHours()
-  const greeting = hour < 13 ? 'Buen día' : hour < 20 ? 'Buenas tardes' : 'Buenas noches'
-  const nombre = profile?.nombre?.split(' ')[0] || 'Martín'
-  const hoy = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
-
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({ label, value, icon, color, delta }) {
   return (
-    <div style={{ position:'relative', height:160, overflow:'hidden', flexShrink:0, background:'#080B06', borderBottom:'1px solid rgba(74,107,54,0.1)' }}>
-      <svg style={{ position:'absolute', right:0, top:0, opacity:0.09 }} width="360" height="160" viewBox="0 0 360 160">
-        <filter id="wf"><feTurbulence type="fractalNoise" baseFrequency="0.015 0.5" numOctaves="4" seed="5"/><feColorMatrix type="saturate" values="0.2"/></filter>
-        <rect width="360" height="160" filter="url(#wf)" fill="#5C3D1E"/>
-      </svg>
-      <svg style={{ position:'absolute', right:0, bottom:0, opacity:0.13 }} width="300" height="160" viewBox="0 0 300 160">
-        <g fill="#1E3014">
-          <polygon points="200,5 150,80 250,80"/>
-          <polygon points="200,30 140,105 260,105"/>
-          <polygon points="200,55 130,135 270,135"/>
-          <rect x="188" y="128" width="24" height="32"/>
-          <polygon points="60,10 20,80 100,80"/>
-          <polygon points="60,35 15,105 105,105"/>
-          <rect x="50" y="100" width="20" height="30"/>
-          <polygon points="280,0 250,60 310,60"/>
-          <polygon points="280,25 245,85 315,85"/>
-          <rect x="272" y="80" width="16" height="25"/>
-        </g>
-      </svg>
-      <div style={{ position:'relative', zIndex:2, padding:'28px 24px' }}>
-        <div style={{ fontSize:9, color:'#2E4A22', letterSpacing:'0.18em', textTransform:'uppercase', marginBottom:8 }}>
-          sistema de gestión · zebrano m+a
-        </div>
-        <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:26, fontWeight:300, color:'#E8DFD0', fontStyle:'italic', lineHeight:1.2 }}>
-          {greeting}, <span style={{ color:'#7AAE5A', fontStyle:'normal' }}>{nombre}.</span>
-        </div>
-        <div style={{ fontFamily:"'Cormorant Garamond',Georgia,serif", fontSize:14, color:'#3A5030', marginTop:4 }}>
-          {activos} {activos === 1 ? 'trabajo en taller' : 'trabajos en taller'} · {hoy}
-        </div>
+    <div style={{
+      background: 'var(--z-card)', border: '1px solid var(--z-border)',
+      borderRadius: 'var(--z-radius-lg)', padding: '18px 20px',
+      display: 'flex', alignItems: 'center', gap: 16,
+      transition: 'var(--z-transition)',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--z-border-hover)'; e.currentTarget.style.boxShadow = 'var(--z-shadow-primary)'; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+        background: `${color}22`, border: `1px solid ${color}44`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color,
+      }}>
+        <Icon name={icon} size={20} color={color} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--z-text)', lineHeight: 1.2 }}>{value ?? '—'}</div>
+        <div style={{ fontSize: 12, color: 'var(--z-text-3)', marginTop: 2 }}>{label}</div>
+      </div>
+      {delta !== undefined && (
+        <span style={{ fontSize: 11, color: delta >= 0 ? 'var(--z-success)' : 'var(--z-error)', fontWeight: 600 }}>
+          {delta >= 0 ? '+' : ''}{delta}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ─── Module card ──────────────────────────────────────────────────────────────
+function ModuleCard({ item, color, navigate }) {
+  return (
+    <div
+      onClick={() => navigate(item.path)}
+      style={{
+        background: 'var(--z-card)', border: '1px solid var(--z-border)',
+        borderRadius: 'var(--z-radius-lg)', padding: '16px 18px',
+        cursor: 'pointer', transition: 'var(--z-transition)',
+        display: 'flex', alignItems: 'center', gap: 14,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = color + '55'
+        e.currentTarget.style.background = color + '08'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.boxShadow = `0 8px 24px ${color}20`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--z-border)'
+        e.currentTarget.style.background = 'var(--z-card)'
+        e.currentTarget.style.transform = 'none'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+    >
+      <div style={{
+        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+        background: color + '18', border: `1px solid ${color}33`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color,
+      }}>
+        <Icon name={item.icon} size={18} color={color} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--z-text)', marginBottom: 2 }}>{item.label}</div>
+        <div style={{ fontSize: 11, color: 'var(--z-text-3)', lineHeight: 1.4 }}>{item.desc}</div>
+      </div>
+      <div style={{ color: 'var(--z-text-muted)', flexShrink: 0 }}>
+        <Icon name="chevron" size={14} color="currentColor" />
       </div>
     </div>
   )
 }
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { profile } = useAuth()
-  const [data, setData]       = useState(null)
+  const navigate = useNavigate()
+  const [stats, setStats] = useState({})
+  const [actividades, setActividades] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const load = async () => {
+      const [p, c, pr, pub, pros] = await Promise.all([
+        supabase.from('proyectos').select('id', { count: 'exact', head: true }),
+        supabase.from('clientes').select('id', { count: 'exact', head: true }),
+        supabase.from('roble_publicaciones').select('id', { count: 'exact', head: true }).eq('estado', 'borrador'),
+        supabase.from('roble_publicaciones').select('id', { count: 'exact', head: true }).eq('estado', 'publicado'),
+        supabase.from('prospectos').select('id', { count: 'exact', head: true }).eq('activo', true),
+      ])
+      setStats({
+        proyectos: p.count ?? 0,
+        clientes: c.count ?? 0,
+        borradores: pr.count ?? 0,
+        publicados: pub.count ?? 0,
+        prospectos: pros.count ?? 0,
+      })
 
-  async function load() {
-    const [{ data: proyectos }, { data: clientes }, { data: opps }] = await Promise.all([
-      supabase.from('proyectos').select('*, clientes(nombre)').order('created_at', { ascending:false }),
-      supabase.from('clientes').select('id'),
-      supabase.from('oportunidades').select('*, clientes(nombre)').order('fecha_seguimiento'),
-    ])
-    setData({ proyectos: proyectos||[], clientes: clientes||[], opps: opps||[] })
-    setLoading(false)
-  }
+      // Actividad reciente
+      const { data: acts } = await supabase
+        .from('prospectos')
+        .select('id, nombre, apellido, canal_origen, estado, created_at')
+        .eq('activo', true)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      setActividades(acts || [])
+      setLoading(false)
+    }
+    load()
+  }, [])
 
-  if (loading) return <Layout><div style={{ height:160, background:'#080B06', borderBottom:'1px solid rgba(74,107,54,0.1)' }}/><Spinner/></Layout>
+  const hora = new Date().getHours()
+  const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
+  const nombre = profile?.nombre?.split(' ')[0] || 'Martín'
 
-  const { proyectos, clientes, opps } = data
-  const activos    = proyectos.filter(p => p.estado==='en_produccion')
-  const entregados = proyectos.filter(p => p.estado==='entregado')
-  const facturado  = entregados.reduce((s,p) => s+(p.valor_final||0), 0)
-  const pipeline   = opps.filter(o => ['lead','contactado','cotizando','propuesta_enviada'].includes(o.estado_funnel)).reduce((s,o) => s+(o.valor_estimado||0), 0)
-  const hoy = new Date().toISOString().slice(0,10)
-  const seguimientos = opps.filter(o => o.fecha_seguimiento && o.fecha_seguimiento<=hoy && ['lead','contactado','cotizando','propuesta_enviada'].includes(o.estado_funnel))
-
-  const proyCols = [
-    { label:'Cliente', render: r => <div style={{display:'flex',alignItems:'center',gap:8}}><Avatar name={r.clientes?.nombre} size={24}/><span style={{color:'#C8D9B8'}}>{r.clientes?.nombre}</span></div> },
-    { label:'Trabajo',  render: r => <span style={{color:'#3A5030',fontSize:11}}>{r.nombre}</span> },
-    { label:'Estado',   render: r => <Badge value={r.estado}/> },
-    { label:'Entrega',  render: r => <span style={{color:'#2E4A22',fontSize:11}}>{r.fecha_entrega_estimada||'—'}</span> },
-    { label:'Valor',    render: r => <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:'#7AAE5A'}}>{fmt(r.valor_final)}</span> },
-  ]
-
-  const segCols = [
-    { label:'Prospecto', render: r => <strong style={{color:'#C8D9B8',fontWeight:400}}>{r.nombre_prospecto||r.clientes?.nombre||'—'}</strong> },
-    { label:'Trabajo',   render: r => <span style={{color:'#3A5030'}}>{r.tipo_trabajo}</span> },
-    { label:'Valor',     render: r => <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:'#7AAE5A'}}>{fmt(r.valor_estimado)}</span> },
-    { label:'Temp.',     render: r => <Badge value={r.temperatura}/> },
-    { label:'Seguimiento', render: r => <span style={{color:'#2E4A22',fontSize:11}}>{r.fecha_seguimiento}</span> },
-  ]
+  const CANAL_ICON = { instagram:'rrss', tiktok:'tiktok', whatsapp:'users', facebook:'rrss', web:'globe', referido:'users' }
+  const ESTADO_COLOR = { nuevo:'var(--z-info)', contactado:'#a78bfa', calificado:'var(--z-warning)', cotizado:'#fb923c', ganado:'var(--z-success)', perdido:'var(--z-error)' }
 
   return (
     <Layout>
-      <HeroBanner profile={profile} activos={activos.length} />
+      <Topbar
+        title={`${saludo}, ${nombre}`}
+        subtitle={new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+      />
       <PageContent>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,minmax(0,1fr))', gap:10, marginBottom:22 }}>
-          <KpiCard label="En producción" value={activos.length} detail="proyectos activos" accent />
-          <KpiCard label="Facturado"     value={fmtM(facturado)} detail="trabajos entregados" />
-          <KpiCard label="Pipeline"      value={fmtM(pipeline)}  detail="cotizaciones abiertas" />
-          <KpiCard label="Clientes"      value={clientes.length} detail="en base de datos" />
+        {/* ── Stats row ─────────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 28 }}>
+          <StatCard label="Prospectos activos" value={stats.prospectos} icon="funnel" color="#8F2FFE" />
+          <StatCard label="Clientes"           value={stats.clientes}   icon="users"  color="#6366f1" />
+          <StatCard label="Proyectos"          value={stats.proyectos}  icon="layers" color="#DF53FE" />
+          <StatCard label="Borradores RRSS"    value={stats.borradores} icon="rrss"   color="#fbbf24" />
+          <StatCard label="Publicaciones"      value={stats.publicados} icon="tiktok" color="#4ade80" />
         </div>
-        <div style={{ marginBottom:20 }}>
-          <SectionTitle>proyectos en producción</SectionTitle>
-          <Table cols={proyCols} rows={activos} empty="No hay proyectos activos" />
-        </div>
-        <div>
-          <SectionTitle>seguimientos pendientes</SectionTitle>
-          <Table cols={segCols} rows={seguimientos} empty="No hay seguimientos para hoy" />
+
+        {/* ── Dos columnas ─────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+
+          {/* Módulos del sistema */}
+          <div>
+            {MODULES.map((section) => (
+              <div key={section.section} style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 3, height: 16, borderRadius: 2, background: section.color }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {section.section}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+                  {section.items.map(item => (
+                    <ModuleCard key={item.path} item={item} color={section.color} navigate={navigate} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Panel lateral: actividad reciente */}
+          <div>
+            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 3, height: 16, borderRadius: 2, background: '#8F2FFE' }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Prospectos recientes
+              </span>
+            </div>
+
+            <div style={{ background: 'var(--z-card)', border: '1px solid var(--z-border)', borderRadius: 'var(--z-radius-lg)', overflow: 'hidden' }}>
+              {loading ? (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--z-text-muted)' }}>Cargando...</div>
+              ) : actividades.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--z-text-muted)' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
+                  <p style={{ fontSize: 13 }}>Sin prospectos aún</p>
+                </div>
+              ) : (
+                actividades.map((p, i) => (
+                  <div key={p.id}
+                    onClick={() => navigate(`/prospectos/${p.id}`)}
+                    style={{
+                      padding: '12px 16px', cursor: 'pointer',
+                      borderBottom: i < actividades.length - 1 ? '1px solid var(--z-border)' : 'none',
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      transition: 'var(--z-transition)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(143,47,254,0.04)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                      background: 'rgba(143,47,254,0.1)', border: '1px solid rgba(143,47,254,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#8F2FFE',
+                    }}>
+                      <Icon name={CANAL_ICON[p.canal_origen] || 'users'} size={15} color="currentColor" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--z-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.nombre || 'Sin nombre'} {p.apellido || ''}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--z-text-3)', marginTop: 1, textTransform: 'capitalize' }}>
+                        {p.canal_origen || 'directo'}
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: 10, padding: '2px 8px', borderRadius: 20, flexShrink: 0,
+                      background: (ESTADO_COLOR[p.estado] || 'var(--z-text-muted)') + '18',
+                      color: ESTADO_COLOR[p.estado] || 'var(--z-text-muted)',
+                      border: `1px solid ${(ESTADO_COLOR[p.estado] || 'var(--z-text-muted)')}33`,
+                      textTransform: 'capitalize',
+                    }}>{p.estado}</span>
+                  </div>
+                ))
+              )}
+              {actividades.length > 0 && (
+                <div
+                  onClick={() => navigate('/prospectos')}
+                  style={{
+                    padding: '10px 16px', cursor: 'pointer', textAlign: 'center',
+                    fontSize: 12, color: '#8F2FFE', fontWeight: 500,
+                    borderTop: '1px solid var(--z-border)',
+                    transition: 'var(--z-transition)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(143,47,254,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  Ver todos los prospectos →
+                </div>
+              )}
+            </div>
+
+            {/* Quick actions */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 3, height: 16, borderRadius: 2, background: '#DF53FE' }} />
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Acciones rápidas
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { label: '+ Nuevo prospecto', path: '/prospectos', color: '#8F2FFE' },
+                  { label: '📸 Importar fotos',  path: '/rrss/importar', color: '#DF53FE' },
+                  { label: '🎵 Gestionar TikTok', path: '/tiktok', color: '#a78bfa' },
+                  { label: '💰 Ver publicaciones', path: '/rrss', color: '#6366f1' },
+                ].map(a => (
+                  <button key={a.path}
+                    onClick={() => navigate(a.path)}
+                    style={{
+                      width: '100%', padding: '10px 16px', borderRadius: 10,
+                      background: a.color + '10', border: `1px solid ${a.color}25`,
+                      color: a.color, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                      textAlign: 'left', transition: 'var(--z-transition)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = a.color + '20'; e.currentTarget.style.borderColor = a.color + '50'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = a.color + '10'; e.currentTarget.style.borderColor = a.color + '25'; }}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </PageContent>
     </Layout>

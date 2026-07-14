@@ -1,1 +1,118 @@
-CmltcG9ydCB7IHVzZUVmZmVjdCwgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCcKaW1wb3J0IHsgc3VwYWJhc2UgfSBmcm9tICcuLi9saWIvc3VwYWJhc2UnCmltcG9ydCB7IExheW91dCwgVG9wYmFyLCBQYWdlQ29udGVudCB9IGZyb20gJy4uL2NvbXBvbmVudHMvTGF5b3V0JwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gUHJvZHVjY2lvbigpIHsKICBjb25zdCBbcHJveWVjdG9zLCBzZXRQcm95ZWN0b3NdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSkKCiAgdXNlRWZmZWN0KCgpID0+IHsgbG9hZCgpIH0sIFtdKQoKICBhc3luYyBmdW5jdGlvbiBsb2FkKCkgewogICAgY29uc3QgeyBkYXRhIH0gPSBhd2FpdCBzdXBhYmFzZQogICAgICAuZnJvbSgncHJveWVjdG9zJykKICAgICAgLnNlbGVjdCgnKiwgY2xpZW50ZXMobm9tYnJlLGFwZWxsaWRvKScpCiAgICAgIC5lcSgnZXN0YWRvJywgJ2VuX2ZhYnJpY2FjaW9uJykKICAgICAgLm9yZGVyKCdmZWNoYV9lbnRyZWdhX2VzdGltYWRhJykKICAgIHNldFByb3llY3RvcyhkYXRhIHx8IFtdKQogICAgc2V0TG9hZGluZyhmYWxzZSkKICB9CgogIGZ1bmN0aW9uIGRpYXNSZXN0YW50ZXMoZmVjaGEpIHsKICAgIGlmICghZmVjaGEpIHJldHVybiBudWxsCiAgICByZXR1cm4gTWF0aC5jZWlsKChuZXcgRGF0ZShmZWNoYSkgLSBuZXcgRGF0ZSgpKSAvIDg2NDAwMDAwKQogIH0KCiAgZnVuY3Rpb24gZ2V0Q29sb3IoZGlhcykgewogICAgaWYgKGRpYXMgPT09IG51bGwpIHJldHVybiAndmFyKC0tei1zdWNjZXNzKScKICAgIGlmIChkaWFzIDwgMCkgIHJldHVybiAndmFyKC0tei1lcnJvciknCiAgICBpZiAoZGlhcyA8PSA1KSByZXR1cm4gJ3ZhcigtLXotd2FybmluZyknCiAgICByZXR1cm4gJ3ZhcigtLXotc3VjY2VzcyknCiAgfQoKICByZXR1cm4gKAogICAgPExheW91dD4KICAgICAgPFRvcGJhciB0aXRsZT0iUHJvZHVjY2nDs24iIHN1YnRpdGxlPXtgJHtwcm95ZWN0b3MubGVuZ3RofSB0cmFiYWpvcyBlbiB0YWxsZXJgfSAvPgogICAgICA8UGFnZUNvbnRlbnQ+CiAgICAgICAge2xvYWRpbmcgPyAoCiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IHRleHRBbGlnbjonY2VudGVyJywgcGFkZGluZzo0OCwgY29sb3I6J3ZhcigtLXotdGV4dC1tdXRlZCknIH19PkNhcmdhbmRvLi4uPC9kaXY+CiAgICAgICAgKSA6IHByb3llY3Rvcy5sZW5ndGggPT09IDAgPyAoCiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IHRleHRBbGlnbjonY2VudGVyJywgcGFkZGluZzo2NCwgYm9yZGVyOicxcHggZGFzaGVkIHZhcigtLXotYm9yZGVyKScsIGJvcmRlclJhZGl1czondmFyKC0tei1yYWRpdXMteGwpJywgY29sb3I6J3ZhcigtLXotdGV4dC1tdXRlZCknIH19PgogICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOjQwLCBtYXJnaW5Cb3R0b206MTIgfX0+8J+UqDwvZGl2PgogICAgICAgICAgICA8cD5ObyBoYXkgdHJhYmFqb3MgZW4gcHJvZHVjY2nDs24gYWN0dWFsbWVudGU8L3A+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICApIDogKAogICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OidmbGV4JywgZmxleERpcmVjdGlvbjonY29sdW1uJywgZ2FwOjE0IH19PgogICAgICAgICAgICB7cHJveWVjdG9zLm1hcChwID0+IHsKICAgICAgICAgICAgICBjb25zdCBkaWFzID0gZGlhc1Jlc3RhbnRlcyhwLmZlY2hhX2VudHJlZ2FfZXN0aW1hZGEpCiAgICAgICAgICAgICAgY29uc3QgY29sb3IgPSBnZXRDb2xvcihkaWFzKQogICAgICAgICAgICAgIGNvbnN0IGF2YW5jZSA9IHAuYXZhbmNlX3BjdCB8fCAwCiAgICAgICAgICAgICAgcmV0dXJuICgKICAgICAgICAgICAgICAgIDxkaXYga2V5PXtwLmlkfSBzdHlsZT17ewogICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOid2YXIoLS16LWNhcmQpJywKICAgICAgICAgICAgICAgICAgYm9yZGVyOicxcHggc29saWQgdmFyKC0tei1ib3JkZXIpJywKICAgICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOid2YXIoLS16LXJhZGl1cy1sZyknLAogICAgICAgICAgICAgICAgICBwYWRkaW5nOicxOHB4IDIycHgnLAogICAgICAgICAgICAgICAgICB0cmFuc2l0aW9uOid2YXIoLS16LXRyYW5zaXRpb24pJywKICAgICAgICAgICAgICAgIH19CiAgICAgICAgICAgICAgICBvbk1vdXNlRW50ZXI9e2UgPT4geyBlLmN1cnJlbnRUYXJnZXQuc3R5bGUuYm9yZGVyQ29sb3I9J3ZhcigtLXotYm9yZGVyLWhvdmVyKSc7IGUuY3VycmVudFRhcmdldC5zdHlsZS5ib3hTaGFkb3c9J3ZhcigtLXotc2hhZG93LXByaW1hcnkpJzsgfX0KICAgICAgICAgICAgICAgIG9uTW91c2VMZWF2ZT17ZSA9PiB7IGUuY3VycmVudFRhcmdldC5zdHlsZS5ib3JkZXJDb2xvcj0ndmFyKC0tei1ib3JkZXIpJzsgZS5jdXJyZW50VGFyZ2V0LnN0eWxlLmJveFNoYWRvdz0nbm9uZSc7IH19PgogICAgICAgICAgICAgICAgICB7LyogSGVhZGVyICovfQogICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6J2ZsZXgnLCBqdXN0aWZ5Q29udGVudDonc3BhY2UtYmV0d2VlbicsIGFsaWduSXRlbXM6J2ZsZXgtc3RhcnQnLCBtYXJnaW5Cb3R0b206MTQgfX0+CiAgICAgICAgICAgICAgICAgICAgPGRpdj4KICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFdlaWdodDo2MDAsIGZvbnRTaXplOjE1LCBjb2xvcjondmFyKC0tei10ZXh0KScsIG1hcmdpbkJvdHRvbTozIH19PgogICAgICAgICAgICAgICAgICAgICAgICB7cC5jbGllbnRlcz8ubm9tYnJlfSB7cC5jbGllbnRlcz8uYXBlbGxpZG99CiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6MTMsIGNvbG9yOid2YXIoLS16LXRleHQtMiknIH19PntwLm5vbWJyZSB8fCBwLmRlc2NyaXBjaW9ufTwvZGl2PgogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgdGV4dEFsaWduOidyaWdodCcgfX0+CiAgICAgICAgICAgICAgICAgICAgICB7ZGlhcyAhPT0gbnVsbCAmJiAoCiAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6MTMsIGZvbnRXZWlnaHQ6NjAwLCBjb2xvciB9fT4KICAgICAgICAgICAgICAgICAgICAgICAgICB7ZGlhcyA8IDAgPyBgJHtNYXRoLmFicyhkaWFzKX0gZMOtYXMgZGUgcmV0cmFzb2AgOiBkaWFzID09PSAwID8gJ0VudHJlZ2EgaG95JyA6IGAke2RpYXN9IGTDrWFzIHJlc3RhbnRlc2B9CiAgICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6MTIsIGNvbG9yOid2YXIoLS16LXRleHQtMyknLCBtYXJnaW5Ub3A6MyB9fT4KICAgICAgICAgICAgICAgICAgICAgICAgRW50cmVnYToge3AuZmVjaGFfZW50cmVnYV9lc3RpbWFkYSA/IG5ldyBEYXRlKHAuZmVjaGFfZW50cmVnYV9lc3RpbWFkYSkudG9Mb2NhbGVEYXRlU3RyaW5nKCdlcy1BUicpIDogJ+KAlCd9CiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgPC9kaXY+CgogICAgICAgICAgICAgICAgICB7LyogQmFycmEgZGUgYXZhbmNlICovfQogICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpbkJvdHRvbToxMiB9fT4KICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6J2ZsZXgnLCBqdXN0aWZ5Q29udGVudDonc3BhY2UtYmV0d2VlbicsIG1hcmdpbkJvdHRvbTo2IH19PgogICAgICAgICAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFNpemU6MTIsIGNvbG9yOid2YXIoLS16LXRleHQtMyknIH19PkF2YW5jZTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOjEyLCBmb250V2VpZ2h0OjYwMCwgY29sb3IgfX0+e2F2YW5jZX0lPC9zcGFuPgogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgaGVpZ2h0OjYsIGJhY2tncm91bmQ6J3JnYmEoNzQsMTA3LDU0LDAuMSknLCBib3JkZXJSYWRpdXM6MjAgfX0+CiAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGhlaWdodDonMTAwJScsIHdpZHRoOmAke2F2YW5jZX0lYCwgYmFja2dyb3VuZDogYXZhbmNlID4gMCA/ICd2YXIoLS16LWdyYWRpZW50KScgOiAndHJhbnNwYXJlbnQnLCBib3JkZXJSYWRpdXM6MjAsIHRyYW5zaXRpb246J3dpZHRoIDAuNHMnIH19IC8+CiAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgICAgICAgICAgey8qIFRhZ3MgKi99CiAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTonZmxleCcsIGdhcDo4LCBmbGV4V3JhcDond3JhcCcgfX0+CiAgICAgICAgICAgICAgICAgICAge3AudGlwb190cmFiYWpvICYmICgKICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iYmFkZ2UiIHN0eWxlPXt7IGJhY2tncm91bmQ6J3JnYmEoNzQsMTA3LDU0LDAuMSknLCBjb2xvcjondmFyKC0tei1wcmltYXJ5LWxpZ2h0KScsIGJvcmRlcjonMXB4IHNvbGlkIHJnYmEoNzQsMTA3LDU0LDAuMiknLCB0ZXh0VHJhbnNmb3JtOidjYXBpdGFsaXplJyB9fT4KICAgICAgICAgICAgICAgICAgICAgICAge3AudGlwb190cmFiYWpvfQogICAgICAgICAgICAgICAgICAgICAgPC9zcGFuPgogICAgICAgICAgICAgICAgICAgICl9CiAgICAgICAgICAgICAgICAgICAge3AudmFsb3JfZmluYWwgJiYgKAogICAgICAgICAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFNpemU6MTIsIGNvbG9yOid2YXIoLS16LXN1Y2Nlc3MpJywgYWxpZ25TZWxmOidjZW50ZXInIH19PgogICAgICAgICAgICAgICAgICAgICAgICAke01hdGgucm91bmQocC52YWxvcl9maW5hbCkudG9Mb2NhbGVTdHJpbmcoJ2VzLUFSJyl9CiAgICAgICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICB7cC5jYXJwaW50ZXJvICYmICgKICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOjEyLCBjb2xvcjondmFyKC0tei10ZXh0LTMpJywgYWxpZ25TZWxmOidjZW50ZXInIH19PgogICAgICAgICAgICAgICAgICAgICAgICDwn5G3IHtwLmNhcnBpbnRlcm99CiAgICAgICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICApCiAgICAgICAgICAgIH0pfQogICAgICAgICAgPC9kaXY+CiAgICAgICAgKX0KICAgICAgPC9QYWdlQ29udGVudD4KICAgIDwvTGF5b3V0PgogICkKfQo=
+
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { Layout, Topbar, PageContent } from '../components/Layout'
+
+export default function Produccion() {
+  const [proyectos, setProyectos] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    const { data } = await supabase
+      .from('proyectos')
+      .select('*, clientes(nombre,apellido)')
+      .eq('estado', 'en_fabricacion')
+      .order('fecha_entrega_estimada')
+    setProyectos(data || [])
+    setLoading(false)
+  }
+
+  function diasRestantes(fecha) {
+    if (!fecha) return null
+    return Math.ceil((new Date(fecha) - new Date()) / 86400000)
+  }
+
+  function getColor(dias) {
+    if (dias === null) return 'var(--z-success)'
+    if (dias < 0)  return 'var(--z-error)'
+    if (dias <= 5) return 'var(--z-warning)'
+    return 'var(--z-success)'
+  }
+
+  return (
+    <Layout>
+      <Topbar title="Producción" subtitle={`${proyectos.length} trabajos en taller`} />
+      <PageContent>
+        {loading ? (
+          <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
+        ) : proyectos.length === 0 ? (
+          <div style={{ textAlign:'center', padding:64, border:'1px dashed var(--z-border)', borderRadius:'var(--z-radius-xl)', color:'var(--z-text-muted)' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>🔨</div>
+            <p>No hay trabajos en producción actualmente</p>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {proyectos.map(p => {
+              const dias = diasRestantes(p.fecha_entrega_estimada)
+              const color = getColor(dias)
+              const avance = p.avance_pct || 0
+              return (
+                <div key={p.id} style={{
+                  background:'var(--z-card)',
+                  border:'1px solid var(--z-border)',
+                  borderRadius:'var(--z-radius-lg)',
+                  padding:'18px 22px',
+                  transition:'var(--z-transition)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor='var(--z-border-hover)'; e.currentTarget.style.boxShadow='var(--z-shadow-primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--z-border)'; e.currentTarget.style.boxShadow='none'; }}>
+                  {/* Header */}
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:15, color:'var(--z-text)', marginBottom:3 }}>
+                        {p.clientes?.nombre} {p.clientes?.apellido}
+                      </div>
+                      <div style={{ fontSize:13, color:'var(--z-text-2)' }}>{p.nombre || p.descripcion}</div>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      {dias !== null && (
+                        <div style={{ fontSize:13, fontWeight:600, color }}>
+                          {dias < 0 ? `${Math.abs(dias)} días de retraso` : dias === 0 ? 'Entrega hoy' : `${dias} días restantes`}
+                        </div>
+                      )}
+                      <div style={{ fontSize:12, color:'var(--z-text-3)', marginTop:3 }}>
+                        Entrega: {p.fecha_entrega_estimada ? new Date(p.fecha_entrega_estimada).toLocaleDateString('es-AR') : '—'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barra de avance */}
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                      <span style={{ fontSize:12, color:'var(--z-text-3)' }}>Avance</span>
+                      <span style={{ fontSize:12, fontWeight:600, color }}>{avance}%</span>
+                    </div>
+                    <div style={{ height:6, background:'rgba(74,107,54,0.1)', borderRadius:20 }}>
+                      <div style={{ height:'100%', width:`${avance}%`, background: avance > 0 ? 'var(--z-gradient)' : 'transparent', borderRadius:20, transition:'width 0.4s' }} />
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {p.tipo_trabajo && (
+                      <span className="badge" style={{ background:'rgba(74,107,54,0.1)', color:'var(--z-primary-light)', border:'1px solid rgba(74,107,54,0.2)', textTransform:'capitalize' }}>
+                        {p.tipo_trabajo}
+                      </span>
+                    )}
+                    {p.valor_final && (
+                      <span style={{ fontSize:12, color:'var(--z-success)', alignSelf:'center' }}>
+                        ${Math.round(p.valor_final).toLocaleString('es-AR')}
+                      </span>
+                    )}
+                    {p.carpintero && (
+                      <span style={{ fontSize:12, color:'var(--z-text-3)', alignSelf:'center' }}>
+                        👷 {p.carpintero}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </PageContent>
+    </Layout>
+  )
+}

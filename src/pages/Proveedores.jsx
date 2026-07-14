@@ -1,1 +1,177 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBzdXBhYmFzZSB9IGZyb20gJy4uL2xpYi9zdXBhYmFzZScKaW1wb3J0IHsgTGF5b3V0LCBUb3BiYXIsIFBhZ2VDb250ZW50IH0gZnJvbSAnLi4vY29tcG9uZW50cy9MYXlvdXQnCmltcG9ydCB7IENhcmQsIEtwaUNhcmQsIFNlY3Rpb25UaXRsZSwgVGFibGUsIFNwaW5uZXIsIEJ0biwgSW5wdXQgfSBmcm9tICcuLi9jb21wb25lbnRzL3VpJwoKY29uc3QgZm10ID0gbiA9PiBuICE9IG51bGwgPyAnJCcgKyBNYXRoLnJvdW5kKG4pLnRvTG9jYWxlU3RyaW5nKCdlcy1BUicpIDogJ+KAlCcKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFByb3ZlZWRvcmVzKCkgewogIGNvbnN0IFt0YWIsIHNldFRhYl0gPSB1c2VTdGF0ZSgncHJvdmVlZG9yZXMnKQogIGNvbnN0IFtwcm92ZWVkb3Jlcywgc2V0UHJvdmVlZG9yZXNdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW2NvbXByYXMsIHNldENvbXByYXNdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW21hdGVyaWFsZXMsIHNldE1hdGVyaWFsZXNdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW2hlcnJhamVzLCBzZXRIZXJyYWplc10gPSB1c2VTdGF0ZShbXSkKICBjb25zdCBbbG9hZGluZywgc2V0TG9hZGluZ10gPSB1c2VTdGF0ZSh0cnVlKQogIGNvbnN0IFtzaG93Rm9ybSwgc2V0U2hvd0Zvcm1dID0gdXNlU3RhdGUoZmFsc2UpCiAgY29uc3QgW3NhdmluZywgc2V0U2F2aW5nXSA9IHVzZVN0YXRlKGZhbHNlKQoKICBjb25zdCBbZm9ybVByb3YsIHNldEZvcm1Qcm92XSA9IHVzZVN0YXRlKHsgbm9tYnJlOicnLCBjb250YWN0bzonJywgdGVsZWZvbm86JycsIGVtYWlsOicnIH0pCiAgY29uc3QgW2Zvcm1Db21wcmEsIHNldEZvcm1Db21wcmFdID0gdXNlU3RhdGUoeyBwcm92ZWVkb3JfaWQ6JycsIGluc3Vtb190aXBvOidtYXRlcmlhbCcsIGluc3Vtb19pZDonJywgY2FudGlkYWQ6JycsIHByZWNpb191bml0YXJpbzonJywgZmVjaGE6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKS5zbGljZSgwLDEwKSB9KQoKICB1c2VFZmZlY3QoKCkgPT4geyBsb2FkKCkgfSwgW10pCgogIGFzeW5jIGZ1bmN0aW9uIGxvYWQoKSB7CiAgICBzZXRMb2FkaW5nKHRydWUpCiAgICBjb25zdCBbeyBkYXRhOiBwIH0sIHsgZGF0YTogYyB9LCB7IGRhdGE6IG0gfSwgeyBkYXRhOiBoIH1dID0gYXdhaXQgUHJvbWlzZS5hbGwoWwogICAgICBzdXBhYmFzZS5mcm9tKCdwcm92ZWVkb3JlcycpLnNlbGVjdCgnKicpLmVxKCdhY3Rpdm8nLCB0cnVlKS5vcmRlcignbm9tYnJlJyksCiAgICAgIHN1cGFiYXNlLmZyb20oJ2NvbXByYXNfaW5zdW1vcycpLnNlbGVjdCgnKiwgcHJvdmVlZG9yZXMobm9tYnJlKSwgY2F0YWxvZ29fbWF0ZXJpYWxlcyhub21icmUpLCBjYXRhbG9nb19oZXJyYWplcyhub21icmUpJykub3JkZXIoJ2ZlY2hhJywgeyBhc2NlbmRpbmc6ZmFsc2UgfSkubGltaXQoMTAwKSwKICAgICAgc3VwYWJhc2UuZnJvbSgnY2F0YWxvZ29fbWF0ZXJpYWxlcycpLnNlbGVjdCgnaWQsbm9tYnJlJykuZXEoJ2FjdGl2bycsIHRydWUpLm9yZGVyKCdub21icmUnKSwKICAgICAgc3VwYWJhc2UuZnJvbSgnY2F0YWxvZ29faGVycmFqZXMnKS5zZWxlY3QoJ2lkLG5vbWJyZScpLmVxKCdhY3Rpdm8nLCB0cnVlKS5vcmRlcignbm9tYnJlJyksCiAgICBdKQogICAgc2V0UHJvdmVlZG9yZXMocCB8fCBbXSkKICAgIHNldENvbXByYXMoYyB8fCBbXSkKICAgIHNldE1hdGVyaWFsZXMobSB8fCBbXSkKICAgIHNldEhlcnJhamVzKGggfHwgW10pCiAgICBzZXRMb2FkaW5nKGZhbHNlKQogIH0KCiAgYXN5bmMgZnVuY3Rpb24gY3JlYXJQcm92ZWVkb3IoZSkgewogICAgZS5wcmV2ZW50RGVmYXVsdCgpCiAgICBpZiAoIWZvcm1Qcm92Lm5vbWJyZSkgcmV0dXJuCiAgICBzZXRTYXZpbmcodHJ1ZSkKICAgIGF3YWl0IHN1cGFiYXNlLmZyb20oJ3Byb3ZlZWRvcmVzJykuaW5zZXJ0KGZvcm1Qcm92KQogICAgc2V0Rm9ybVByb3YoeyBub21icmU6JycsIGNvbnRhY3RvOicnLCB0ZWxlZm9ubzonJywgZW1haWw6JycgfSkKICAgIHNldFNob3dGb3JtKGZhbHNlKQogICAgc2V0U2F2aW5nKGZhbHNlKQogICAgbG9hZCgpCiAgfQoKICBhc3luYyBmdW5jdGlvbiBjcmVhckNvbXByYShlKSB7CiAgICBlLnByZXZlbnREZWZhdWx0KCkKICAgIGlmICghZm9ybUNvbXByYS5wcm92ZWVkb3JfaWQgfHwgIWZvcm1Db21wcmEuaW5zdW1vX2lkIHx8ICFmb3JtQ29tcHJhLmNhbnRpZGFkIHx8ICFmb3JtQ29tcHJhLnByZWNpb191bml0YXJpbykgcmV0dXJuCiAgICBzZXRTYXZpbmcodHJ1ZSkKICAgIGNvbnN0IGNhbnRpZGFkID0gTnVtYmVyKGZvcm1Db21wcmEuY2FudGlkYWQpCiAgICBjb25zdCBwcmVjaW9fdW5pdGFyaW8gPSBOdW1iZXIoZm9ybUNvbXByYS5wcmVjaW9fdW5pdGFyaW8pCiAgICBhd2FpdCBzdXBhYmFzZS5mcm9tKCdjb21wcmFzX2luc3Vtb3MnKS5pbnNlcnQoewogICAgICBwcm92ZWVkb3JfaWQ6IGZvcm1Db21wcmEucHJvdmVlZG9yX2lkLAogICAgICBjYXRhbG9nb19tYXRlcmlhbF9pZDogZm9ybUNvbXByYS5pbnN1bW9fdGlwbyA9PT0gJ21hdGVyaWFsJyA/IGZvcm1Db21wcmEuaW5zdW1vX2lkIDogbnVsbCwKICAgICAgY2F0YWxvZ29faGVycmFqZV9pZDogZm9ybUNvbXByYS5pbnN1bW9fdGlwbyA9PT0gJ2hlcnJhamUnID8gZm9ybUNvbXByYS5pbnN1bW9faWQgOiBudWxsLAogICAgICBjYW50aWRhZCwKICAgICAgcHJlY2lvX3VuaXRhcmlvLAogICAgICBwcmVjaW9fdG90YWw6IGNhbnRpZGFkICogcHJlY2lvX3VuaXRhcmlvLAogICAgICBmZWNoYTogZm9ybUNvbXByYS5mZWNoYSwKICAgIH0pCiAgICBzZXRGb3JtQ29tcHJhKHsgcHJvdmVlZG9yX2lkOicnLCBpbnN1bW9fdGlwbzonbWF0ZXJpYWwnLCBpbnN1bW9faWQ6JycsIGNhbnRpZGFkOicnLCBwcmVjaW9fdW5pdGFyaW86JycsIGZlY2hhOiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkuc2xpY2UoMCwxMCkgfSkKICAgIHNldFNob3dGb3JtKGZhbHNlKQogICAgc2V0U2F2aW5nKGZhbHNlKQogICAgbG9hZCgpCiAgfQoKICBjb25zdCB0b3RhbENvbXByYXNNZXMgPSBjb21wcmFzLmZpbHRlcihjID0+IGMuZmVjaGE/LnNsaWNlKDAsNykgPT09IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKS5zbGljZSgwLDcpKS5yZWR1Y2UoKHMsYykgPT4gcyArIE51bWJlcihjLnByZWNpb190b3RhbCB8fCBjLmNhbnRpZGFkKmMucHJlY2lvX3VuaXRhcmlvIHx8IDApLCAwKQoKICByZXR1cm4gKAogICAgPExheW91dD4KICAgICAgPFRvcGJhcgogICAgICAgIHRpdGxlPSJQcm92ZWVkb3JlcyBlIGluc3Vtb3MiCiAgICAgICAgc3VidGl0bGU9e2Ake3Byb3ZlZWRvcmVzLmxlbmd0aH0gcHJvdmVlZG9yZXMgYWN0aXZvc2B9CiAgICAgICAgYWN0aW9ucz17PEJ0biBzbWFsbCBvbkNsaWNrPXsoKSA9PiBzZXRTaG93Rm9ybSh2ID0+ICF2KX0+e3Nob3dGb3JtID8gJ0NhbmNlbGFyJyA6ICh0YWIgPT09ICdwcm92ZWVkb3JlcycgPyAnKyBQcm92ZWVkb3InIDogJysgQ29tcHJhJyl9PC9CdG4+fQogICAgICAvPgogICAgICA8UGFnZUNvbnRlbnQ+CiAgICAgICAge2xvYWRpbmcgPyA8U3Bpbm5lciAvPiA6IDw+CiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6J2dyaWQnLCBncmlkVGVtcGxhdGVDb2x1bW5zOidyZXBlYXQoMyxtaW5tYXgoMCwxZnIpKScsIGdhcDoxMiwgbWFyZ2luQm90dG9tOjIwIH19PgogICAgICAgICAgICA8S3BpQ2FyZCBsYWJlbD0iQ29tcHJhZG8gZXN0ZSBtZXMiIHZhbHVlPXtmbXQodG90YWxDb21wcmFzTWVzKX0gYWNjZW50IC8+CiAgICAgICAgICAgIDxLcGlDYXJkIGxhYmVsPSJQcm92ZWVkb3JlcyBhY3Rpdm9zIiB2YWx1ZT17cHJvdmVlZG9yZXMubGVuZ3RofSAvPgogICAgICAgICAgICA8S3BpQ2FyZCBsYWJlbD0iQ29tcHJhcyByZWdpc3RyYWRhcyIgdmFsdWU9e2NvbXByYXMubGVuZ3RofSBkZXRhaWw9IsO6bHRpbWFzIDEwMCIgLz4KICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTonZmxleCcsIGdhcDo4LCBtYXJnaW5Cb3R0b206MTYgfX0+CiAgICAgICAgICAgIDxCdG4gc21hbGwgdmFyaWFudD17dGFiID09PSAncHJvdmVlZG9yZXMnID8gJ3ByaW1hcnknIDogJ2dob3N0J30gb25DbGljaz17KCkgPT4geyBzZXRUYWIoJ3Byb3ZlZWRvcmVzJyk7IHNldFNob3dGb3JtKGZhbHNlKSB9fT5Qcm92ZWVkb3JlczwvQnRuPgogICAgICAgICAgICA8QnRuIHNtYWxsIHZhcmlhbnQ9e3RhYiA9PT0gJ2NvbXByYXMnID8gJ3ByaW1hcnknIDogJ2dob3N0J30gb25DbGljaz17KCkgPT4geyBzZXRUYWIoJ2NvbXByYXMnKTsgc2V0U2hvd0Zvcm0oZmFsc2UpIH19Pkhpc3RvcmlhbCBkZSBjb21wcmFzPC9CdG4+CiAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICB7c2hvd0Zvcm0gJiYgdGFiID09PSAncHJvdmVlZG9yZXMnICYmICgKICAgICAgICAgICAgPENhcmQgc3R5bGU9e3sgbWFyZ2luQm90dG9tOjIwIH19PgogICAgICAgICAgICAgIDxmb3JtIG9uU3VibWl0PXtjcmVhclByb3ZlZWRvcn0+CiAgICAgICAgICAgICAgICA8SW5wdXQgbGFiZWw9Ik5vbWJyZSIgdmFsdWU9e2Zvcm1Qcm92Lm5vbWJyZX0gb25DaGFuZ2U9e2UgPT4gc2V0Rm9ybVByb3Yoey4uLmZvcm1Qcm92LCBub21icmU6ZS50YXJnZXQudmFsdWV9KX0gcmVxdWlyZWQgLz4KICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTonZ3JpZCcsIGdyaWRUZW1wbGF0ZUNvbHVtbnM6JzFmciAxZnInLCBnYXA6MTYgfX0+CiAgICAgICAgICAgICAgICAgIDxJbnB1dCBsYWJlbD0iQ29udGFjdG8iIHZhbHVlPXtmb3JtUHJvdi5jb250YWN0b30gb25DaGFuZ2U9e2UgPT4gc2V0Rm9ybVByb3Yoey4uLmZvcm1Qcm92LCBjb250YWN0bzplLnRhcmdldC52YWx1ZX0pfSAvPgogICAgICAgICAgICAgICAgICA8SW5wdXQgbGFiZWw9IlRlbMOpZm9ubyIgdmFsdWU9e2Zvcm1Qcm92LnRlbGVmb25vfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtUHJvdih7Li4uZm9ybVByb3YsIHRlbGVmb25vOmUudGFyZ2V0LnZhbHVlfSl9IC8+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDxJbnB1dCBsYWJlbD0iRW1haWwiIHR5cGU9ImVtYWlsIiB2YWx1ZT17Zm9ybVByb3YuZW1haWx9IG9uQ2hhbmdlPXtlID0+IHNldEZvcm1Qcm92KHsuLi5mb3JtUHJvdiwgZW1haWw6ZS50YXJnZXQudmFsdWV9KX0gLz4KICAgICAgICAgICAgICAgIDxCdG4gb25DbGljaz17Y3JlYXJQcm92ZWVkb3J9IGRpc2FibGVkPXtzYXZpbmd9PntzYXZpbmcgPyAnR3VhcmRhbmRvLi4uJyA6ICdHdWFyZGFyIHByb3ZlZWRvcid9PC9CdG4+CiAgICAgICAgICAgICAgPC9mb3JtPgogICAgICAgICAgICA8L0NhcmQ+CiAgICAgICAgICApfQoKICAgICAgICAgIHtzaG93Rm9ybSAmJiB0YWIgPT09ICdjb21wcmFzJyAmJiAoCiAgICAgICAgICAgIDxDYXJkIHN0eWxlPXt7IG1hcmdpbkJvdHRvbToyMCB9fT4KICAgICAgICAgICAgICA8Zm9ybSBvblN1Ym1pdD17Y3JlYXJDb21wcmF9PgogICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBtYXJnaW5Cb3R0b206MTQgfX0+CiAgICAgICAgICAgICAgICAgIDxsYWJlbCBzdHlsZT17eyBkaXNwbGF5OidibG9jaycsIGZvbnRTaXplOjEwLCBjb2xvcjondmFyKC0tei1oaW50KScsIG1hcmdpbkJvdHRvbTo1LCB0ZXh0VHJhbnNmb3JtOid1cHBlcmNhc2UnLCBsZXR0ZXJTcGFjaW5nOicwLjA4ZW0nIH19PlByb3ZlZWRvcjwvbGFiZWw+CiAgICAgICAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e2Zvcm1Db21wcmEucHJvdmVlZG9yX2lkfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtQ29tcHJhKHsuLi5mb3JtQ29tcHJhLCBwcm92ZWVkb3JfaWQ6ZS50YXJnZXQudmFsdWV9KX0gcmVxdWlyZWQ+CiAgICAgICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iIj5FbGVnaXIgcHJvdmVlZG9yLi4uPC9vcHRpb24+CiAgICAgICAgICAgICAgICAgICAge3Byb3ZlZWRvcmVzLm1hcChwID0+IDxvcHRpb24ga2V5PXtwLmlkfSB2YWx1ZT17cC5pZH0+e3Aubm9tYnJlfTwvb3B0aW9uPil9CiAgICAgICAgICAgICAgICAgIDwvc2VsZWN0PgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6J2dyaWQnLCBncmlkVGVtcGxhdGVDb2x1bW5zOicxZnIgMmZyJywgZ2FwOjE2IH19PgogICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpbkJvdHRvbToxNCB9fT4KICAgICAgICAgICAgICAgICAgICA8bGFiZWwgc3R5bGU9e3sgZGlzcGxheTonYmxvY2snLCBmb250U2l6ZToxMCwgY29sb3I6J3ZhcigtLXotaGludCknLCBtYXJnaW5Cb3R0b206NSwgdGV4dFRyYW5zZm9ybTondXBwZXJjYXNlJywgbGV0dGVyU3BhY2luZzonMC4wOGVtJyB9fT5UaXBvPC9sYWJlbD4KICAgICAgICAgICAgICAgICAgICA8c2VsZWN0IHZhbHVlPXtmb3JtQ29tcHJhLmluc3Vtb190aXBvfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtQ29tcHJhKHsuLi5mb3JtQ29tcHJhLCBpbnN1bW9fdGlwbzplLnRhcmdldC52YWx1ZSwgaW5zdW1vX2lkOicnfSl9PgogICAgICAgICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT0ibWF0ZXJpYWwiPk1hdGVyaWFsPC9vcHRpb24+CiAgICAgICAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJoZXJyYWplIj5IZXJyYWplPC9vcHRpb24+CiAgICAgICAgICAgICAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpbkJvdHRvbToxNCB9fT4KICAgICAgICAgICAgICAgICAgICA8bGFiZWwgc3R5bGU9e3sgZGlzcGxheTonYmxvY2snLCBmb250U2l6ZToxMCwgY29sb3I6J3ZhcigtLXotaGludCknLCBtYXJnaW5Cb3R0b206NSwgdGV4dFRyYW5zZm9ybTondXBwZXJjYXNlJywgbGV0dGVyU3BhY2luZzonMC4wOGVtJyB9fT5JbnN1bW88L2xhYmVsPgogICAgICAgICAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e2Zvcm1Db21wcmEuaW5zdW1vX2lkfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtQ29tcHJhKHsuLi5mb3JtQ29tcHJhLCBpbnN1bW9faWQ6ZS50YXJnZXQudmFsdWV9KX0gcmVxdWlyZWQ+CiAgICAgICAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSIiPkVsZWdpci4uLjwvb3B0aW9uPgogICAgICAgICAgICAgICAgICAgICAgeyhmb3JtQ29tcHJhLmluc3Vtb190aXBvID09PSAnbWF0ZXJpYWwnID8gbWF0ZXJpYWxlcyA6IGhlcnJhamVzKS5tYXAoaSA9PiA8b3B0aW9uIGtleT17aS5pZH0gdmFsdWU9e2kuaWR9PntpLm5vbWJyZX08L29wdGlvbj4pfQogICAgICAgICAgICAgICAgICAgIDwvc2VsZWN0PgogICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OidncmlkJywgZ3JpZFRlbXBsYXRlQ29sdW1uczonMWZyIDFmciAxZnInLCBnYXA6MTYgfX0+CiAgICAgICAgICAgICAgICAgIDxJbnB1dCBsYWJlbD0iQ2FudGlkYWQiIHR5cGU9Im51bWJlciIgdmFsdWU9e2Zvcm1Db21wcmEuY2FudGlkYWR9IG9uQ2hhbmdlPXtlID0+IHNldEZvcm1Db21wcmEoey4uLmZvcm1Db21wcmEsIGNhbnRpZGFkOmUudGFyZ2V0LnZhbHVlfSl9IHJlcXVpcmVkIC8+CiAgICAgICAgICAgICAgICAgIDxJbnB1dCBsYWJlbD0iUHJlY2lvIHVuaXRhcmlvIiB0eXBlPSJudW1iZXIiIHZhbHVlPXtmb3JtQ29tcHJhLnByZWNpb191bml0YXJpb30gb25DaGFuZ2U9e2UgPT4gc2V0Rm9ybUNvbXByYSh7Li4uZm9ybUNvbXByYSwgcHJlY2lvX3VuaXRhcmlvOmUudGFyZ2V0LnZhbHVlfSl9IHJlcXVpcmVkIC8+CiAgICAgICAgICAgICAgICAgIDxJbnB1dCBsYWJlbD0iRmVjaGEiIHR5cGU9ImRhdGUiIHZhbHVlPXtmb3JtQ29tcHJhLmZlY2hhfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtQ29tcHJhKHsuLi5mb3JtQ29tcHJhLCBmZWNoYTplLnRhcmdldC52YWx1ZX0pfSByZXF1aXJlZCAvPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8QnRuIG9uQ2xpY2s9e2NyZWFyQ29tcHJhfSBkaXNhYmxlZD17c2F2aW5nfT57c2F2aW5nID8gJ0d1YXJkYW5kby4uLicgOiAnUmVnaXN0cmFyIGNvbXByYSd9PC9CdG4+CiAgICAgICAgICAgICAgPC9mb3JtPgogICAgICAgICAgICA8L0NhcmQ+CiAgICAgICAgICApfQoKICAgICAgICAgIHt0YWIgPT09ICdwcm92ZWVkb3JlcycgPyAoCiAgICAgICAgICAgIDw+CiAgICAgICAgICAgICAgPFNlY3Rpb25UaXRsZT5Qcm92ZWVkb3JlczwvU2VjdGlvblRpdGxlPgogICAgICAgICAgICAgIDxUYWJsZQogICAgICAgICAgICAgICAgY29scz17WwogICAgICAgICAgICAgICAgICB7IGtleTonbm9tYnJlJywgbGFiZWw6J05vbWJyZScgfSwKICAgICAgICAgICAgICAgICAgeyBrZXk6J2NvbnRhY3RvJywgbGFiZWw6J0NvbnRhY3RvJywgcmVuZGVyOnIgPT4gci5jb250YWN0byB8fCAn4oCUJyB9LAogICAgICAgICAgICAgICAgICB7IGtleTondGVsZWZvbm8nLCBsYWJlbDonVGVsw6lmb25vJywgcmVuZGVyOnIgPT4gci50ZWxlZm9ubyB8fCAn4oCUJyB9LAogICAgICAgICAgICAgICAgICB7IGtleTonZW1haWwnLCBsYWJlbDonRW1haWwnLCByZW5kZXI6ciA9PiByLmVtYWlsIHx8ICfigJQnIH0sCiAgICAgICAgICAgICAgICBdfQogICAgICAgICAgICAgICAgcm93cz17cHJvdmVlZG9yZXN9CiAgICAgICAgICAgICAgICBlbXB0eT0iU2luIHByb3ZlZWRvcmVzIHJlZ2lzdHJhZG9zIgogICAgICAgICAgICAgIC8+CiAgICAgICAgICAgIDwvPgogICAgICAgICAgKSA6ICgKICAgICAgICAgICAgPD4KICAgICAgICAgICAgICA8U2VjdGlvblRpdGxlPkhpc3RvcmlhbCBkZSBjb21wcmFzPC9TZWN0aW9uVGl0bGU+CiAgICAgICAgICAgICAgPFRhYmxlCiAgICAgICAgICAgICAgICBjb2xzPXtbCiAgICAgICAgICAgICAgICAgIHsga2V5OidmZWNoYScsIGxhYmVsOidGZWNoYScgfSwKICAgICAgICAgICAgICAgICAgeyBrZXk6J3Byb3ZlZWRvcicsIGxhYmVsOidQcm92ZWVkb3InLCByZW5kZXI6ciA9PiByLnByb3ZlZWRvcmVzPy5ub21icmUgfHwgJ+KAlCcgfSwKICAgICAgICAgICAgICAgICAgeyBrZXk6J2luc3VtbycsIGxhYmVsOidJbnN1bW8nLCByZW5kZXI6ciA9PiByLmNhdGFsb2dvX21hdGVyaWFsZXM/Lm5vbWJyZSB8fCByLmNhdGFsb2dvX2hlcnJhamVzPy5ub21icmUgfHwgJ+KAlCcgfSwKICAgICAgICAgICAgICAgICAgeyBrZXk6J2NhbnRpZGFkJywgbGFiZWw6J0NhbnRpZGFkJyB9LAogICAgICAgICAgICAgICAgICB7IGtleToncHJlY2lvX3VuaXRhcmlvJywgbGFiZWw6J1ByZWNpbyB1bml0LicsIHJlbmRlcjpyID0+IGZtdChyLnByZWNpb191bml0YXJpbykgfSwKICAgICAgICAgICAgICAgICAgeyBrZXk6J3ByZWNpb190b3RhbCcsIGxhYmVsOidUb3RhbCcsIHJlbmRlcjpyID0+IGZtdChyLnByZWNpb190b3RhbCB8fCByLmNhbnRpZGFkKnIucHJlY2lvX3VuaXRhcmlvKSB9LAogICAgICAgICAgICAgICAgXX0KICAgICAgICAgICAgICAgIHJvd3M9e2NvbXByYXN9CiAgICAgICAgICAgICAgICBlbXB0eT0iU2luIGNvbXByYXMgcmVnaXN0cmFkYXMiCiAgICAgICAgICAgICAgLz4KICAgICAgICAgICAgPC8+CiAgICAgICAgICApfQogICAgICAgIDwvPn0KICAgICAgPC9QYWdlQ29udGVudD4KICAgIDwvTGF5b3V0PgogICkKfQo=
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { Layout, Topbar, PageContent } from '../components/Layout'
+import { Card, KpiCard, SectionTitle, Table, Spinner, Btn, Input } from '../components/ui'
+
+const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
+
+export default function Proveedores() {
+  const [tab, setTab] = useState('proveedores')
+  const [proveedores, setProveedores] = useState([])
+  const [compras, setCompras] = useState([])
+  const [materiales, setMateriales] = useState([])
+  const [herrajes, setHerrajes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const [formProv, setFormProv] = useState({ nombre:'', contacto:'', telefono:'', email:'' })
+  const [formCompra, setFormCompra] = useState({ proveedor_id:'', insumo_tipo:'material', insumo_id:'', cantidad:'', precio_unitario:'', fecha: new Date().toISOString().slice(0,10) })
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    const [{ data: p }, { data: c }, { data: m }, { data: h }] = await Promise.all([
+      supabase.from('proveedores').select('*').eq('activo', true).order('nombre'),
+      supabase.from('compras_insumos').select('*, proveedores(nombre), catalogo_materiales(nombre), catalogo_herrajes(nombre)').order('fecha', { ascending:false }).limit(100),
+      supabase.from('catalogo_materiales').select('id,nombre').eq('activo', true).order('nombre'),
+      supabase.from('catalogo_herrajes').select('id,nombre').eq('activo', true).order('nombre'),
+    ])
+    setProveedores(p || [])
+    setCompras(c || [])
+    setMateriales(m || [])
+    setHerrajes(h || [])
+    setLoading(false)
+  }
+
+  async function crearProveedor(e) {
+    e.preventDefault()
+    if (!formProv.nombre) return
+    setSaving(true)
+    await supabase.from('proveedores').insert(formProv)
+    setFormProv({ nombre:'', contacto:'', telefono:'', email:'' })
+    setShowForm(false)
+    setSaving(false)
+    load()
+  }
+
+  async function crearCompra(e) {
+    e.preventDefault()
+    if (!formCompra.proveedor_id || !formCompra.insumo_id || !formCompra.cantidad || !formCompra.precio_unitario) return
+    setSaving(true)
+    const cantidad = Number(formCompra.cantidad)
+    const precio_unitario = Number(formCompra.precio_unitario)
+    await supabase.from('compras_insumos').insert({
+      proveedor_id: formCompra.proveedor_id,
+      catalogo_material_id: formCompra.insumo_tipo === 'material' ? formCompra.insumo_id : null,
+      catalogo_herraje_id: formCompra.insumo_tipo === 'herraje' ? formCompra.insumo_id : null,
+      cantidad,
+      precio_unitario,
+      precio_total: cantidad * precio_unitario,
+      fecha: formCompra.fecha,
+    })
+    setFormCompra({ proveedor_id:'', insumo_tipo:'material', insumo_id:'', cantidad:'', precio_unitario:'', fecha: new Date().toISOString().slice(0,10) })
+    setShowForm(false)
+    setSaving(false)
+    load()
+  }
+
+  const totalComprasMes = compras.filter(c => c.fecha?.slice(0,7) === new Date().toISOString().slice(0,7)).reduce((s,c) => s + Number(c.precio_total || c.cantidad*c.precio_unitario || 0), 0)
+
+  return (
+    <Layout>
+      <Topbar
+        title="Proveedores e insumos"
+        subtitle={`${proveedores.length} proveedores activos`}
+        actions={<Btn small onClick={() => setShowForm(v => !v)}>{showForm ? 'Cancelar' : (tab === 'proveedores' ? '+ Proveedor' : '+ Compra')}</Btn>}
+      />
+      <PageContent>
+        {loading ? <Spinner /> : <>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, marginBottom:20 }}>
+            <KpiCard label="Comprado este mes" value={fmt(totalComprasMes)} accent />
+            <KpiCard label="Proveedores activos" value={proveedores.length} />
+            <KpiCard label="Compras registradas" value={compras.length} detail="últimas 100" />
+          </div>
+
+          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+            <Btn small variant={tab === 'proveedores' ? 'primary' : 'ghost'} onClick={() => { setTab('proveedores'); setShowForm(false) }}>Proveedores</Btn>
+            <Btn small variant={tab === 'compras' ? 'primary' : 'ghost'} onClick={() => { setTab('compras'); setShowForm(false) }}>Historial de compras</Btn>
+          </div>
+
+          {showForm && tab === 'proveedores' && (
+            <Card style={{ marginBottom:20 }}>
+              <form onSubmit={crearProveedor}>
+                <Input label="Nombre" value={formProv.nombre} onChange={e => setFormProv({...formProv, nombre:e.target.value})} required />
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                  <Input label="Contacto" value={formProv.contacto} onChange={e => setFormProv({...formProv, contacto:e.target.value})} />
+                  <Input label="Teléfono" value={formProv.telefono} onChange={e => setFormProv({...formProv, telefono:e.target.value})} />
+                </div>
+                <Input label="Email" type="email" value={formProv.email} onChange={e => setFormProv({...formProv, email:e.target.value})} />
+                <Btn onClick={crearProveedor} disabled={saving}>{saving ? 'Guardando...' : 'Guardar proveedor'}</Btn>
+              </form>
+            </Card>
+          )}
+
+          {showForm && tab === 'compras' && (
+            <Card style={{ marginBottom:20 }}>
+              <form onSubmit={crearCompra}>
+                <div style={{ marginBottom:14 }}>
+                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Proveedor</label>
+                  <select value={formCompra.proveedor_id} onChange={e => setFormCompra({...formCompra, proveedor_id:e.target.value})} required>
+                    <option value="">Elegir proveedor...</option>
+                    {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:16 }}>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Tipo</label>
+                    <select value={formCompra.insumo_tipo} onChange={e => setFormCompra({...formCompra, insumo_tipo:e.target.value, insumo_id:''})}>
+                      <option value="material">Material</option>
+                      <option value="herraje">Herraje</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Insumo</label>
+                    <select value={formCompra.insumo_id} onChange={e => setFormCompra({...formCompra, insumo_id:e.target.value})} required>
+                      <option value="">Elegir...</option>
+                      {(formCompra.insumo_tipo === 'material' ? materiales : herrajes).map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
+                  <Input label="Cantidad" type="number" value={formCompra.cantidad} onChange={e => setFormCompra({...formCompra, cantidad:e.target.value})} required />
+                  <Input label="Precio unitario" type="number" value={formCompra.precio_unitario} onChange={e => setFormCompra({...formCompra, precio_unitario:e.target.value})} required />
+                  <Input label="Fecha" type="date" value={formCompra.fecha} onChange={e => setFormCompra({...formCompra, fecha:e.target.value})} required />
+                </div>
+                <Btn onClick={crearCompra} disabled={saving}>{saving ? 'Guardando...' : 'Registrar compra'}</Btn>
+              </form>
+            </Card>
+          )}
+
+          {tab === 'proveedores' ? (
+            <>
+              <SectionTitle>Proveedores</SectionTitle>
+              <Table
+                cols={[
+                  { key:'nombre', label:'Nombre' },
+                  { key:'contacto', label:'Contacto', render:r => r.contacto || '—' },
+                  { key:'telefono', label:'Teléfono', render:r => r.telefono || '—' },
+                  { key:'email', label:'Email', render:r => r.email || '—' },
+                ]}
+                rows={proveedores}
+                empty="Sin proveedores registrados"
+              />
+            </>
+          ) : (
+            <>
+              <SectionTitle>Historial de compras</SectionTitle>
+              <Table
+                cols={[
+                  { key:'fecha', label:'Fecha' },
+                  { key:'proveedor', label:'Proveedor', render:r => r.proveedores?.nombre || '—' },
+                  { key:'insumo', label:'Insumo', render:r => r.catalogo_materiales?.nombre || r.catalogo_herrajes?.nombre || '—' },
+                  { key:'cantidad', label:'Cantidad' },
+                  { key:'precio_unitario', label:'Precio unit.', render:r => fmt(r.precio_unitario) },
+                  { key:'precio_total', label:'Total', render:r => fmt(r.precio_total || r.cantidad*r.precio_unitario) },
+                ]}
+                rows={compras}
+                empty="Sin compras registradas"
+              />
+            </>
+          )}
+        </>}
+      </PageContent>
+    </Layout>
+  )
+}

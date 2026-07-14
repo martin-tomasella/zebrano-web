@@ -1,1 +1,71 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBzdXBhYmFzZSB9IGZyb20gJy4uL2xpYi9zdXBhYmFzZScKaW1wb3J0IHsgTGF5b3V0LCBUb3BiYXIsIFBhZ2VDb250ZW50IH0gZnJvbSAnLi4vY29tcG9uZW50cy9MYXlvdXQnCmltcG9ydCB7IEtwaUNhcmQsIFNlY3Rpb25UaXRsZSwgVGFibGUsIFNwaW5uZXIgfSBmcm9tICcuLi9jb21wb25lbnRzL3VpJwoKY29uc3QgZGlhcyA9IG4gPT4gbiAhPSBudWxsID8gYCR7TnVtYmVyKG4pLnRvRml4ZWQoMSl9IGTDrWFzYCA6ICfigJQnCgpjb25zdCBFU1RBRE9fTEFCRUwgPSB7IHByb3NwZWN0bzonUHJvc3BlY3RvJywgY290aXphZG86J0NvdGl6YWRvJywgc2VuYV9wYWdhZGE6J1Nlw7FhIHBhZ2FkYScsIGVuX2ZhYnJpY2FjaW9uOidFbiBmYWJyaWNhY2nDs24nLCBlbnRyZWdhZG86J0VudHJlZ2FkbycsIGNhbmNlbGFkbzonQ2FuY2VsYWRvJyB9CgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBNZXRyaWNhcygpIHsKICBjb25zdCBbcHJvbWVkaW8sIHNldFByb21lZGlvXSA9IHVzZVN0YXRlKG51bGwpCiAgY29uc3QgW2RldGFsbGUsIHNldERldGFsbGVdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSkKICBjb25zdCBbZXJyb3IsIHNldEVycm9yXSA9IHVzZVN0YXRlKG51bGwpCgogIHVzZUVmZmVjdCgoKSA9PiB7IGxvYWQoKSB9LCBbXSkKCiAgYXN5bmMgZnVuY3Rpb24gbG9hZCgpIHsKICAgIHNldExvYWRpbmcodHJ1ZSkKICAgIGNvbnN0IFt7IGRhdGE6IHByb20sIGVycm9yOiBlMSB9LCB7IGRhdGE6IGRldCwgZXJyb3I6IGUyIH1dID0gYXdhaXQgUHJvbWlzZS5hbGwoWwogICAgICBzdXBhYmFzZS5ycGMoJ3ZfdGllbXBvc19jaWNsb19wcm9tZWRpbycpLAogICAgICBzdXBhYmFzZS5ycGMoJ3ZfdGllbXBvc19jaWNsb19wcm95ZWN0b3MnKSwKICAgIF0pCiAgICBpZiAoZTEgfHwgZTIpIHNldEVycm9yKChlMSB8fCBlMikubWVzc2FnZSkKICAgIHNldFByb21lZGlvKHByb20/LlswXSB8fCBudWxsKQogICAgc2V0RGV0YWxsZShkZXQgfHwgW10pCiAgICBzZXRMb2FkaW5nKGZhbHNlKQogIH0KCiAgcmV0dXJuICgKICAgIDxMYXlvdXQ+CiAgICAgIDxUb3BiYXIgdGl0bGU9IlRpZW1wb3MgZGUgY2ljbG8iIHN1YnRpdGxlPSJDb3RpemFjacOzbiDihpIgc2XDsWEg4oaSIGZhYnJpY2FjacOzbiDihpIgZW50cmVnYSIgLz4KICAgICAgPFBhZ2VDb250ZW50PgogICAgICAgIHtsb2FkaW5nID8gPFNwaW5uZXIgLz4gOiBlcnJvciA/ICgKICAgICAgICAgIDxkaXYgc3R5bGU9e3sgdGV4dEFsaWduOidjZW50ZXInLCBwYWRkaW5nOjY0LCBib3JkZXI6JzFweCBkYXNoZWQgdmFyKC0tei1ib3JkZXIpJywgYm9yZGVyUmFkaXVzOid2YXIoLS16LXJhZGl1cy14bCknLCBjb2xvcjondmFyKC0tei10ZXh0LW11dGVkKScgfX0+CiAgICAgICAgICAgIDxwPk5vIHNlIHB1ZG8gY2FyZ2FyIGxhIG3DqXRyaWNhOiB7ZXJyb3J9PC9wPgogICAgICAgICAgICA8cCBzdHlsZT17eyBmb250U2l6ZToxMiwgbWFyZ2luVG9wOjggfX0+RXN0YSB2aXN0YSByZXF1aWVyZSBwZXJtaXNvcyBkZSBhZG1pbiBvIHRhbGxlci48L3A+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICApIDogKAogICAgICAgICAgPD4KICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OidncmlkJywgZ3JpZFRlbXBsYXRlQ29sdW1uczoncmVwZWF0KDUsbWlubWF4KDAsMWZyKSknLCBnYXA6MTIsIG1hcmdpbkJvdHRvbToyNCB9fT4KICAgICAgICAgICAgICA8S3BpQ2FyZCBsYWJlbD0iUHJvc3BlY3RvIOKGkiBDb3RpemFkbyIgdmFsdWU9e2RpYXMocHJvbWVkaW8/LnByb21lZGlvX3Byb3NwZWN0b19hX2NvdGl6YWRvKX0gLz4KICAgICAgICAgICAgICA8S3BpQ2FyZCBsYWJlbD0iQ290aXphZG8g4oaSIFNlw7FhIiB2YWx1ZT17ZGlhcyhwcm9tZWRpbz8ucHJvbWVkaW9fY290aXphZG9fYV9zZW5hKX0gLz4KICAgICAgICAgICAgICA8S3BpQ2FyZCBsYWJlbD0iU2XDsWEg4oaSIEZhYnJpY2FjacOzbiIgdmFsdWU9e2RpYXMocHJvbWVkaW8/LnByb21lZGlvX3NlbmFfYV9mYWJyaWNhY2lvbil9IC8+CiAgICAgICAgICAgICAgPEtwaUNhcmQgbGFiZWw9IkZhYnJpY2FjacOzbiDihpIgRW50cmVnYSIgdmFsdWU9e2RpYXMocHJvbWVkaW8/LnByb21lZGlvX2ZhYnJpY2FjaW9uX2FfZW50cmVnYSl9IC8+CiAgICAgICAgICAgICAgPEtwaUNhcmQgbGFiZWw9IkNpY2xvIHRvdGFsIHByb21lZGlvIiB2YWx1ZT17ZGlhcyhwcm9tZWRpbz8ucHJvbWVkaW9fdG90YWxfZGlhcyl9IGRldGFpbD17YCR7cHJvbWVkaW8/LnByb3llY3Rvc19jb21wbGV0b3MgPz8gMH0gcHJveWVjdG9zIGNvbXBsZXRvc2B9IGFjY2VudCAvPgogICAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICAgIDxTZWN0aW9uVGl0bGU+RGV0YWxsZSBwb3IgcHJveWVjdG88L1NlY3Rpb25UaXRsZT4KICAgICAgICAgICAgPFRhYmxlCiAgICAgICAgICAgICAgY29scz17WwogICAgICAgICAgICAgICAgeyBrZXk6J3Byb3llY3RvJywgbGFiZWw6J1Byb3llY3RvJywgcmVuZGVyOnIgPT4gci5wcm95ZWN0byB8fCAn4oCUJyB9LAogICAgICAgICAgICAgICAgeyBrZXk6J2NsaWVudGUnLCBsYWJlbDonQ2xpZW50ZScsIHJlbmRlcjpyID0+IHIuY2xpZW50ZSB8fCAn4oCUJyB9LAogICAgICAgICAgICAgICAgeyBrZXk6J2VzdGFkbycsIGxhYmVsOidFc3RhZG8nLCByZW5kZXI6ciA9PiBFU1RBRE9fTEFCRUxbci5lc3RhZG9dIHx8IHIuZXN0YWRvIHx8ICfigJQnIH0sCiAgICAgICAgICAgICAgICB7IGtleTonZGlhc19wcm9zcGVjdG9fYV9jb3RpemFkbycsIGxhYmVsOidQcm9zLuKGkkNvdC4nLCByZW5kZXI6ciA9PiByLmRpYXNfcHJvc3BlY3RvX2FfY290aXphZG8gPz8gJ+KAlCcgfSwKICAgICAgICAgICAgICAgIHsga2V5OidkaWFzX2NvdGl6YWRvX2Ffc2VuYScsIGxhYmVsOidDb3Qu4oaSU2XDsWEnLCByZW5kZXI6ciA9PiByLmRpYXNfY290aXphZG9fYV9zZW5hID8/ICfigJQnIH0sCiAgICAgICAgICAgICAgICB7IGtleTonZGlhc19zZW5hX2FfZmFicmljYWNpb24nLCBsYWJlbDonU2XDsWHihpJGYWIuJywgcmVuZGVyOnIgPT4gci5kaWFzX3NlbmFfYV9mYWJyaWNhY2lvbiA/PyAn4oCUJyB9LAogICAgICAgICAgICAgICAgeyBrZXk6J2RpYXNfZmFicmljYWNpb25fYV9lbnRyZWdhJywgbGFiZWw6J0ZhYi7ihpJFbnRyZWdhJywgcmVuZGVyOnIgPT4gci5kaWFzX2ZhYnJpY2FjaW9uX2FfZW50cmVnYSA/PyAn4oCUJyB9LAogICAgICAgICAgICAgICAgeyBrZXk6J2RpYXNfdG90YWxlc19wcm9zcGVjdG9fYV9lbnRyZWdhJywgbGFiZWw6J1RvdGFsJywgcmVuZGVyOnIgPT4gKAogICAgICAgICAgICAgICAgICA8c3Ryb25nIHN0eWxlPXt7IGNvbG9yOid2YXIoLS16LXByaW1hcnktbGlnaHQpJyB9fT57ci5kaWFzX3RvdGFsZXNfcHJvc3BlY3RvX2FfZW50cmVnYSA/PyAn4oCUJ308L3N0cm9uZz4KICAgICAgICAgICAgICAgICkgfSwKICAgICAgICAgICAgICBdfQogICAgICAgICAgICAgIHJvd3M9e2RldGFsbGV9CiAgICAgICAgICAgICAgZW1wdHk9IlRvZGF2w61hIG5vIGhheSBwcm95ZWN0b3MgY29uIGNpY2xvIGNvbXBsZXRvIHBhcmEgbWVkaXIiCiAgICAgICAgICAgIC8+CiAgICAgICAgICA8Lz4KICAgICAgICApfQogICAgICA8L1BhZ2VDb250ZW50PgogICAgPC9MYXlvdXQ+CiAgKQp9Cg==
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { Layout, Topbar, PageContent } from '../components/Layout'
+import { KpiCard, SectionTitle, Table, Spinner } from '../components/ui'
+
+const dias = n => n != null ? `${Number(n).toFixed(1)} días` : '—'
+
+const ESTADO_LABEL = { prospecto:'Prospecto', cotizado:'Cotizado', sena_pagada:'Seña pagada', en_fabricacion:'En fabricación', entregado:'Entregado', cancelado:'Cancelado' }
+
+export default function Metricas() {
+  const [promedio, setPromedio] = useState(null)
+  const [detalle, setDetalle] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    const [{ data: prom, error: e1 }, { data: det, error: e2 }] = await Promise.all([
+      supabase.rpc('v_tiempos_ciclo_promedio'),
+      supabase.rpc('v_tiempos_ciclo_proyectos'),
+    ])
+    if (e1 || e2) setError((e1 || e2).message)
+    setPromedio(prom?.[0] || null)
+    setDetalle(det || [])
+    setLoading(false)
+  }
+
+  return (
+    <Layout>
+      <Topbar title="Tiempos de ciclo" subtitle="Cotización → seña → fabricación → entrega" />
+      <PageContent>
+        {loading ? <Spinner /> : error ? (
+          <div style={{ textAlign:'center', padding:64, border:'1px dashed var(--z-border)', borderRadius:'var(--z-radius-xl)', color:'var(--z-text-muted)' }}>
+            <p>No se pudo cargar la métrica: {error}</p>
+            <p style={{ fontSize:12, marginTop:8 }}>Esta vista requiere permisos de admin o taller.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,minmax(0,1fr))', gap:12, marginBottom:24 }}>
+              <KpiCard label="Prospecto → Cotizado" value={dias(promedio?.promedio_prospecto_a_cotizado)} />
+              <KpiCard label="Cotizado → Seña" value={dias(promedio?.promedio_cotizado_a_sena)} />
+              <KpiCard label="Seña → Fabricación" value={dias(promedio?.promedio_sena_a_fabricacion)} />
+              <KpiCard label="Fabricación → Entrega" value={dias(promedio?.promedio_fabricacion_a_entrega)} />
+              <KpiCard label="Ciclo total promedio" value={dias(promedio?.promedio_total_dias)} detail={`${promedio?.proyectos_completos ?? 0} proyectos completos`} accent />
+            </div>
+
+            <SectionTitle>Detalle por proyecto</SectionTitle>
+            <Table
+              cols={[
+                { key:'proyecto', label:'Proyecto', render:r => r.proyecto || '—' },
+                { key:'cliente', label:'Cliente', render:r => r.cliente || '—' },
+                { key:'estado', label:'Estado', render:r => ESTADO_LABEL[r.estado] || r.estado || '—' },
+                { key:'dias_prospecto_a_cotizado', label:'Pros.→Cot.', render:r => r.dias_prospecto_a_cotizado ?? '—' },
+                { key:'dias_cotizado_a_sena', label:'Cot.→Seña', render:r => r.dias_cotizado_a_sena ?? '—' },
+                { key:'dias_sena_a_fabricacion', label:'Seña→Fab.', render:r => r.dias_sena_a_fabricacion ?? '—' },
+                { key:'dias_fabricacion_a_entrega', label:'Fab.→Entrega', render:r => r.dias_fabricacion_a_entrega ?? '—' },
+                { key:'dias_totales_prospecto_a_entrega', label:'Total', render:r => (
+                  <strong style={{ color:'var(--z-primary-light)' }}>{r.dias_totales_prospecto_a_entrega ?? '—'}</strong>
+                ) },
+              ]}
+              rows={detalle}
+              empty="Todavía no hay proyectos con ciclo completo para medir"
+            />
+          </>
+        )}
+      </PageContent>
+    </Layout>
+  )
+}

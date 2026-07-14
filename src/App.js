@@ -1,1 +1,68 @@
-aW1wb3J0IFJlYWN0IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBCcm93c2VyUm91dGVyLCBSb3V0ZXMsIFJvdXRlLCBOYXZpZ2F0ZSB9IGZyb20gJ3JlYWN0LXJvdXRlci1kb20nCmltcG9ydCB7IEF1dGhQcm92aWRlciwgdXNlQXV0aCB9IGZyb20gJy4vaG9va3MvdXNlQXV0aCcKaW1wb3J0IExvZ2luICAgICAgICAgICAgZnJvbSAnLi9wYWdlcy9Mb2dpbicKaW1wb3J0IERhc2hib2FyZCAgICAgICAgZnJvbSAnLi9wYWdlcy9EYXNoYm9hcmQnCmltcG9ydCBQcm95ZWN0b3MgICAgICAgIGZyb20gJy4vcGFnZXMvUHJveWVjdG9zJwppbXBvcnQgQ2xpZW50ZXMgICAgICAgICBmcm9tICcuL3BhZ2VzL0NsaWVudGVzJwppbXBvcnQgVmVudGFzICAgICAgICAgICBmcm9tICcuL3BhZ2VzL1ZlbnRhcycKaW1wb3J0IFByb2R1Y2Npb24gICAgICAgZnJvbSAnLi9wYWdlcy9Qcm9kdWNjaW9uJwppbXBvcnQgQ290aXphZG9yICAgICAgICBmcm9tICcuL3BhZ2VzL0NvdGl6YWRvcicKaW1wb3J0IExhbmRpbmdQcmV2aWV3ICAgZnJvbSAnLi9wYWdlcy9MYW5kaW5nJwppbXBvcnQgVXN1YXJpb3MgICAgICAgICBmcm9tICcuL3BhZ2VzL1VzdWFyaW9zJwppbXBvcnQgUlJTUyAgICAgICAgICAgICBmcm9tICcuL3BhZ2VzL1JSU1MnCmltcG9ydCBSUlNTSW1wb3J0ICAgICAgIGZyb20gJy4vcGFnZXMvUlJTU0ltcG9ydCcKaW1wb3J0IFByb3NwZWN0b3MgICAgICAgZnJvbSAnLi9wYWdlcy9Qcm9zcGVjdG9zJwppbXBvcnQgUHJvc3BlY3RvRGV0YWxsZSBmcm9tICcuL3BhZ2VzL1Byb3NwZWN0b0RldGFsbGUnCmltcG9ydCBUaWtUb2sgICAgICAgICAgIGZyb20gJy4vcGFnZXMvVGlrVG9rJwppbXBvcnQgQ2FqYUNoaWNhICAgICAgICBmcm9tICcuL3BhZ2VzL0NhamFDaGljYScKaW1wb3J0IFByb3ZlZWRvcmVzICAgICAgZnJvbSAnLi9wYWdlcy9Qcm92ZWVkb3JlcycKaW1wb3J0IEhvcmFzVHJhYmFqbyAgICAgZnJvbSAnLi9wYWdlcy9Ib3Jhc1RyYWJham8nCmltcG9ydCBNZXRyaWNhcyAgICAgICAgIGZyb20gJy4vcGFnZXMvTWV0cmljYXMnCgpmdW5jdGlvbiBQcml2YXRlUm91dGUoeyBjaGlsZHJlbiB9KSB7CiAgY29uc3QgeyB1c2VyLCBsb2FkaW5nIH0gPSB1c2VBdXRoKCkKICBpZiAobG9hZGluZykgcmV0dXJuICgKICAgIDxkaXYgc3R5bGU9e3sgbWluSGVpZ2h0OicxMDB2aCcsIGRpc3BsYXk6J2ZsZXgnLCBhbGlnbkl0ZW1zOidjZW50ZXInLCBqdXN0aWZ5Q29udGVudDonY2VudGVyJywgYmFja2dyb3VuZDondmFyKC0tei1iZyknIH19PgogICAgICA8ZGl2IHN0eWxlPXt7IHdpZHRoOjI0LCBoZWlnaHQ6MjQsIGJvcmRlcjonMnB4IHNvbGlkICNFMUY1RUUnLCBib3JkZXJUb3A6JzJweCBzb2xpZCAjMUQ5RTc1JywgYm9yZGVyUmFkaXVzOic1MCUnLCBhbmltYXRpb246J3NwaW4gMC44cyBsaW5lYXIgaW5maW5pdGUnIH19IC8+CiAgICAgIDxzdHlsZT57YEBrZXlmcmFtZXMgc3Bpbnt0b3t0cmFuc2Zvcm06cm90YXRlKDM2MGRlZyl9fWB9PC9zdHlsZT4KICAgIDwvZGl2PgogICkKICByZXR1cm4gdXNlciA/IGNoaWxkcmVuIDogPE5hdmlnYXRlIHRvPSIvbG9naW4iIHJlcGxhY2UgLz4KfQoKZnVuY3Rpb24gQXBwUm91dGVzKCkgewogIHJldHVybiAoCiAgICA8Um91dGVzPgogICAgICA8Um91dGUgcGF0aD0iL2xvZ2luIiAgICAgICAgICAgIGVsZW1lbnQ9ezxMb2dpbiAvPn0gLz4KICAgICAgPFJvdXRlIHBhdGg9Ii8iICAgICAgICAgICAgICAgICBlbGVtZW50PXs8UHJpdmF0ZVJvdXRlPjxEYXNoYm9hcmQgLz48L1ByaXZhdGVSb3V0ZT59IC8+CiAgICAgIDxSb3V0ZSBwYXRoPSIvcHJveWVjdG9zIiAgICAgICAgZWxlbWVudD17PFByaXZhdGVSb3V0ZT48UHJveWVjdG9zIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iL2NsaWVudGVzIiAgICAgICAgIGVsZW1lbnQ9ezxQcml2YXRlUm91dGU+PENsaWVudGVzIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iL3ZlbnRhcyIgICAgICAgICAgIGVsZW1lbnQ9ezxQcml2YXRlUm91dGU+PFZlbnRhcyAvPjwvUHJpdmF0ZVJvdXRlPn0gLz4KICAgICAgPFJvdXRlIHBhdGg9Ii9wcm9kdWNjaW9uIiAgICAgICBlbGVtZW50PXs8UHJpdmF0ZVJvdXRlPjxQcm9kdWNjaW9uIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iL2NvdGl6YWRvciIgICAgICAgIGVsZW1lbnQ9ezxQcml2YXRlUm91dGU+PENvdGl6YWRvciAvPjwvUHJpdmF0ZVJvdXRlPn0gLz4KICAgICAgPFJvdXRlIHBhdGg9Ii9sYW5kaW5nIiAgICAgICAgICBlbGVtZW50PXs8UHJpdmF0ZVJvdXRlPjxMYW5kaW5nUHJldmlldyAvPjwvUHJpdmF0ZVJvdXRlPn0gLz4KICAgICAgPFJvdXRlIHBhdGg9Ii91c3VhcmlvcyIgICAgICAgICBlbGVtZW50PXs8UHJpdmF0ZVJvdXRlPjxVc3VhcmlvcyAvPjwvUHJpdmF0ZVJvdXRlPn0gLz4KICAgICAgPFJvdXRlIHBhdGg9Ii9ycnNzIiAgICAgICAgICAgICBlbGVtZW50PXs8UHJpdmF0ZVJvdXRlPjxSUlNTIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iL3Jyc3MvaW1wb3J0YXIiICAgIGVsZW1lbnQ9ezxQcml2YXRlUm91dGU+PFJSU1NJbXBvcnQgLz48L1ByaXZhdGVSb3V0ZT59IC8+CiAgICAgIDxSb3V0ZSBwYXRoPSIvdGlrdG9rIiAgICAgICAgICAgZWxlbWVudD17PFByaXZhdGVSb3V0ZT48VGlrVG9rIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iL3Byb3NwZWN0b3MiICAgICAgIGVsZW1lbnQ9ezxQcml2YXRlUm91dGU+PFByb3NwZWN0b3MgLz48L1ByaXZhdGVSb3V0ZT59IC8+CiAgICAgIDxSb3V0ZSBwYXRoPSIvcHJvc3BlY3Rvcy86aWQiICAgZWxlbWVudD17PFByaXZhdGVSb3V0ZT48UHJvc3BlY3RvRGV0YWxsZSAvPjwvUHJpdmF0ZVJvdXRlPn0gLz4KICAgICAgPFJvdXRlIHBhdGg9Ii9jYWphLWNoaWNhIiAgICAgICBlbGVtZW50PXs8UHJpdmF0ZVJvdXRlPjxDYWphQ2hpY2EgLz48L1ByaXZhdGVSb3V0ZT59IC8+CiAgICAgIDxSb3V0ZSBwYXRoPSIvcHJvdmVlZG9yZXMiICAgICAgZWxlbWVudD17PFByaXZhdGVSb3V0ZT48UHJvdmVlZG9yZXMgLz48L1ByaXZhdGVSb3V0ZT59IC8+CiAgICAgIDxSb3V0ZSBwYXRoPSIvaG9yYXMtdHJhYmFqbyIgICAgZWxlbWVudD17PFByaXZhdGVSb3V0ZT48SG9yYXNUcmFiYWpvIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iL21ldHJpY2FzIiAgICAgICAgIGVsZW1lbnQ9ezxQcml2YXRlUm91dGU+PE1ldHJpY2FzIC8+PC9Qcml2YXRlUm91dGU+fSAvPgogICAgICA8Um91dGUgcGF0aD0iKiIgICAgICAgICAgICAgICAgIGVsZW1lbnQ9ezxOYXZpZ2F0ZSB0bz0iLyIgcmVwbGFjZSAvPn0gLz4KICAgIDwvUm91dGVzPgogICkKfQoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gQXBwKCkgewogIHJldHVybiAoCiAgICA8QXV0aFByb3ZpZGVyPgogICAgICA8QnJvd3NlclJvdXRlcj4KICAgICAgICA8QXBwUm91dGVzIC8+CiAgICAgIDwvQnJvd3NlclJvdXRlcj4KICAgIDwvQXV0aFByb3ZpZGVyPgogICkKfQo=
+import React from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './hooks/useAuth'
+import Login            from './pages/Login'
+import Dashboard        from './pages/Dashboard'
+import Proyectos        from './pages/Proyectos'
+import Clientes         from './pages/Clientes'
+import Ventas           from './pages/Ventas'
+import Produccion       from './pages/Produccion'
+import Cotizador        from './pages/Cotizador'
+import LandingPreview   from './pages/Landing'
+import Usuarios         from './pages/Usuarios'
+import RRSS             from './pages/RRSS'
+import RRSSImport       from './pages/RRSSImport'
+import Prospectos       from './pages/Prospectos'
+import ProspectoDetalle from './pages/ProspectoDetalle'
+import TikTok           from './pages/TikTok'
+import CajaChica        from './pages/CajaChica'
+import Proveedores      from './pages/Proveedores'
+import HorasTrabajo     from './pages/HorasTrabajo'
+import Metricas         from './pages/Metricas'
+
+function PrivateRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--z-bg)' }}>
+      <div style={{ width:24, height:24, border:'2px solid #E1F5EE', borderTop:'2px solid #1D9E75', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  )
+  return user ? children : <Navigate to="/login" replace />
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login"            element={<Login />} />
+      <Route path="/"                 element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/proyectos"        element={<PrivateRoute><Proyectos /></PrivateRoute>} />
+      <Route path="/clientes"         element={<PrivateRoute><Clientes /></PrivateRoute>} />
+      <Route path="/ventas"           element={<PrivateRoute><Ventas /></PrivateRoute>} />
+      <Route path="/produccion"       element={<PrivateRoute><Produccion /></PrivateRoute>} />
+      <Route path="/cotizador"        element={<PrivateRoute><Cotizador /></PrivateRoute>} />
+      <Route path="/landing"          element={<PrivateRoute><LandingPreview /></PrivateRoute>} />
+      <Route path="/usuarios"         element={<PrivateRoute><Usuarios /></PrivateRoute>} />
+      <Route path="/rrss"             element={<PrivateRoute><RRSS /></PrivateRoute>} />
+      <Route path="/rrss/importar"    element={<PrivateRoute><RRSSImport /></PrivateRoute>} />
+      <Route path="/tiktok"           element={<PrivateRoute><TikTok /></PrivateRoute>} />
+      <Route path="/prospectos"       element={<PrivateRoute><Prospectos /></PrivateRoute>} />
+      <Route path="/prospectos/:id"   element={<PrivateRoute><ProspectoDetalle /></PrivateRoute>} />
+      <Route path="/caja-chica"       element={<PrivateRoute><CajaChica /></PrivateRoute>} />
+      <Route path="/proveedores"      element={<PrivateRoute><Proveedores /></PrivateRoute>} />
+      <Route path="/horas-trabajo"    element={<PrivateRoute><HorasTrabajo /></PrivateRoute>} />
+      <Route path="/metricas"         element={<PrivateRoute><Metricas /></PrivateRoute>} />
+      <Route path="*"                 element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}

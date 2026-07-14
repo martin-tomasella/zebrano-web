@@ -1,1 +1,133 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgeyBzdXBhYmFzZSB9IGZyb20gJy4uL2xpYi9zdXBhYmFzZScKaW1wb3J0IHsgTGF5b3V0LCBUb3BiYXIsIFBhZ2VDb250ZW50IH0gZnJvbSAnLi4vY29tcG9uZW50cy9MYXlvdXQnCmltcG9ydCB7IENhcmQsIEtwaUNhcmQsIFNlY3Rpb25UaXRsZSwgVGFibGUsIFNwaW5uZXIsIEJ0biwgSW5wdXQgfSBmcm9tICcuLi9jb21wb25lbnRzL3VpJwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gSG9yYXNUcmFiYWpvKCkgewogIGNvbnN0IFtvdHMsIHNldE90c10gPSB1c2VTdGF0ZShbXSkKICBjb25zdCBbZW1wbGVhZG9zLCBzZXRFbXBsZWFkb3NdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW3JlZ2lzdHJvcywgc2V0UmVnaXN0cm9zXSA9IHVzZVN0YXRlKFtdKQogIGNvbnN0IFtsb2FkaW5nLCBzZXRMb2FkaW5nXSA9IHVzZVN0YXRlKHRydWUpCiAgY29uc3QgW3Nob3dGb3JtLCBzZXRTaG93Rm9ybV0gPSB1c2VTdGF0ZShmYWxzZSkKICBjb25zdCBbc2F2aW5nLCBzZXRTYXZpbmddID0gdXNlU3RhdGUoZmFsc2UpCiAgY29uc3QgW2Zvcm0sIHNldEZvcm1dID0gdXNlU3RhdGUoeyBvdF9pZDonJywgZW1wbGVhZG9faWQ6JycsIGZlY2hhOiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkuc2xpY2UoMCwxMCksIGhvcmFzOicnLCBub3RhczonJyB9KQoKICB1c2VFZmZlY3QoKCkgPT4geyBsb2FkKCkgfSwgW10pCgogIGFzeW5jIGZ1bmN0aW9uIGxvYWQoKSB7CiAgICBzZXRMb2FkaW5nKHRydWUpCiAgICBjb25zdCBbeyBkYXRhOiBvIH0sIHsgZGF0YTogZSB9LCB7IGRhdGE6IHIgfV0gPSBhd2FpdCBQcm9taXNlLmFsbChbCiAgICAgIHN1cGFiYXNlLmZyb20oJ29yZGVuZXNfdHJhYmFqbycpLnNlbGVjdCgnaWQsIG51bWVyb19vdCwgZXN0YWRvLCBob3Jhc19lc3RpbWFkYXMsIGhvcmFzX3JlYWxlcywgbW9kdWxvcyhub21icmUsIHByb3llY3Rvcyhub21icmUsIGNsaWVudGVzKG5vbWJyZSxhcGVsbGlkbykpKScpLm9yZGVyKCdjcmVhdGVkX2F0JywgeyBhc2NlbmRpbmc6ZmFsc2UgfSkubGltaXQoMjAwKSwKICAgICAgc3VwYWJhc2UuZnJvbSgnZW1wbGVhZG9zJykuc2VsZWN0KCdpZCxub21icmUnKS5lcSgnYWN0aXZvJywgdHJ1ZSkub3JkZXIoJ25vbWJyZScpLAogICAgICBzdXBhYmFzZS5mcm9tKCdob3Jhc190cmFiYWpvX290Jykuc2VsZWN0KCcqLCBlbXBsZWFkb3Mobm9tYnJlKSwgb3JkZW5lc190cmFiYWpvKG51bWVyb19vdCknKS5vcmRlcignZmVjaGEnLCB7IGFzY2VuZGluZzpmYWxzZSB9KS5saW1pdCgxMDApLAogICAgXSkKICAgIHNldE90cyhvIHx8IFtdKQogICAgc2V0RW1wbGVhZG9zKGUgfHwgW10pCiAgICBzZXRSZWdpc3Ryb3MociB8fCBbXSkKICAgIHNldExvYWRpbmcoZmFsc2UpCiAgfQoKICBhc3luYyBmdW5jdGlvbiBjYXJnYXJIb3JhcyhlKSB7CiAgICBlLnByZXZlbnREZWZhdWx0KCkKICAgIGlmICghZm9ybS5vdF9pZCB8fCAhZm9ybS5lbXBsZWFkb19pZCB8fCAhZm9ybS5ob3JhcykgcmV0dXJuCiAgICBzZXRTYXZpbmcodHJ1ZSkKICAgIGF3YWl0IHN1cGFiYXNlLmZyb20oJ2hvcmFzX3RyYWJham9fb3QnKS5pbnNlcnQoewogICAgICBvdF9pZDogZm9ybS5vdF9pZCwKICAgICAgZW1wbGVhZG9faWQ6IGZvcm0uZW1wbGVhZG9faWQsCiAgICAgIGZlY2hhOiBmb3JtLmZlY2hhLAogICAgICBob3JhczogTnVtYmVyKGZvcm0uaG9yYXMpLAogICAgICBub3RhczogZm9ybS5ub3RhcyB8fCBudWxsLAogICAgfSkKICAgIHNldEZvcm0oeyBvdF9pZDonJywgZW1wbGVhZG9faWQ6JycsIGZlY2hhOiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkuc2xpY2UoMCwxMCksIGhvcmFzOicnLCBub3RhczonJyB9KQogICAgc2V0U2hvd0Zvcm0oZmFsc2UpCiAgICBzZXRTYXZpbmcoZmFsc2UpCiAgICBsb2FkKCkKICB9CgogIGNvbnN0IG5vbWJyZU9UID0gKG90KSA9PiB7CiAgICBjb25zdCBtb2R1bG8gPSBvdC5tb2R1bG9zCiAgICBjb25zdCBwcm95ZWN0byA9IG1vZHVsbz8ucHJveWVjdG9zCiAgICBjb25zdCBjbGllbnRlID0gcHJveWVjdG8/LmNsaWVudGVzCiAgICBjb25zdCBwYXJ0ZXMgPSBbcHJveWVjdG8/Lm5vbWJyZSwgbW9kdWxvPy5ub21icmVdLmZpbHRlcihCb29sZWFuKQogICAgY29uc3QgYmFzZSA9IHBhcnRlcy5sZW5ndGggPyBwYXJ0ZXMuam9pbignIOKAlCAnKSA6IG90Lm51bWVyb19vdAogICAgcmV0dXJuIGNsaWVudGUgPyBgJHtiYXNlfSAoJHtjbGllbnRlLm5vbWJyZSB8fCAnJ30gJHtjbGllbnRlLmFwZWxsaWRvIHx8ICcnfSlgIDogYmFzZQogIH0KCiAgY29uc3QgdG90YWxIb3Jhc01lcyA9IHJlZ2lzdHJvcy5maWx0ZXIociA9PiByLmZlY2hhPy5zbGljZSgwLDcpID09PSBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkuc2xpY2UoMCw3KSkucmVkdWNlKChzLHIpID0+IHMgKyBOdW1iZXIoci5ob3Jhc3x8MCksIDApCiAgY29uc3Qgb3RzU29icmVFc3RpbWFkbyA9IG90cy5maWx0ZXIobyA9PiBvLmhvcmFzX2VzdGltYWRhcyAmJiBvLmhvcmFzX3JlYWxlcyA+IG8uaG9yYXNfZXN0aW1hZGFzKQoKICByZXR1cm4gKAogICAgPExheW91dD4KICAgICAgPFRvcGJhcgogICAgICAgIHRpdGxlPSJIb3JhcyBkZSB0cmFiYWpvIgogICAgICAgIHN1YnRpdGxlPXtgJHtvdHMubGVuZ3RofSDDs3JkZW5lcyBkZSB0cmFiYWpvYH0KICAgICAgICBhY3Rpb25zPXs8QnRuIHNtYWxsIG9uQ2xpY2s9eygpID0+IHNldFNob3dGb3JtKHYgPT4gIXYpfT57c2hvd0Zvcm0gPyAnQ2FuY2VsYXInIDogJysgQ2FyZ2FyIGhvcmFzJ308L0J0bj59CiAgICAgIC8+CiAgICAgIDxQYWdlQ29udGVudD4KICAgICAgICB7bG9hZGluZyA/IDxTcGlubmVyIC8+IDogPD4KICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTonZ3JpZCcsIGdyaWRUZW1wbGF0ZUNvbHVtbnM6J3JlcGVhdCgzLG1pbm1heCgwLDFmcikpJywgZ2FwOjEyLCBtYXJnaW5Cb3R0b206MjAgfX0+CiAgICAgICAgICAgIDxLcGlDYXJkIGxhYmVsPSJIb3JhcyBjYXJnYWRhcyBlc3RlIG1lcyIgdmFsdWU9e3RvdGFsSG9yYXNNZXMudG9GaXhlZCgxKX0gYWNjZW50IC8+CiAgICAgICAgICAgIDxLcGlDYXJkIGxhYmVsPSJPVCByZWdpc3RyYWRhcyIgdmFsdWU9e290cy5sZW5ndGh9IC8+CiAgICAgICAgICAgIDxLcGlDYXJkIGxhYmVsPSJPVCBzb2JyZSBsbyBlc3RpbWFkbyIgdmFsdWU9e290c1NvYnJlRXN0aW1hZG8ubGVuZ3RofSBkZXRhaWw9Im3DoXMgaG9yYXMgcmVhbGVzIHF1ZSBlc3RpbWFkYXMiIC8+CiAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICB7c2hvd0Zvcm0gJiYgKAogICAgICAgICAgICA8Q2FyZCBzdHlsZT17eyBtYXJnaW5Cb3R0b206MjAgfX0+CiAgICAgICAgICAgICAgPGZvcm0gb25TdWJtaXQ9e2NhcmdhckhvcmFzfT4KICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgbWFyZ2luQm90dG9tOjE0IH19PgogICAgICAgICAgICAgICAgICA8bGFiZWwgc3R5bGU9e3sgZGlzcGxheTonYmxvY2snLCBmb250U2l6ZToxMCwgY29sb3I6J3ZhcigtLXotaGludCknLCBtYXJnaW5Cb3R0b206NSwgdGV4dFRyYW5zZm9ybTondXBwZXJjYXNlJywgbGV0dGVyU3BhY2luZzonMC4wOGVtJyB9fT5PcmRlbiBkZSB0cmFiYWpvPC9sYWJlbD4KICAgICAgICAgICAgICAgICAgPHNlbGVjdCB2YWx1ZT17Zm9ybS5vdF9pZH0gb25DaGFuZ2U9e2UgPT4gc2V0Rm9ybSh7Li4uZm9ybSwgb3RfaWQ6ZS50YXJnZXQudmFsdWV9KX0gcmVxdWlyZWQ+CiAgICAgICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iIj5FbGVnaXIgT1QuLi48L29wdGlvbj4KICAgICAgICAgICAgICAgICAgICB7b3RzLm1hcChvID0+IDxvcHRpb24ga2V5PXtvLmlkfSB2YWx1ZT17by5pZH0+e25vbWJyZU9UKG8pfTwvb3B0aW9uPil9CiAgICAgICAgICAgICAgICAgIDwvc2VsZWN0PgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpbkJvdHRvbToxNCB9fT4KICAgICAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXt7IGRpc3BsYXk6J2Jsb2NrJywgZm9udFNpemU6MTAsIGNvbG9yOid2YXIoLS16LWhpbnQpJywgbWFyZ2luQm90dG9tOjUsIHRleHRUcmFuc2Zvcm06J3VwcGVyY2FzZScsIGxldHRlclNwYWNpbmc6JzAuMDhlbScgfX0+RW1wbGVhZG88L2xhYmVsPgogICAgICAgICAgICAgICAgICA8c2VsZWN0IHZhbHVlPXtmb3JtLmVtcGxlYWRvX2lkfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtKHsuLi5mb3JtLCBlbXBsZWFkb19pZDplLnRhcmdldC52YWx1ZX0pfSByZXF1aXJlZD4KICAgICAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSIiPkVsZWdpciBlbXBsZWFkby4uLjwvb3B0aW9uPgogICAgICAgICAgICAgICAgICAgIHtlbXBsZWFkb3MubWFwKGUgPT4gPG9wdGlvbiBrZXk9e2UuaWR9IHZhbHVlPXtlLmlkfT57ZS5ub21icmV9PC9vcHRpb24+KX0KICAgICAgICAgICAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTonZ3JpZCcsIGdyaWRUZW1wbGF0ZUNvbHVtbnM6JzFmciAxZnInLCBnYXA6MTYgfX0+CiAgICAgICAgICAgICAgICAgIDxJbnB1dCBsYWJlbD0iRmVjaGEiIHR5cGU9ImRhdGUiIHZhbHVlPXtmb3JtLmZlY2hhfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtKHsuLi5mb3JtLCBmZWNoYTplLnRhcmdldC52YWx1ZX0pfSByZXF1aXJlZCAvPgogICAgICAgICAgICAgICAgICA8SW5wdXQgbGFiZWw9IkhvcmFzIiB0eXBlPSJudW1iZXIiIHZhbHVlPXtmb3JtLmhvcmFzfSBvbkNoYW5nZT17ZSA9PiBzZXRGb3JtKHsuLi5mb3JtLCBob3JhczplLnRhcmdldC52YWx1ZX0pfSBwbGFjZWhvbGRlcj0iMCIgcmVxdWlyZWQgLz4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPElucHV0IGxhYmVsPSJOb3RhcyAob3BjaW9uYWwpIiB2YWx1ZT17Zm9ybS5ub3Rhc30gb25DaGFuZ2U9e2UgPT4gc2V0Rm9ybSh7Li4uZm9ybSwgbm90YXM6ZS50YXJnZXQudmFsdWV9KX0gcGxhY2Vob2xkZXI9IsK/UXXDqSBzZSBoaXpvPyIgLz4KICAgICAgICAgICAgICAgIDxCdG4gb25DbGljaz17Y2FyZ2FySG9yYXN9IGRpc2FibGVkPXtzYXZpbmd9PntzYXZpbmcgPyAnR3VhcmRhbmRvLi4uJyA6ICdDYXJnYXIgaG9yYXMnfTwvQnRuPgogICAgICAgICAgICAgIDwvZm9ybT4KICAgICAgICAgICAgPC9DYXJkPgogICAgICAgICAgKX0KCiAgICAgICAgICA8U2VjdGlvblRpdGxlPsOTcmRlbmVzIGRlIHRyYWJham88L1NlY3Rpb25UaXRsZT4KICAgICAgICAgIDxUYWJsZQogICAgICAgICAgICBjb2xzPXtbCiAgICAgICAgICAgICAgeyBrZXk6J290JywgbGFiZWw6J09UJywgcmVuZGVyOm5vbWJyZU9UIH0sCiAgICAgICAgICAgICAgeyBrZXk6J2VzdGFkbycsIGxhYmVsOidFc3RhZG8nLCByZW5kZXI6ciA9PiByLmVzdGFkbyB8fCAn4oCUJyB9LAogICAgICAgICAgICAgIHsga2V5Oidob3Jhc19lc3RpbWFkYXMnLCBsYWJlbDonRXN0aW1hZGFzJywgcmVuZGVyOnIgPT4gci5ob3Jhc19lc3RpbWFkYXMgPz8gJ+KAlCcgfSwKICAgICAgICAgICAgICB7IGtleTonaG9yYXNfcmVhbGVzJywgbGFiZWw6J1JlYWxlcycsIHJlbmRlcjpyID0+ICgKICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiByLmhvcmFzX2VzdGltYWRhcyAmJiByLmhvcmFzX3JlYWxlcyA+IHIuaG9yYXNfZXN0aW1hZGFzID8gJ3ZhcigtLXotZXJyb3IpJyA6ICd2YXIoLS16LXRleHQpJyB9fT57ci5ob3Jhc19yZWFsZXMgPz8gMH08L3NwYW4+CiAgICAgICAgICAgICAgKSB9LAogICAgICAgICAgICBdfQogICAgICAgICAgICByb3dzPXtvdHN9CiAgICAgICAgICAgIGVtcHR5PSJTaW4gw7NyZGVuZXMgZGUgdHJhYmFqbyByZWdpc3RyYWRhcyIKICAgICAgICAgIC8+CgogICAgICAgICAgPGRpdiBzdHlsZT17eyBtYXJnaW5Ub3A6MjggfX0+CiAgICAgICAgICAgIDxTZWN0aW9uVGl0bGU+w5psdGltYXMgY2FyZ2FzIGRlIGhvcmFzPC9TZWN0aW9uVGl0bGU+CiAgICAgICAgICAgIDxUYWJsZQogICAgICAgICAgICAgIGNvbHM9e1sKICAgICAgICAgICAgICAgIHsga2V5OidmZWNoYScsIGxhYmVsOidGZWNoYScgfSwKICAgICAgICAgICAgICAgIHsga2V5OidlbXBsZWFkbycsIGxhYmVsOidFbXBsZWFkbycsIHJlbmRlcjpyID0+IHIuZW1wbGVhZG9zPy5ub21icmUgfHwgJ+KAlCcgfSwKICAgICAgICAgICAgICAgIHsga2V5OidvdCcsIGxhYmVsOidPVCcsIHJlbmRlcjpyID0+IHIub3JkZW5lc190cmFiYWpvPy5udW1lcm9fb3QgfHwgJ+KAlCcgfSwKICAgICAgICAgICAgICAgIHsga2V5Oidob3JhcycsIGxhYmVsOidIb3JhcycgfSwKICAgICAgICAgICAgICAgIHsga2V5Oidub3RhcycsIGxhYmVsOidOb3RhcycsIHJlbmRlcjpyID0+IHIubm90YXMgfHwgJ+KAlCcgfSwKICAgICAgICAgICAgICBdfQogICAgICAgICAgICAgIHJvd3M9e3JlZ2lzdHJvc30KICAgICAgICAgICAgICBlbXB0eT0iU2luIGNhcmdhcyBkZSBob3JhcyB0b2RhdsOtYSIKICAgICAgICAgICAgLz4KICAgICAgICAgIDwvZGl2PgogICAgICAgIDwvPn0KICAgICAgPC9QYWdlQ29udGVudD4KICAgIDwvTGF5b3V0PgogICkKfQo=
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { Layout, Topbar, PageContent } from '../components/Layout'
+import { Card, KpiCard, SectionTitle, Table, Spinner, Btn, Input } from '../components/ui'
+
+export default function HorasTrabajo() {
+  const [ots, setOts] = useState([])
+  const [empleados, setEmpleados] = useState([])
+  const [registros, setRegistros] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ ot_id:'', empleado_id:'', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    const [{ data: o }, { data: e }, { data: r }] = await Promise.all([
+      supabase.from('ordenes_trabajo').select('id, numero_ot, estado, horas_estimadas, horas_reales, modulos(nombre, proyectos(nombre, clientes(nombre,apellido)))').order('created_at', { ascending:false }).limit(200),
+      supabase.from('empleados').select('id,nombre').eq('activo', true).order('nombre'),
+      supabase.from('horas_trabajo_ot').select('*, empleados(nombre), ordenes_trabajo(numero_ot)').order('fecha', { ascending:false }).limit(100),
+    ])
+    setOts(o || [])
+    setEmpleados(e || [])
+    setRegistros(r || [])
+    setLoading(false)
+  }
+
+  async function cargarHoras(e) {
+    e.preventDefault()
+    if (!form.ot_id || !form.empleado_id || !form.horas) return
+    setSaving(true)
+    await supabase.from('horas_trabajo_ot').insert({
+      ot_id: form.ot_id,
+      empleado_id: form.empleado_id,
+      fecha: form.fecha,
+      horas: Number(form.horas),
+      notas: form.notas || null,
+    })
+    setForm({ ot_id:'', empleado_id:'', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+    setShowForm(false)
+    setSaving(false)
+    load()
+  }
+
+  const nombreOT = (ot) => {
+    const modulo = ot.modulos
+    const proyecto = modulo?.proyectos
+    const cliente = proyecto?.clientes
+    const partes = [proyecto?.nombre, modulo?.nombre].filter(Boolean)
+    const base = partes.length ? partes.join(' — ') : ot.numero_ot
+    return cliente ? `${base} (${cliente.nombre || ''} ${cliente.apellido || ''})` : base
+  }
+
+  const totalHorasMes = registros.filter(r => r.fecha?.slice(0,7) === new Date().toISOString().slice(0,7)).reduce((s,r) => s + Number(r.horas||0), 0)
+  const otsSobreEstimado = ots.filter(o => o.horas_estimadas && o.horas_reales > o.horas_estimadas)
+
+  return (
+    <Layout>
+      <Topbar
+        title="Horas de trabajo"
+        subtitle={`${ots.length} órdenes de trabajo`}
+        actions={<Btn small onClick={() => setShowForm(v => !v)}>{showForm ? 'Cancelar' : '+ Cargar horas'}</Btn>}
+      />
+      <PageContent>
+        {loading ? <Spinner /> : <>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, marginBottom:20 }}>
+            <KpiCard label="Horas cargadas este mes" value={totalHorasMes.toFixed(1)} accent />
+            <KpiCard label="OT registradas" value={ots.length} />
+            <KpiCard label="OT sobre lo estimado" value={otsSobreEstimado.length} detail="más horas reales que estimadas" />
+          </div>
+
+          {showForm && (
+            <Card style={{ marginBottom:20 }}>
+              <form onSubmit={cargarHoras}>
+                <div style={{ marginBottom:14 }}>
+                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Orden de trabajo</label>
+                  <select value={form.ot_id} onChange={e => setForm({...form, ot_id:e.target.value})} required>
+                    <option value="">Elegir OT...</option>
+                    {ots.map(o => <option key={o.id} value={o.id}>{nombreOT(o)}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom:14 }}>
+                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Empleado</label>
+                  <select value={form.empleado_id} onChange={e => setForm({...form, empleado_id:e.target.value})} required>
+                    <option value="">Elegir empleado...</option>
+                    {empleados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                  </select>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                  <Input label="Fecha" type="date" value={form.fecha} onChange={e => setForm({...form, fecha:e.target.value})} required />
+                  <Input label="Horas" type="number" value={form.horas} onChange={e => setForm({...form, horas:e.target.value})} placeholder="0" required />
+                </div>
+                <Input label="Notas (opcional)" value={form.notas} onChange={e => setForm({...form, notas:e.target.value})} placeholder="¿Qué se hizo?" />
+                <Btn onClick={cargarHoras} disabled={saving}>{saving ? 'Guardando...' : 'Cargar horas'}</Btn>
+              </form>
+            </Card>
+          )}
+
+          <SectionTitle>Órdenes de trabajo</SectionTitle>
+          <Table
+            cols={[
+              { key:'ot', label:'OT', render:nombreOT },
+              { key:'estado', label:'Estado', render:r => r.estado || '—' },
+              { key:'horas_estimadas', label:'Estimadas', render:r => r.horas_estimadas ?? '—' },
+              { key:'horas_reales', label:'Reales', render:r => (
+                <span style={{ color: r.horas_estimadas && r.horas_reales > r.horas_estimadas ? 'var(--z-error)' : 'var(--z-text)' }}>{r.horas_reales ?? 0}</span>
+              ) },
+            ]}
+            rows={ots}
+            empty="Sin órdenes de trabajo registradas"
+          />
+
+          <div style={{ marginTop:28 }}>
+            <SectionTitle>Últimas cargas de horas</SectionTitle>
+            <Table
+              cols={[
+                { key:'fecha', label:'Fecha' },
+                { key:'empleado', label:'Empleado', render:r => r.empleados?.nombre || '—' },
+                { key:'ot', label:'OT', render:r => r.ordenes_trabajo?.numero_ot || '—' },
+                { key:'horas', label:'Horas' },
+                { key:'notas', label:'Notas', render:r => r.notas || '—' },
+              ]}
+              rows={registros}
+              empty="Sin cargas de horas todavía"
+            />
+          </div>
+        </>}
+      </PageContent>
+    </Layout>
+  )
+}

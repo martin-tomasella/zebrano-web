@@ -75,7 +75,7 @@ export default function RRSSImport() {
 
           {/* Zona drag & drop */}
           <div
-            style={{ border:`2px dashed ${drag ? 'var(--z-primary)' : 'var(--z-border)'}`, borderRadius:'var(--z-radius-xl)', padding:'48px 32px', textAlign:'center', cursor:'pointer', transition:'var(--z-transition)', marginBottom:20, background: drag ? 'rgba(143,47,254,0.04)' : 'transparent' }}
+            style={{ border:`2px dashed ${drag ? 'var(--z-primary)' : 'var(--z-border)'}`, borderRadius:'var(--z-radius-xl)', padding:'48px 32px', textAlign:'center', cursor:'pointer', transition:'var(--z-transition)', marginBottom:20, background: drag ? 'rgba(74,107,54,0.04)' : 'transparent' }}
             onDragOver={e => { e.preventDefault(); setDrag(true); }}
             onDragLeave={() => setDrag(false)}
             onDrop={onDrop}

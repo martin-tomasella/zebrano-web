@@ -245,7 +245,7 @@ function ModalCompra({ prospecto_id, onClose, onSave }) {
   const guardar = async () => {
     if (!form.descripcion) return;
     setSaving(true);
-    const { error } = await supabase.from('historial_compras').insert({ prospecto_id, ...form, monto_cotizado:form.monto_cotizado?parseFloat(form.monto_cotizado):null, monto_final:form.monto_final?parseFloat(form.monto_final):null });
+    const { error } = await supabase.from('historial_compras').insert({ prospecto_id, ...form, monto_cotizado:form.monto_cotizado?parseFloat(form.monto_cotizado):null, monto_final:form.monto_final?parseFloat(form.monto_final):null, fecha_entrega_estimada:form.fecha_entrega_estimada||null });
     setSaving(false);
     if (error) { alert('No se pudo guardar la compra: ' + error.message); return; }
     onSave();
@@ -282,7 +282,7 @@ function ModalPago({ compras, cliente_id, onClose, onSave }) {
   const guardar = async () => {
     if (!form.monto) return;
     setSaving(true);
-    const { error } = await supabase.from('pagos').insert({ ...form, monto:parseFloat(form.monto), cliente_id });
+    const { error } = await supabase.from('pagos').insert({ ...form, monto:parseFloat(form.monto), cliente_id, fecha_recibido:form.fecha_recibido||null });
     setSaving(false);
     if (error) { alert('No se pudo registrar el pago: ' + error.message); return; }
     onSave();

@@ -39,10 +39,11 @@ export default function Proveedores() {
     e.preventDefault()
     if (!formProv.nombre) return
     setSaving(true)
-    await supabase.from('proveedores').insert(formProv)
+    const { error } = await supabase.from('proveedores').insert(formProv)
+    setSaving(false)
+    if (error) { alert('No se pudo guardar el proveedor: ' + error.message); return }
     setFormProv({ nombre:'', contacto:'', telefono:'', email:'' })
     setShowForm(false)
-    setSaving(false)
     load()
   }
 
@@ -52,18 +53,18 @@ export default function Proveedores() {
     setSaving(true)
     const cantidad = Number(formCompra.cantidad)
     const precio_unitario = Number(formCompra.precio_unitario)
-    await supabase.from('compras_insumos').insert({
+    const { error } = await supabase.from('compras_insumos').insert({
       proveedor_id: formCompra.proveedor_id,
       catalogo_material_id: formCompra.insumo_tipo === 'material' ? formCompra.insumo_id : null,
       catalogo_herraje_id: formCompra.insumo_tipo === 'herraje' ? formCompra.insumo_id : null,
       cantidad,
       precio_unitario,
-      precio_total: cantidad * precio_unitario,
       fecha: formCompra.fecha,
     })
+    setSaving(false)
+    if (error) { alert('No se pudo registrar la compra: ' + error.message); return }
     setFormCompra({ proveedor_id:'', insumo_tipo:'material', insumo_id:'', cantidad:'', precio_unitario:'', fecha: new Date().toISOString().slice(0,10) })
     setShowForm(false)
-    setSaving(false)
     load()
   }
 

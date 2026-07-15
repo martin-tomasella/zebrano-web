@@ -72,10 +72,10 @@ export default function ProspectoDetalle() {
       <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
         {/* Header */}
         <div style={{height:56,padding:'0 20px',borderBottom:'1px solid var(--z-border)',display:'flex',alignItems:'center',gap:14,background:'rgba(10,7,16,0.8)',backdropFilter:'blur(12px)',flexShrink:0}}>
-          <button onClick={()=>navigate('/prospectos')} style={{background:'rgba(143,47,254,0.08)',border:'1px solid var(--z-border)',color:'var(--z-text-2)',padding:'5px 12px',borderRadius:8,cursor:'pointer',fontSize:12}}>← Volver</button>
+          <button onClick={()=>navigate('/prospectos')} style={{background:'rgba(74,107,54,0.08)',border:'1px solid var(--z-border)',color:'var(--z-text-2)',padding:'5px 12px',borderRadius:8,cursor:'pointer',fontSize:12}}>← Volver</button>
           <div style={{flex:1}}>
             <div style={{fontSize:15,fontWeight:600,color:'var(--z-text)'}}>{prospecto.nombre||'Sin nombre'} {prospecto.apellido||''}</div>
-            {prospecto.handle_rrss && <div style={{fontSize:11,color:'#8F2FFE'}}>{prospecto.handle_rrss}</div>}
+            {prospecto.handle_rrss && <div style={{fontSize:11,color:'#4A6B36'}}>{prospecto.handle_rrss}</div>}
           </div>
           {/* Selector de estado */}
           <div style={{display:'flex',gap:3,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -119,7 +119,7 @@ export default function ProspectoDetalle() {
               <textarea rows={3} defaultValue={prospecto.notas||''} onBlur={e=>guardarCampo('notas',e.target.value)} style={{resize:'vertical',fontSize:12}} />
             </div>
             {(historial.length>0||pagos.length>0) && (
-              <div style={{marginTop:14,padding:12,background:'rgba(143,47,254,0.06)',border:'1px solid var(--z-border)',borderRadius:'var(--z-radius)'}}>
+              <div style={{marginTop:14,padding:12,background:'rgba(74,107,54,0.06)',border:'1px solid var(--z-border)',borderRadius:'var(--z-radius)'}}>
                 <div style={{fontSize:10,color:'var(--z-text-muted)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8,fontWeight:600}}>Resumen financiero</div>
                 <div style={{fontSize:12,color:'var(--z-text-2)',marginBottom:3}}>Compras: <span style={{color:'var(--z-text)'}}>{historial.length}</span></div>
                 <div style={{fontSize:12,color:'var(--z-text-2)',marginBottom:3}}>Cotizado: <span style={{color:'var(--z-warning)'}}>${historial.reduce((s,h)=>s+(h.monto_cotizado||0),0).toLocaleString('es-AR')}</span></div>
@@ -133,7 +133,7 @@ export default function ProspectoDetalle() {
             {/* Tabs */}
             <div style={{padding:'8px 16px',borderBottom:'1px solid var(--z-border)',display:'flex',gap:4,background:'var(--z-sidebar-bg)',flexShrink:0}}>
               {[['conversacion','💬 Conversación'],['historial','📋 Compras'],['pagos','💰 Pagos']].map(([t,l])=>(
-                <button key={t} onClick={()=>setTab(t)} style={{padding:'6px 14px',fontSize:12,background:tab===t?'rgba(143,47,254,0.15)':'transparent',color:tab===t?'var(--z-text)':'var(--z-text-3)',border:`1px solid ${tab===t?'rgba(143,47,254,0.3)':'transparent'}`,borderRadius:8,cursor:'pointer',transition:'var(--z-transition)'}}>
+                <button key={t} onClick={()=>setTab(t)} style={{padding:'6px 14px',fontSize:12,background:tab===t?'rgba(74,107,54,0.15)':'transparent',color:tab===t?'var(--z-text)':'var(--z-text-3)',border:`1px solid ${tab===t?'rgba(74,107,54,0.3)':'transparent'}`,borderRadius:8,cursor:'pointer',transition:'var(--z-transition)'}}>
                   {l}
                 </button>
               ))}
@@ -149,7 +149,7 @@ export default function ProspectoDetalle() {
                       <div style={{fontSize:10,color:'var(--z-text-muted)',marginBottom:3}}>
                         {c.direccion==='saliente'?'Equipo':prospecto.nombre||'Cliente'} · {c.canal} · {new Date(c.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
                       </div>
-                      <div style={{maxWidth:'70%',padding:'8px 12px',borderRadius:c.direccion==='saliente'?'12px 12px 4px 12px':'12px 12px 12px 4px',background:c.direccion==='saliente'?'rgba(143,47,254,0.2)':'var(--z-card)',border:'1px solid var(--z-border)',fontSize:13,color:'var(--z-text)',lineHeight:1.5}}>
+                      <div style={{maxWidth:'70%',padding:'8px 12px',borderRadius:c.direccion==='saliente'?'12px 12px 4px 12px':'12px 12px 12px 4px',background:c.direccion==='saliente'?'rgba(74,107,54,0.2)':'var(--z-card)',border:'1px solid var(--z-border)',fontSize:13,color:'var(--z-text)',lineHeight:1.5}}>
                         {c.contenido}
                       </div>
                     </div>

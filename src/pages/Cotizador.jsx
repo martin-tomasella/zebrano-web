@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react'
 import { supabase, N8N_COTIZADOR } from '../lib/supabase'
 import { Layout, Topbar } from '../components/Layout'
@@ -60,28 +61,25 @@ export default function Cotizador() {
   return (
     <Layout>
       <Topbar title="Cotizador AI" subtitle="Agente Zebrano · conectado a n8n" actions={
-        <button onClick={nuevaSesion} style={{
-          padding:'6px 14px', borderRadius:'var(--radius-md)', fontSize:12,
-          background:'transparent', border:'0.5px solid var(--z-border)', cursor:'pointer', color:'var(--z-muted)'
-        }}>+ Nueva sesión</button>
+        <button className="btn btn-ghost btn-sm" onClick={nuevaSesion}>+ Nueva sesión</button>
       } />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         {/* Historial de sesiones */}
-        <div style={{ width:200, borderRight:'0.5px solid var(--z-border)', overflowY:'auto', padding:'12px 0', background:'#fff' }}>
-          <div style={{ padding:'0 12px 8px', fontSize:10, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Sesiones recientes</div>
-          {sesiones.length === 0 && <div style={{ padding:'0 12px', fontSize:12, color:'var(--z-hint)' }}>Sin historial</div>}
+        <div style={{ width:200, borderRight:'1px solid var(--z-border)', overflowY:'auto', padding:'12px 0', background:'var(--z-sidebar-bg)' }}>
+          <div style={{ padding:'0 12px 8px', fontSize:10, color:'var(--z-text-muted)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Sesiones recientes</div>
+          {sesiones.length === 0 && <div style={{ padding:'0 12px', fontSize:12, color:'var(--z-text-muted)' }}>Sin historial</div>}
           {sesiones.map(s => (
             <div key={s.id} onClick={() => setSesionId(s.id)} style={{
               padding:'8px 12px', cursor:'pointer', fontSize:12,
-              background: sesionId===s.id ? 'var(--z-green-lt)' : 'transparent',
-              color: sesionId===s.id ? 'var(--z-green-dk)' : 'var(--z-muted)',
-              borderLeft: sesionId===s.id ? '2px solid var(--z-green)' : '2px solid transparent',
+              background: sesionId===s.id ? 'rgba(74,107,54,0.18)' : 'transparent',
+              color: sesionId===s.id ? 'var(--z-text)' : 'var(--z-text-2)',
+              borderLeft: sesionId===s.id ? '2px solid #7AAE5A' : '2px solid transparent',
             }}>
               <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {s.cliente_nombre || 'Sin nombre'}
               </div>
-              <div style={{ fontSize:11, color:'var(--z-hint)', marginTop:1 }}>
+              <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:1 }}>
                 {new Date(s.created_at).toLocaleDateString('es-AR')}
               </div>
             </div>
@@ -95,18 +93,19 @@ export default function Cotizador() {
               <div key={i} style={{ display:'flex', gap:10, flexDirection: m.role==='user' ? 'row-reverse' : 'row', alignItems:'flex-start' }}>
                 <div style={{
                   width:28, height:28, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:11, fontWeight:500,
-                  background: m.role==='user' ? '#B5D4F4' : '#E1F5EE',
-                  color: m.role==='user' ? '#185FA5' : '#0F6E56',
+                  fontSize:11, fontWeight:600,
+                  background: m.role==='user' ? 'rgba(99,102,241,0.15)' : 'rgba(74,107,54,0.18)',
+                  color: m.role==='user' ? '#a5b4fc' : '#7AAE5A',
+                  border: m.role==='user' ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(74,107,54,0.35)',
                 }}>
                   {m.role==='user' ? 'MN' : 'ZB'}
                 </div>
                 <div style={{
-                  maxWidth:'72%', padding:'10px 14px', borderRadius:12, fontSize:13, lineHeight:1.6,
-                  background: m.role==='user' ? '#1D9E75' : '#F7F6F2',
-                  color: m.role==='user' ? '#fff' : m.error ? '#A32D2D' : 'var(--z-text)',
-                  borderRadius: m.role==='user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
-                  whiteSpace:'pre-wrap',
+                  maxWidth:'72%', padding:'10px 14px', borderRadius: m.role==='user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
+                  fontSize:13, lineHeight:1.6, whiteSpace:'pre-wrap',
+                  background: m.role==='user' ? 'rgba(74,107,54,0.22)' : 'var(--z-card)',
+                  border: '1px solid ' + (m.error ? 'rgba(160,64,42,0.4)' : 'var(--z-border)'),
+                  color: m.error ? 'var(--z-error)' : 'var(--z-text)',
                 }}>
                   {m.text}
                 </div>
@@ -114,10 +113,10 @@ export default function Cotizador() {
             ))}
             {loading && (
               <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                <div style={{ width:28, height:28, borderRadius:'50%', background:'#E1F5EE', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:500, color:'#0F6E56' }}>ZB</div>
-                <div style={{ padding:'12px 16px', background:'#F7F6F2', borderRadius:'4px 12px 12px 12px' }}>
+                <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(74,107,54,0.18)', border:'1px solid rgba(74,107,54,0.35)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600, color:'#7AAE5A' }}>ZB</div>
+                <div style={{ padding:'12px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'4px 12px 12px 12px' }}>
                   <div style={{ display:'flex', gap:4 }}>
-                    {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--z-hint)', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
+                    {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--z-text-muted)', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
                   </div>
                   <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}`}</style>
                 </div>
@@ -126,24 +125,15 @@ export default function Cotizador() {
             <div ref={endRef} />
           </div>
 
-          <div style={{ padding:'12px 24px', borderTop:'0.5px solid var(--z-border)', background:'#fff', display:'flex', gap:10 }}>
+          <div style={{ padding:'12px 24px', borderTop:'1px solid var(--z-border)', background:'var(--z-sidebar-bg)', display:'flex', gap:10 }}>
             <textarea
               value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               placeholder="Ej: placard 3 cuerpos melamina blanco, 2,40m de frente, 2m alto..."
               rows={2}
-              style={{
-                flex:1, resize:'none', border:'0.5px solid var(--z-border)', borderRadius:'var(--radius-md)',
-                padding:'8px 12px', fontSize:13, color:'var(--z-text)', background:'#fff', fontFamily:'inherit', outline:'none'
-              }}
-              onFocus={e => e.target.style.borderColor='var(--z-green)'}
-              onBlur={e  => e.target.style.borderColor='var(--z-border)'}
+              style={{ flex:1, resize:'none', fontSize:13 }}
             />
-            <button onClick={send} disabled={loading || !input.trim()} style={{
-              padding:'0 20px', background:'var(--z-green)', color:'#fff',
-              border:'none', borderRadius:'var(--radius-md)', fontSize:13, fontWeight:500,
-              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1
-            }}>Enviar</button>
+            <button className="btn btn-primary" onClick={send} disabled={loading || !input.trim()}>Enviar</button>
           </div>
         </div>
       </div>

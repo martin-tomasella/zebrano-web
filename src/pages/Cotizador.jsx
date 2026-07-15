@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react'
 import { supabase, N8N_COTIZADOR } from '../lib/supabase'
 import { Layout, Topbar } from '../components/Layout'
@@ -13,10 +12,14 @@ export default function Cotizador() {
   const [loading, setLoading]     = useState(false)
   const [sesionId, setSesionId]   = useState(null)
   const [sesiones, setSesiones]   = useState([])
+  const [diseno, setDiseno]       = useState(null)
+  const [resumen, setResumen]     = useState(null)
+  const [sesionEstado, setSesionEstado] = useState(null)
   const endRef = useRef(null)
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
   useEffect(() => { loadSesiones() }, [])
+  useEffect(() => { cargarEstado(sesionId) }, [sesionId])
 
   async function loadSesiones() {
     const { data } = await supabase
@@ -25,6 +28,18 @@ export default function Cotizador() {
       .order('created_at', { ascending: false })
       .limit(20)
     setSesiones(data || [])
+  }
+
+  async function cargarEstado(sid) {
+    if (!sid) { setDiseno(null); setResumen(null); setSesionEstado(null); return }
+    const [{ data: d }, { data: r }, { data: s }] = await Promise.all([
+      supabase.from('cotizacion_diseno').select('*').eq('sesion_id', sid).maybeSingle(),
+      supabase.from('cotizacion_resumen').select('*').eq('sesion_id', sid).maybeSingle(),
+      supabase.from('cotizacion_sesiones').select('estado').eq('id', sid).maybeSingle(),
+    ])
+    setDiseno(d || null)
+    setResumen(r || null)
+    setSesionEstado(s?.estado || null)
   }
 
   async function send() {
@@ -47,14 +62,53 @@ export default function Cotizador() {
         loadSesiones()
       }
       setMessages(m => [...m, { role:'assistant', text: reply }])
+      if (newSesionId) await cargarEstado(newSesionId)
     } catch (e) {
       setMessages(m => [...m, { role:'assistant', text:'❌ Error al conectar con el agente. Verificá que n8n esté activo.', error: true }])
     }
     setLoading(false)
   }
 
+  async function aprobarDiseno() {
+    if (!sesionId || loading) return
+    setLoading(true)
+    try {
+      const res = await fetch(N8N_COTIZADOR, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ sesion_id: sesionId, aprobar_svg: true })
+      })
+      const data = await res.json()
+      setMessages(m => [...m, { role:'assistant', text: data.respuesta || 'Render generado.', error: data.ok === false }])
+      await cargarEstado(sesionId)
+    } catch (e) {
+      setMessages(m => [...m, { role:'assistant', text:'❌ Error al aprobar el diseño.', error: true }])
+    }
+    setLoading(false)
+  }
+
+  async function aprobarCotizacion() {
+    if (!sesionId || loading) return
+    setLoading(true)
+    try {
+      const res = await fetch(N8N_COTIZADOR, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ sesion_id: sesionId, aprobar_cotizacion: true })
+      })
+      const data = await res.json()
+      setMessages(m => [...m, { role:'assistant', text: data.respuesta || data.error || 'Cotización aprobada.', error: data.ok === false }])
+      await cargarEstado(sesionId)
+      loadSesiones()
+    } catch (e) {
+      setMessages(m => [...m, { role:'assistant', text:'❌ Error al aprobar la cotización.', error: true }])
+    }
+    setLoading(false)
+  }
+
   function nuevaSesion() {
     setSesionId(null)
+    setDiseno(null)
+    setResumen(null)
+    setSesionEstado(null)
     setMessages([{ role:'assistant', text:'Nueva sesión iniciada. ¿Qué necesita cotizar el cliente?' }])
   }
 
@@ -124,6 +178,47 @@ export default function Cotizador() {
             )}
             <div ref={endRef} />
           </div>
+
+          {/* Panel de estado: plano, render y cotizacion con acciones de aprobacion */}
+          {diseno && (diseno.svg_tecnico || diseno.render_fotorrealista_url || (resumen && resumen.precio_sugerido > 0) || sesionEstado === 'aprobada') && (
+            <div style={{ margin:'0 24px 14px', padding:'14px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:8, display:'flex', flexDirection:'column', gap:12 }}>
+              {diseno.svg_tecnico && (
+                <div>
+                  <div style={{ fontSize:11, color:'var(--z-text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>Plano técnico</div>
+                  <div style={{ background:'#fff', borderRadius:6, padding:8, maxWidth:420, overflow:'hidden' }} dangerouslySetInnerHTML={{ __html: diseno.svg_tecnico }} />
+                  {!diseno.svg_aprobado && (
+                    <button className="btn btn-primary" style={{ marginTop:8 }} onClick={aprobarDiseno} disabled={loading}>
+                      Aprobar diseño y generar render
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {diseno.render_fotorrealista_url && (
+                <div>
+                  <div style={{ fontSize:11, color:'var(--z-text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>Render fotorrealista</div>
+                  <img src={diseno.render_fotorrealista_url} alt="Render" style={{ maxWidth:420, width:'100%', borderRadius:6, border:'1px solid var(--z-border)' }} />
+                </div>
+              )}
+
+              {resumen && Number(resumen.precio_sugerido) > 0 && sesionEstado !== 'aprobada' && (
+                <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:15, fontWeight:600, color:'var(--z-text)' }}>
+                    Precio sugerido: ${Number(resumen.precio_sugerido).toLocaleString('es-AR')}
+                  </div>
+                  <button className="btn btn-primary" onClick={aprobarCotizacion} disabled={loading}>
+                    Aprobar cotización y crear OT
+                  </button>
+                </div>
+              )}
+
+              {sesionEstado === 'aprobada' && (
+                <div style={{ fontSize:13, color:'#7AAE5A', fontWeight:600 }}>
+                  ✓ Cotización aprobada — orden de trabajo creada.
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ padding:'12px 24px', borderTop:'1px solid var(--z-border)', background:'var(--z-sidebar-bg)', display:'flex', gap:10 }}>
             <textarea

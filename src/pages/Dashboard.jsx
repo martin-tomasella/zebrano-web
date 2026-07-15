@@ -9,7 +9,7 @@ import { Layout, Topbar, PageContent, Icon } from '../components/Layout'
 const MODULES = [
   {
     section: 'Ventas',
-    color: '#8F2FFE',
+    color: '#4A6B36',
     items: [
       { path: '/prospectos', icon: 'funnel', label: 'Prospectos', desc: 'Pipeline de oportunidades y seguimiento', stat_key: 'prospectos' },
       { path: '/clientes',   icon: 'users',  label: 'Clientes',   desc: 'Base de clientes y historial de compras', stat_key: 'clientes' },
@@ -26,7 +26,7 @@ const MODULES = [
   },
   {
     section: 'Marketing & RRSS',
-    color: '#DF53FE',
+    color: '#7AAE5A',
     items: [
       { path: '/tiktok',        icon: 'tiktok',  label: 'TikTok',          desc: 'Publicaciones y gestión de cuenta @zebrano.ma', stat_key: null },
       { path: '/rrss',          icon: 'rrss',    label: 'Instagram / FB',  desc: 'Borradores, aprobación y programación', stat_key: 'publicaciones' },
@@ -164,9 +164,9 @@ export default function Dashboard() {
       <PageContent>
         {/* ── Stats row ─────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 28 }}>
-          <StatCard label="Prospectos activos" value={stats.prospectos} icon="funnel" color="#8F2FFE" />
+          <StatCard label="Prospectos activos" value={stats.prospectos} icon="funnel" color="#4A6B36" />
           <StatCard label="Clientes"           value={stats.clientes}   icon="users"  color="#6366f1" />
-          <StatCard label="Proyectos"          value={stats.proyectos}  icon="layers" color="#DF53FE" />
+          <StatCard label="Proyectos"          value={stats.proyectos}  icon="layers" color="#7AAE5A" />
           <StatCard label="Borradores RRSS"    value={stats.borradores} icon="rrss"   color="#fbbf24" />
           <StatCard label="Publicaciones"      value={stats.publicados} icon="tiktok" color="#4ade80" />
         </div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
           {/* Panel lateral: actividad reciente */}
           <div>
             <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 3, height: 16, borderRadius: 2, background: '#8F2FFE' }} />
+              <div style={{ width: 3, height: 16, borderRadius: 2, background: '#4A6B36' }} />
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 Prospectos recientes
               </span>
@@ -220,14 +220,14 @@ export default function Dashboard() {
                       display: 'flex', alignItems: 'center', gap: 12,
                       transition: 'var(--z-transition)',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(143,47,254,0.04)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(74,107,54,0.04)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <div style={{
                       width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                      background: 'rgba(143,47,254,0.1)', border: '1px solid rgba(143,47,254,0.2)',
+                      background: 'rgba(74,107,54,0.1)', border: '1px solid rgba(74,107,54,0.2)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#8F2FFE',
+                      color: '#4A6B36',
                     }}>
                       <Icon name={CANAL_ICON[p.canal_origen] || 'users'} size={15} color="currentColor" />
                     </div>
@@ -254,11 +254,11 @@ export default function Dashboard() {
                   onClick={() => navigate('/prospectos')}
                   style={{
                     padding: '10px 16px', cursor: 'pointer', textAlign: 'center',
-                    fontSize: 12, color: '#8F2FFE', fontWeight: 500,
+                    fontSize: 12, color: '#4A6B36', fontWeight: 500,
                     borderTop: '1px solid var(--z-border)',
                     transition: 'var(--z-transition)',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(143,47,254,0.05)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(74,107,54,0.05)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   Ver todos los prospectos →
@@ -269,15 +269,15 @@ export default function Dashboard() {
             {/* Quick actions */}
             <div style={{ marginTop: 20 }}>
               <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 3, height: 16, borderRadius: 2, background: '#DF53FE' }} />
+                <div style={{ width: 3, height: 16, borderRadius: 2, background: '#7AAE5A' }} />
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                   Acciones rápidas
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
-                  { label: '+ Nuevo prospecto', path: '/prospectos', color: '#8F2FFE' },
-                  { label: '📸 Importar fotos',  path: '/rrss/importar', color: '#DF53FE' },
+                  { label: '+ Nuevo prospecto', path: '/prospectos', color: '#4A6B36' },
+                  { label: '📸 Importar fotos',  path: '/rrss/importar', color: '#7AAE5A' },
                   { label: '🎵 Gestionar TikTok', path: '/tiktok', color: '#a78bfa' },
                   { label: '💰 Ver publicaciones', path: '/rrss', color: '#6366f1' },
                 ].map(a => (

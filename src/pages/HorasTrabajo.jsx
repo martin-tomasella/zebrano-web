@@ -17,7 +17,7 @@ export default function HorasTrabajo() {
   async function load() {
     setLoading(true)
     const [{ data: o }, { data: e }, { data: r }] = await Promise.all([
-      supabase.from('ordenes_trabajo').select('id, numero_ot, estado, horas_estimadas, horas_reales, modulos(nombre, proyectos(nombre, clientes(nombre,apellido)))').order('created_at', { ascending:false }).limit(200),
+      supabase.from('ordenes_trabajo').select('id, numero_ot, estado, horas_estimadas, horas_reales, modulos(nombre, proyectos(nombre, clientes(nombre)))').order('created_at', { ascending:false }).limit(200),
       supabase.from('empleados').select('id,nombre').eq('activo', true).order('nombre'),
       supabase.from('horas_trabajo_ot').select('*, empleados(nombre), ordenes_trabajo(numero_ot)').order('fecha', { ascending:false }).limit(100),
     ])
@@ -51,7 +51,7 @@ export default function HorasTrabajo() {
     const cliente = proyecto?.clientes
     const partes = [proyecto?.nombre, modulo?.nombre].filter(Boolean)
     const base = partes.length ? partes.join(' — ') : ot.numero_ot
-    return cliente ? `${base} (${cliente.nombre || ''} ${cliente.apellido || ''})` : base
+    return cliente ? `${base} (${cliente.nombre || ''})` : base
   }
 
   const totalHorasMes = registros.filter(r => r.fecha?.slice(0,7) === new Date().toISOString().slice(0,7)).reduce((s,r) => s + Number(r.horas||0), 0)

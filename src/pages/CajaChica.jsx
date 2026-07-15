@@ -37,7 +37,7 @@ export default function CajaChica() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     const { data: emp } = await supabase.from('empleados').select('id').eq('auth_user_id', user.id).single()
-    await supabase.from('caja_chica').insert({
+    const { error } = await supabase.from('caja_chica').insert({
       fecha: form.fecha,
       monto: Number(form.monto),
       categoria: form.categoria,
@@ -45,20 +45,22 @@ export default function CajaChica() {
       creado_por: emp?.id || null,
       estado: 'pendiente',
     })
+    setSaving(false)
+    if (error) { alert('No se pudo registrar el gasto: ' + error.message); return }
     setForm({ fecha: new Date().toISOString().slice(0,10), monto:'', categoria:'insumos_menores', descripcion:'' })
     setShowForm(false)
-    setSaving(false)
     load()
   }
 
   async function actualizarEstado(id, estado) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: emp } = await supabase.from('empleados').select('id').eq('auth_user_id', user.id).single()
-    await supabase.from('caja_chica').update({
+    const { error } = await supabase.from('caja_chica').update({
       estado,
       aprobado_por: emp?.id || null,
       aprobado_en: new Date().toISOString(),
     }).eq('id', id)
+    if (error) { alert('No se pudo actualizar el estado: ' + error.message); return }
     load()
   }
 

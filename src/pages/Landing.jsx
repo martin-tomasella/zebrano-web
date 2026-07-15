@@ -106,7 +106,7 @@ export default function Landing() {
             </div>
             <div style={{ background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden' }}>
               {/* Hero */}
-              <div style={{ padding:'28px 24px', background:'linear-gradient(135deg, rgba(74,107,54,0.08) 0%, rgba(223,83,254,0.04) 100%)', borderBottom:'1px solid var(--z-border)' }}>
+              <div style={{ padding:'28px 24px', background:'linear-gradient(135deg, rgba(74,107,54,0.08) 0%, rgba(122,174,90,0.04) 100%)', borderBottom:'1px solid var(--z-border)' }}>
                 <div style={{ fontSize:11, color:'var(--z-primary-light)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10, fontWeight:600 }}>
                   CARPINTERÍA A MEDIDA · {form.ciudad}
                 </div>

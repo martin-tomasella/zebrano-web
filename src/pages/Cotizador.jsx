@@ -176,12 +176,10 @@ export default function Cotizador() {
                 </div>
               </div>
             )}
-            <div ref={endRef} />
-          </div>
 
-          {/* Panel de estado: plano, render y cotizacion con acciones de aprobacion */}
-          {diseno && (diseno.svg_tecnico || diseno.render_fotorrealista_url || (resumen && resumen.precio_sugerido > 0) || sesionEstado === 'aprobada') && (
-            <div style={{ margin:'0 24px 14px', padding:'14px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:8, display:'flex', flexDirection:'column', gap:12 }}>
+            {/* Panel de estado: plano, render y cotizacion con acciones de aprobacion */}
+            {diseno && (diseno.svg_tecnico || diseno.render_fotorrealista_url || (resumen && resumen.precio_sugerido > 0) || sesionEstado === 'aprobada') && (
+            <div style={{ padding:'14px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:8, display:'flex', flexDirection:'column', gap:12 }}>
               {diseno.svg_tecnico && (
                 <div>
                   <div style={{ fontSize:11, color:'var(--z-text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>Plano técnico</div>
@@ -218,7 +216,9 @@ export default function Cotizador() {
                 </div>
               )}
             </div>
-          )}
+            )}
+            <div ref={endRef} />
+          </div>
 
           <div style={{ padding:'12px 24px', borderTop:'1px solid var(--z-border)', background:'var(--z-sidebar-bg)', display:'flex', gap:10 }}>
             <textarea

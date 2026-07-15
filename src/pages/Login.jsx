@@ -36,13 +36,13 @@ export default function Login() {
       <div style={{
         position: 'absolute', top: -200, left: -200,
         width: 600, height: 600, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(143,47,254,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(74,107,54,0.08) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute', bottom: -200, right: -200,
         width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(223,83,254,0.06) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(122,174,90,0.06) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
@@ -60,9 +60,9 @@ export default function Login() {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
-            background: 'linear-gradient(135deg, #8F2FFE, #DF53FE)',
+            background: 'linear-gradient(135deg, #4A6B36, #7AAE5A)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 40px rgba(143,47,254,0.35)',
+            boxShadow: '0 0 40px rgba(74,107,54,0.35)',
           }}>
             <span style={{ color: '#fff', fontWeight: 800, fontSize: 26 }}>Z</span>
           </div>
@@ -109,9 +109,9 @@ export default function Login() {
             type="submit" disabled={loading}
             style={{
               marginTop: 6, padding: '12px', borderRadius: 10, border: 'none',
-              background: loading ? 'var(--z-text-muted)' : 'linear-gradient(135deg, #8F2FFE, #DF53FE)',
+              background: loading ? 'var(--z-text-muted)' : 'linear-gradient(135deg, #4A6B36, #7AAE5A)',
               color: '#fff', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: loading ? 'none' : '0 0 30px rgba(143,47,254,0.3)',
+              boxShadow: loading ? 'none' : '0 0 30px rgba(74,107,54,0.3)',
               transition: 'var(--z-transition)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}

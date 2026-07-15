@@ -14,40 +14,41 @@ const NAV_SECTIONS = [
   {
     label: 'Ventas',
     items: [
-      { path: '/prospectos',  icon: 'funnel',  label: 'Prospectos' },
-      { path: '/clientes',    icon: 'users',   label: 'Clientes' },
-      { path: '/cotizador',   icon: 'spark',   label: 'Cotizador AI' },
+      { path: '/prospectos', icon: 'funnel', label: 'Prospectos' },
+      { path: '/clientes',   icon: 'users',  label: 'Clientes' },
+      { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI' },
+      { path: '/proyectos',  icon: 'layers', label: 'Proyectos' },
+      { path: '/metricas',   icon: 'chart',  label: 'Tiempos de ciclo' },
     ]
   },
   {
     label: 'Producción',
     items: [
-      { path: '/proyectos',   icon: 'layers',  label: 'Proyectos' },
-      { path: '/produccion',  icon: 'gear',    label: 'Producción' },
+      { path: '/produccion',    icon: 'gear',  label: 'Producción' },
+      { path: '/horas-trabajo', icon: 'clock', label: 'Horas de trabajo' },
     ]
   },
   {
-    label: 'Operaciones',
+    label: 'Insumos',
     items: [
-      { path: '/caja-chica',     icon: 'wallet', label: 'Caja chica' },
-      { path: '/proveedores',    icon: 'truck',  label: 'Proveedores' },
-      { path: '/horas-trabajo',  icon: 'clock',  label: 'Horas de trabajo' },
-      { path: '/metricas',       icon: 'chart',  label: 'Tiempos de ciclo' },
+      { path: '/proveedores', icon: 'truck', label: 'Proveedores' },
+      { path: '/materiales',  icon: 'box',   label: 'Materiales' },
+    ]
+  },
+  {
+    label: 'Administración',
+    items: [
+      { path: '/caja-chica', icon: 'wallet', label: 'Caja chica' },
+      { path: '/usuarios',   icon: 'user',   label: 'Usuarios', adminOnly: true },
+      { path: '/landing',    icon: 'globe',  label: 'Landing pública' },
     ]
   },
   {
     label: 'Marketing',
     items: [
-      { path: '/tiktok',        icon: 'tiktok',  label: 'TikTok' },
-      { path: '/rrss',          icon: 'rrss',    label: 'Instagram / FB' },
-      { path: '/rrss/importar', icon: 'upload',  label: 'Importar fotos' },
-    ]
-  },
-  {
-    label: 'Config',
-    items: [
-      { path: '/landing',  icon: 'globe',  label: 'Landing pública' },
-      { path: '/usuarios', icon: 'user',   label: 'Usuarios', adminOnly: true },
+      { path: '/tiktok',        icon: 'tiktok', label: 'TikTok' },
+      { path: '/rrss',          icon: 'rrss',   label: 'Instagram / FB' },
+      { path: '/rrss/importar', icon: 'upload', label: 'Importar fotos' },
     ]
   },
 ]
@@ -72,6 +73,7 @@ function Icon({ name, size = 18, color = 'currentColor' }) {
     truck: <><rect x="1" y="5" width="8" height="6" rx="1"/><path d="M9 7h3l2 2v2h-5V7z"/><circle cx="4" cy="12.5" r="1.3"/><circle cx="11.5" cy="12.5" r="1.3"/></>,
     clock: <><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l3 1.5" strokeLinecap="round" strokeLinejoin="round"/></>,
     chart: <><path d="M2 13.5V2" strokeLinecap="round"/><path d="M2 13.5h12" strokeLinecap="round"/><path d="M4.5 11V8" strokeLinecap="round"/><path d="M8 11V5" strokeLinecap="round"/><path d="M11.5 11V6.5" strokeLinecap="round"/></>,
+    box: <><path d="M2 5l6-3 6 3v6l-6 3-6-3V5z" strokeLinejoin="round"/><path d="M2 5l6 3 6-3" strokeLinejoin="round"/><line x1="8" y1="8" x2="8" y2="14"/></>,
   }
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none"

@@ -107,7 +107,7 @@ export default function TikTok() {
 
         {/* Stats */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:24 }}>
-          {[['Total', pubs.length, '#8F2FFE'], ['Borradores', borradores, '#fbbf24'], ['Programados', pubs.filter(p=>p.estado==='programado').length, '#60a5fa'], ['Publicados', publicados, '#4ade80']].map(([l,v,c]) => (
+          {[['Total', pubs.length, '#4A6B36'], ['Borradores', borradores, '#fbbf24'], ['Programados', pubs.filter(p=>p.estado==='programado').length, '#60a5fa'], ['Publicados', publicados, '#4ade80']].map(([l,v,c]) => (
             <div key={l} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', padding:'16px', textAlign:'center' }}>
               <div style={{ fontSize:24, fontWeight:700, color:c }}>{v}</div>
               <div style={{ fontSize:11, color:'var(--z-text-3)', marginTop:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>{l}</div>
@@ -128,7 +128,7 @@ export default function TikTok() {
             {pubs.map(pub => (
               <div key={pub.id} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden', display:'flex' }}>
                 {/* Thumbnail */}
-                <div style={{ width:80, minWidth:80, background:'rgba(143,47,254,0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:80, minWidth:80, background:'rgba(74,107,54,0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {pub.imagen_url || pub.galeria_trabajos?.thumbnail_url
                     ? <img src={pub.imagen_url||pub.galeria_trabajos?.thumbnail_url} alt="" style={{ width:'100%', height:80, objectFit:'cover' }} />
                     : <span style={{ fontSize:28 }}>🎵</span>}
@@ -156,7 +156,7 @@ export default function TikTok() {
                       </div>
                       <div style={{ fontSize:13, color:'var(--z-text)', fontWeight:500, marginBottom:4 }}>{pub.titulo||'—'}</div>
                       <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{pub.descripcion}</div>
-                      {pub.hashtags?.length > 0 && <div style={{ fontSize:11, color:'#8F2FFE', marginTop:4 }}>#{pub.hashtags.slice(0,4).join(' #')}</div>}
+                      {pub.hashtags?.length > 0 && <div style={{ fontSize:11, color:'#4A6B36', marginTop:4 }}>#{pub.hashtags.slice(0,4).join(' #')}</div>}
                     </>
                   )}
                 </div>

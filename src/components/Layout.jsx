@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 // ─── Nav items con menú completo ──────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
-    label: 'Principal',
+    label: null,
     items: [
       { path: '/', icon: 'grid', label: 'Dashboard' },
     ]
@@ -83,36 +83,6 @@ function Icon({ name, size = 18, color = 'currentColor' }) {
   )
 }
 
-// ─── Tooltip ──────────────────────────────────────────────────────────────────
-function Tooltip({ label, children }) {
-  const [show, setShow] = useState(false)
-  return (
-    <div style={{ position: 'relative' }}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}>
-      {children}
-      {show && (
-        <div style={{
-          position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
-          marginLeft: 10, zIndex: 1000,
-          background: '#121810', border: '1px solid rgba(74,107,54,0.3)',
-          color: '#E8DFD0', fontSize: 12, fontWeight: 500,
-          padding: '5px 12px', borderRadius: 8, whiteSpace: 'nowrap',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-          pointerEvents: 'none',
-        }}>
-          {label}
-          <div style={{
-            position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)',
-            border: '5px solid transparent',
-            borderRightColor: 'rgba(74,107,54,0.3)',
-          }} />
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 function Avatar({ name = '', size = 32 }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -153,75 +123,81 @@ export function Layout({ children }) {
         zIndex: 100,
       }}>
 
-        {/* Logo */}
+        {/* Logo + nombre */}
         <div style={{
-          height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: 60, display: 'flex', alignItems: 'center', gap: 10,
+          padding: '0 16px',
           borderBottom: '1px solid var(--z-border)', flexShrink: 0,
-        }}>
-          <Tooltip label="Zebrano ERP">
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, #4A6B36, #7AAE5A)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', boxShadow: '0 0 16px rgba(74,107,54,0.28)',
-            }} onClick={() => navigate('/')}>
-              <span style={{ color: '#E8DFD0', fontWeight: 800, fontSize: 16 }}>Z</span>
-            </div>
-          </Tooltip>
+          cursor: 'pointer',
+        }} onClick={() => navigate('/')}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+            background: 'linear-gradient(135deg, #4A6B36, #7AAE5A)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 16px rgba(74,107,54,0.28)',
+          }}>
+            <span style={{ color: '#E8DFD0', fontWeight: 800, fontSize: 15 }}>Z</span>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--z-text)', lineHeight: 1.15 }}>Zebrano</div>
+            <div style={{ fontSize: 10.5, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ERP</div>
+          </div>
         </div>
 
         {/* Nav items */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0', overflowX: 'hidden' }}>
+        <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 10px' }}>
           {NAV_SECTIONS.map((section, si) => (
-            <div key={si}>
-              {/* Separador de sección */}
-              {si > 0 && (
+            <div key={si} style={{ marginBottom: 4 }}>
+              {section.label && (
                 <div style={{
-                  height: 1, background: 'var(--z-border)',
-                  margin: '6px 10px',
-                }} />
+                  fontSize: 10.5, fontWeight: 600, color: 'var(--z-text-3)',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  padding: '14px 10px 6px',
+                }}>
+                  {section.label}
+                </div>
               )}
               {section.items.map((item) => {
                 if (item.adminOnly && profile?.rol !== 'admin') return null
                 const active = isActive(item.path)
                 return (
-                  <Tooltip key={item.path} label={item.label}>
-                    <div
-                      onClick={() => navigate(item.path)}
-                      style={{
-                        width: 40, height: 40, margin: '2px 8px',
-                        borderRadius: 10, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: active ? 'rgba(74,107,54,0.18)' : 'transparent',
-                        border: active ? '1px solid rgba(74,107,54,0.35)' : '1px solid transparent',
-                        color: active ? '#7AAE5A' : 'var(--z-text-3)',
-                        transition: 'var(--z-transition)',
-                        position: 'relative',
-                      }}
-                      onMouseEnter={e => {
-                        if (!active) {
-                          e.currentTarget.style.background = 'rgba(74,107,54,0.08)'
-                          e.currentTarget.style.color = 'var(--z-text-2)'
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (!active) {
-                          e.currentTarget.style.background = 'transparent'
-                          e.currentTarget.style.color = 'var(--z-text-3)'
-                        }
-                      }}
-                    >
-                      <Icon name={item.icon} size={17} color="currentColor" />
-                      {/* Dot activo */}
-                      {active && (
-                        <div style={{
-                          position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)',
-                          width: 3, height: 20, borderRadius: 2,
-                          background: 'linear-gradient(180deg, #4A6B36, #7AAE5A)',
-                        }} />
-                      )}
-                    </div>
-                  </Tooltip>
+                  <div
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 11,
+                      height: 38, padding: '0 10px', margin: '1px 0',
+                      borderRadius: 9, cursor: 'pointer',
+                      background: active ? 'rgba(74,107,54,0.18)' : 'transparent',
+                      border: active ? '1px solid rgba(74,107,54,0.35)' : '1px solid transparent',
+                      color: active ? '#7AAE5A' : 'var(--z-text-2)',
+                      fontSize: 13.5, fontWeight: active ? 600 : 500,
+                      transition: 'var(--z-transition)',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={e => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'rgba(74,107,54,0.08)'
+                        e.currentTarget.style.color = 'var(--z-text)'
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'transparent'
+                        e.currentTarget.style.color = 'var(--z-text-2)'
+                      }
+                    }}
+                  >
+                    {active && (
+                      <div style={{
+                        position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)',
+                        width: 3, height: 20, borderRadius: 2,
+                        background: 'linear-gradient(180deg, #4A6B36, #7AAE5A)',
+                      }} />
+                    )}
+                    <Icon name={item.icon} size={16} color="currentColor" />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                  </div>
                 )
               })}
             </div>
@@ -230,29 +206,31 @@ export function Layout({ children }) {
 
         {/* Footer del sidebar */}
         <div style={{
-          borderTop: '1px solid var(--z-border)', padding: '8px',
-          display: 'flex', flexDirection: 'column', gap: 4,
+          borderTop: '1px solid var(--z-border)', padding: '10px',
+          display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <Tooltip label={profile?.nombre || 'Admin'}>
-            <div style={{ display: 'flex', justifyContent: 'center', cursor: 'default' }}>
-              <Avatar name={profile?.nombre || 'Admin'} size={36} />
+          <Avatar name={profile?.nombre || 'Admin'} size={34} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--z-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {profile?.nombre || 'Admin'}
             </div>
-          </Tooltip>
-          <Tooltip label="Cerrar sesión">
-            <div
-              onClick={signOut}
-              style={{
-                width: 40, height: 36, margin: '0 auto',
-                borderRadius: 8, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--z-text-3)', transition: 'var(--z-transition)',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--z-error)'; e.currentTarget.style.background = 'rgba(160,64,42,0.08)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--z-text-3)'; e.currentTarget.style.background = 'transparent'; }}
-            >
-              <Icon name="logout" size={16} color="currentColor" />
+            <div style={{ fontSize: 10.5, color: 'var(--z-text-3)', textTransform: 'capitalize' }}>
+              {profile?.rol || 'usuario'}
             </div>
-          </Tooltip>
+          </div>
+          <div
+            onClick={signOut}
+            title="Cerrar sesión"
+            style={{
+              width: 32, height: 32, borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--z-text-3)', transition: 'var(--z-transition)',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--z-error)'; e.currentTarget.style.background = 'rgba(160,64,42,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--z-text-3)'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            <Icon name="logout" size={16} color="currentColor" />
+          </div>
         </div>
       </aside>
 

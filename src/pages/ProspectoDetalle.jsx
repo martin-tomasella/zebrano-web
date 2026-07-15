@@ -23,6 +23,7 @@ export default function ProspectoDetalle() {
   const [enviando, setEnviando] = useState(false);
   const [showAddCompra, setShowAddCompra] = useState(false);
   const [showAddPago, setShowAddPago] = useState(false);
+  const [convirtiendo, setConvirtiendo] = useState(false);
   const msgRef = useRef(null);
 
   const cargar = async () => {
@@ -65,6 +66,26 @@ export default function ProspectoDetalle() {
     setProspecto(p=>({...p,[campo]:valor}));
   };
 
+  const convertirACliente = async () => {
+    if (prospecto.convertido_a_cliente) return;
+    setConvirtiendo(true);
+    const nombreCompleto = [prospecto.nombre, prospecto.apellido].filter(Boolean).join(' ') || 'Sin nombre';
+    const { data: nuevoCliente, error: errC } = await supabase.from('clientes').insert({
+      nombre: nombreCompleto,
+      telefono: prospecto.telefono,
+      email: prospecto.email,
+      origen_lead: prospecto.canal_origen,
+      canal_social: prospecto.canal_origen,
+      handle_social: prospecto.handle_rrss,
+      notas: prospecto.notas,
+    }).select().single();
+    if (errC) { alert('No se pudo crear el cliente: ' + errC.message); setConvirtiendo(false); return; }
+    const { error: errP } = await supabase.from('prospectos').update({ convertido_a_cliente:true, cliente_id:nuevoCliente.id }).eq('id',id);
+    setConvirtiendo(false);
+    if (errP) { alert('Cliente creado pero no se pudo vincular el prospecto: ' + errP.message); return; }
+    setProspecto(p=>({...p, convertido_a_cliente:true, cliente_id:nuevoCliente.id}));
+  };
+
   if (loading) return <Layout><div style={{padding:40,textAlign:'center',color:'var(--z-text-muted)'}}>Cargando...</div></Layout>;
   if (!prospecto) return <Layout><div style={{padding:40,textAlign:'center',color:'var(--z-error)'}}>Prospecto no encontrado</div></Layout>;
 
@@ -88,6 +109,15 @@ export default function ProspectoDetalle() {
               </button>
             ))}
           </div>
+          {prospecto.estado==='ganado' && (
+            prospecto.convertido_a_cliente ? (
+              <span style={{fontSize:10,color:'var(--z-success)',padding:'3px 10px',border:'1px solid var(--z-success)',borderRadius:20,whiteSpace:'nowrap'}}>✓ Cliente</span>
+            ) : (
+              <button onClick={convertirACliente} disabled={convirtiendo} className="btn btn-primary btn-sm" style={{fontSize:10,whiteSpace:'nowrap'}}>
+                {convirtiendo?'Convirtiendo...':'Convertir a cliente'}
+              </button>
+            )
+          )}
         </div>
 
         <div style={{flex:1,display:'flex',overflow:'hidden'}}>
@@ -245,7 +275,7 @@ function ModalCompra({ prospecto_id, onClose, onSave }) {
   const guardar = async () => {
     if (!form.descripcion) return;
     setSaving(true);
-    const { error } = await supabase.from('historial_compras').insert({ prospecto_id, ...form, monto_cotizado:form.monto_cotizado?parseFloat(form.monto_cotizado):null, monto_final:form.monto_final?parseFloat(form.monto_final):null, fecha_entrega_estimada:form.fecha_entrega_estimada||null });
+    const { error } = await supabase.from('historial_compras').insert({ prospecto_id, ...form, monto_cotizado:form.monto_cotizado?parseFloat(form.monto_cotizado):null, monto_final:form.monto_final?parseFloat(form.monto_final):null });
     setSaving(false);
     if (error) { alert('No se pudo guardar la compra: ' + error.message); return; }
     onSave();
@@ -282,7 +312,7 @@ function ModalPago({ compras, cliente_id, onClose, onSave }) {
   const guardar = async () => {
     if (!form.monto) return;
     setSaving(true);
-    const { error } = await supabase.from('pagos').insert({ ...form, monto:parseFloat(form.monto), cliente_id, fecha_recibido:form.fecha_recibido||null });
+    const { error } = await supabase.from('pagos').insert({ ...form, monto:parseFloat(form.monto), cliente_id });
     setSaving(false);
     if (error) { alert('No se pudo registrar el pago: ' + error.message); return; }
     onSave();

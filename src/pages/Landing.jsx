@@ -90,7 +90,7 @@ export default function Landing() {
                 ))}
                 <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0' }}>
                   <label style={{ fontSize:13, color:'var(--z-text-2)', flex:1 }}>Landing activa (visible públicamente)</label>
-                  <div onClick={() => setForm(f=>({...f,activa:!f.activa}))} style={{ width:44,height:24,borderRadius:12,background:form.activa?'var(--z-primary)':'rgba(143,47,254,0.1)',border:`1px solid ${form.activa?'var(--z-primary)':'var(--z-border)'}`,cursor:'pointer',position:'relative',transition:'var(--z-transition)' }}>
+                  <div onClick={() => setForm(f=>({...f,activa:!f.activa}))} style={{ width:44,height:24,borderRadius:12,background:form.activa?'var(--z-primary)':'rgba(74,107,54,0.1)',border:`1px solid ${form.activa?'var(--z-primary)':'var(--z-border)'}`,cursor:'pointer',position:'relative',transition:'var(--z-transition)' }}>
                     <div style={{ position:'absolute',top:3,left:form.activa?22:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'var(--z-transition)' }} />
                   </div>
                 </div>
@@ -106,7 +106,7 @@ export default function Landing() {
             </div>
             <div style={{ background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden' }}>
               {/* Hero */}
-              <div style={{ padding:'28px 24px', background:'linear-gradient(135deg, rgba(143,47,254,0.08) 0%, rgba(223,83,254,0.04) 100%)', borderBottom:'1px solid var(--z-border)' }}>
+              <div style={{ padding:'28px 24px', background:'linear-gradient(135deg, rgba(74,107,54,0.08) 0%, rgba(223,83,254,0.04) 100%)', borderBottom:'1px solid var(--z-border)' }}>
                 <div style={{ fontSize:11, color:'var(--z-primary-light)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10, fontWeight:600 }}>
                   CARPINTERÍA A MEDIDA · {form.ciudad}
                 </div>
@@ -140,7 +140,7 @@ export default function Landing() {
               </div>
 
               {/* CTA contacto */}
-              <div style={{ padding:'16px 24px', borderTop:'1px solid var(--z-border)', background:'rgba(143,47,254,0.04)' }}>
+              <div style={{ padding:'16px 24px', borderTop:'1px solid var(--z-border)', background:'rgba(74,107,54,0.04)' }}>
                 <div style={{ fontSize:11, color:'var(--z-text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8, fontWeight:600 }}>CONTACTO</div>
                 <p style={{ fontSize:13, color:'var(--z-text-2)', marginBottom:12 }}>Pedí tu cotización sin compromiso</p>
                 <div style={{ display:'flex', gap:8, fontSize:12, color:'var(--z-text-3)' }}>

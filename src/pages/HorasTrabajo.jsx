@@ -31,16 +31,17 @@ export default function HorasTrabajo() {
     e.preventDefault()
     if (!form.ot_id || !form.empleado_id || !form.horas) return
     setSaving(true)
-    await supabase.from('horas_trabajo_ot').insert({
+    const { error } = await supabase.from('horas_trabajo_ot').insert({
       ot_id: form.ot_id,
       empleado_id: form.empleado_id,
       fecha: form.fecha,
       horas: Number(form.horas),
       notas: form.notas || null,
     })
+    setSaving(false)
+    if (error) { alert('No se pudo cargar las horas: ' + error.message); return }
     setForm({ ot_id:'', empleado_id:'', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
     setShowForm(false)
-    setSaving(false)
     load()
   }
 

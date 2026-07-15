@@ -53,9 +53,9 @@ export default function Prospectos() {
         subtitle={`${prospectos.length} activos${totalGanado > 0 ? ` · $${totalGanado.toLocaleString('es-AR')} ganados` : ''}`}
         actions={
           <>
-            <div style={{ display:'flex', gap:2, background:'rgba(143,47,254,0.08)', borderRadius:8, padding:3 }}>
+            <div style={{ display:'flex', gap:2, background:'rgba(74,107,54,0.08)', borderRadius:8, padding:3 }}>
               {['pipeline','lista'].map(v => (
-                <button key={v} onClick={() => setVista(v)} style={{ padding:'5px 12px', fontSize:11, background: vista===v ? 'rgba(143,47,254,0.2)' : 'transparent', color: vista===v ? 'var(--z-text)' : 'var(--z-text-3)', border:'none', borderRadius:6, cursor:'pointer', textTransform:'capitalize' }}>{v}</button>
+                <button key={v} onClick={() => setVista(v)} style={{ padding:'5px 12px', fontSize:11, background: vista===v ? 'rgba(74,107,54,0.2)' : 'transparent', color: vista===v ? 'var(--z-text)' : 'var(--z-text-3)', border:'none', borderRadius:6, cursor:'pointer', textTransform:'capitalize' }}>{v}</button>
               ))}
             </div>
             <input placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
@@ -70,9 +70,9 @@ export default function Prospectos() {
         {['todos', ...ESTADOS.map(e => e.id)].map(e => (
           <button key={e} onClick={() => setFiltroEstado(e)} style={{
             padding:'4px 12px', fontSize:11, borderRadius:20, cursor:'pointer', whiteSpace:'nowrap',
-            background: filtroEstado===e ? 'rgba(143,47,254,0.2)' : 'transparent',
+            background: filtroEstado===e ? 'rgba(74,107,54,0.2)' : 'transparent',
             color: filtroEstado===e ? 'var(--z-text)' : 'var(--z-text-3)',
-            border: `1px solid ${filtroEstado===e ? 'rgba(143,47,254,0.4)' : 'var(--z-border)'}`,
+            border: `1px solid ${filtroEstado===e ? 'rgba(74,107,54,0.4)' : 'var(--z-border)'}`,
           }}>
             {e === 'todos' ? 'Todos' : ESTADOS.find(x => x.id === e)?.label} {e !== 'todos' && `(${porEstado(e).length})`}
           </button>
@@ -88,7 +88,7 @@ export default function Prospectos() {
               <div key={est.id} style={{ minWidth:230, flex:'0 0 230px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, padding:'6px 10px', background:'var(--z-card)', borderRadius:8, border:'1px solid var(--z-border)' }}>
                   <span style={{ fontSize:11, color:est.color, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em' }}>{est.label}</span>
-                  <span style={{ fontSize:11, color:'var(--z-text-3)', background:'rgba(143,47,254,0.1)', padding:'2px 8px', borderRadius:10 }}>{porEstado(est.id).length}</span>
+                  <span style={{ fontSize:11, color:'var(--z-text-3)', background:'rgba(74,107,54,0.1)', padding:'2px 8px', borderRadius:10 }}>{porEstado(est.id).length}</span>
                 </div>
                 {porEstado(est.id).map(p => (
                   <div key={p.id} onClick={() => navigate(`/prospectos/${p.id}`)}
@@ -99,7 +99,7 @@ export default function Prospectos() {
                       <span style={{ fontSize:13, color:'var(--z-text)', fontWeight:500 }}>{p.nombre||'Sin nombre'} {p.apellido||''}</span>
                       <span style={{ fontSize:14 }}>{CANALES[p.canal_origen]||'📱'}</span>
                     </div>
-                    {p.handle_rrss && <div style={{ fontSize:11, color:'#8F2FFE', marginBottom:4 }}>{p.handle_rrss}</div>}
+                    {p.handle_rrss && <div style={{ fontSize:11, color:'#4A6B36', marginBottom:4 }}>{p.handle_rrss}</div>}
                     {p.tipo_trabajo && <div style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize' }}>{p.tipo_trabajo}</div>}
                     {p.presupuesto_estimado && <div style={{ fontSize:12, color:'var(--z-success)', marginTop:4 }}>${p.presupuesto_estimado.toLocaleString('es-AR')}</div>}
                     {p.proximo_seguimiento && (

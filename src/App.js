@@ -6,7 +6,6 @@ import Login            from './pages/Login'
 import Dashboard        from './pages/Dashboard'
 import Proyectos        from './pages/Proyectos'
 import Clientes         from './pages/Clientes'
-import Ventas           from './pages/Ventas'
 import Produccion       from './pages/Produccion'
 import Cotizador        from './pages/Cotizador'
 import LandingPreview   from './pages/Landing'
@@ -40,7 +39,7 @@ function AppRoutes() {
       <Route path="/"                 element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/proyectos"        element={<PrivateRoute><Proyectos /></PrivateRoute>} />
       <Route path="/clientes"         element={<PrivateRoute><Clientes /></PrivateRoute>} />
-      <Route path="/ventas"           element={<PrivateRoute><Ventas /></PrivateRoute>} />
+      <Route path="/ventas"           element={<Navigate to="/prospectos" replace />} />
       <Route path="/produccion"       element={<PrivateRoute><Produccion /></PrivateRoute>} />
       <Route path="/cotizador"        element={<PrivateRoute><Cotizador /></PrivateRoute>} />
       <Route path="/landing"          element={<PrivateRoute><LandingPreview /></PrivateRoute>} />

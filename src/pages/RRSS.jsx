@@ -49,7 +49,7 @@ export default function RRSS() {
       {/* Filtros */}
       <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', gap:6, background:'var(--z-sidebar-bg)', flexShrink:0 }}>
         {['todos',...ESTADOS].map(e => (
-          <button key={e} onClick={() => setFiltro(e)} style={{ padding:'4px 12px', fontSize:11, borderRadius:20, cursor:'pointer', textTransform:'capitalize', background: filtro===e?'rgba(143,47,254,0.2)':'transparent', color: filtro===e?'var(--z-text)':'var(--z-text-3)', border:`1px solid ${filtro===e?'rgba(143,47,254,0.4)':'var(--z-border)'}` }}>
+          <button key={e} onClick={() => setFiltro(e)} style={{ padding:'4px 12px', fontSize:11, borderRadius:20, cursor:'pointer', textTransform:'capitalize', background: filtro===e?'rgba(74,107,54,0.2)':'transparent', color: filtro===e?'var(--z-text)':'var(--z-text-3)', border:`1px solid ${filtro===e?'rgba(74,107,54,0.4)':'var(--z-border)'}` }}>
             {e} {e!=='todos'&&`(${pubs.filter(p=>p.estado===e).length})`}
           </button>
         ))}
@@ -106,7 +106,7 @@ export default function RRSS() {
                     <div style={{ display:'flex', gap:6, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--z-border)', flexWrap:'wrap' }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
                       {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
-                      {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(143,47,254,0.1)',color:'#8F2FFE',border:'1px solid rgba(143,47,254,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
+                      {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(74,107,54,0.1)',color:'#4A6B36',border:'1px solid rgba(74,107,54,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
                       {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}
                     </div>
                   )}

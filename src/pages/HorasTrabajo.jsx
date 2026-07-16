@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Layout, Topbar, PageContent } from '../components/Layout'
@@ -10,14 +11,14 @@ export default function HorasTrabajo() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ ot_id:'', empleado_id:'', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+  const [form, setForm] = useState({ ot_id:'', empleado_id:'', tipo:'fabricacion', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
 
   useEffect(() => { load() }, [])
 
   async function load() {
     setLoading(true)
     const [{ data: o }, { data: e }, { data: r }] = await Promise.all([
-      supabase.from('ordenes_trabajo').select('id, numero_ot, estado, horas_estimadas, horas_reales, modulos(nombre, proyectos(nombre, clientes(nombre)))').order('created_at', { ascending:false }).limit(200),
+      supabase.from('ordenes_trabajo').select('id, numero_ot, estado, horas_estimadas, horas_reales, horas_fabricacion_estimadas, horas_instalacion_estimadas, horas_fabricacion_reales, horas_instalacion_reales, modulos(nombre, proyectos(nombre, clientes(nombre))), proyectos(nombre, clientes(nombre))').order('created_at', { ascending:false }).limit(200),
       supabase.from('empleados').select('id,nombre').eq('activo', true).order('nombre'),
       supabase.from('horas_trabajo_ot').select('*, empleados(nombre), ordenes_trabajo(numero_ot)').order('fecha', { ascending:false }).limit(100),
     ])
@@ -34,20 +35,23 @@ export default function HorasTrabajo() {
     const { error } = await supabase.from('horas_trabajo_ot').insert({
       ot_id: form.ot_id,
       empleado_id: form.empleado_id,
+      tipo: form.tipo,
       fecha: form.fecha,
       horas: Number(form.horas),
       notas: form.notas || null,
     })
     setSaving(false)
     if (error) { alert('No se pudo cargar las horas: ' + error.message); return }
-    setForm({ ot_id:'', empleado_id:'', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+    setForm({ ot_id:'', empleado_id:'', tipo:'fabricacion', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
     setShowForm(false)
     load()
   }
 
   const nombreOT = (ot) => {
+    // La OT puede venir de un modulo (via modulo_id) o directo de un proyecto (via proyecto_id, flujo del Cotizador).
     const modulo = ot.modulos
-    const proyecto = modulo?.proyectos
+    const proyectoDirecto = ot.proyectos
+    const proyecto = modulo?.proyectos || proyectoDirecto
     const cliente = proyecto?.clientes
     const partes = [proyecto?.nombre, modulo?.nombre].filter(Boolean)
     const base = partes.length ? partes.join(' — ') : ot.numero_ot
@@ -82,12 +86,21 @@ export default function HorasTrabajo() {
                     {ots.map(o => <option key={o.id} value={o.id}>{nombreOT(o)}</option>)}
                   </select>
                 </div>
-                <div style={{ marginBottom:14 }}>
-                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Empleado</label>
-                  <select value={form.empleado_id} onChange={e => setForm({...form, empleado_id:e.target.value})} required>
-                    <option value="">Elegir empleado...</option>
-                    {empleados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                  </select>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Empleado</label>
+                    <select value={form.empleado_id} onChange={e => setForm({...form, empleado_id:e.target.value})} required>
+                      <option value="">Elegir empleado...</option>
+                      {empleados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Tipo</label>
+                    <select value={form.tipo} onChange={e => setForm({...form, tipo:e.target.value})}>
+                      <option value="fabricacion">Fabricación</option>
+                      <option value="instalacion">Instalación</option>
+                    </select>
+                  </div>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                   <Input label="Fecha" type="date" value={form.fecha} onChange={e => setForm({...form, fecha:e.target.value})} required />
@@ -104,8 +117,9 @@ export default function HorasTrabajo() {
             cols={[
               { key:'ot', label:'OT', render:nombreOT },
               { key:'estado', label:'Estado', render:r => r.estado || '—' },
-              { key:'horas_estimadas', label:'Estimadas', render:r => r.horas_estimadas ?? '—' },
-              { key:'horas_reales', label:'Reales', render:r => (
+              { key:'fab', label:'Fabricación (est. / real)', render:r => `${r.horas_fabricacion_estimadas ?? '—'} / ${r.horas_fabricacion_reales ?? 0}` },
+              { key:'inst', label:'Instalación (est. / real)', render:r => `${r.horas_instalacion_estimadas ?? '—'} / ${r.horas_instalacion_reales ?? 0}` },
+              { key:'horas_reales', label:'Total real', render:r => (
                 <span style={{ color: r.horas_estimadas && r.horas_reales > r.horas_estimadas ? 'var(--z-error)' : 'var(--z-text)' }}>{r.horas_reales ?? 0}</span>
               ) },
             ]}
@@ -120,6 +134,7 @@ export default function HorasTrabajo() {
                 { key:'fecha', label:'Fecha' },
                 { key:'empleado', label:'Empleado', render:r => r.empleados?.nombre || '—' },
                 { key:'ot', label:'OT', render:r => r.ordenes_trabajo?.numero_ot || '—' },
+                { key:'tipo', label:'Tipo', render:r => r.tipo === 'instalacion' ? 'Instalación' : 'Fabricación' },
                 { key:'horas', label:'Horas' },
                 { key:'notas', label:'Notas', render:r => r.notas || '—' },
               ]}

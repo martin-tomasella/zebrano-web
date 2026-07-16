@@ -1,4 +1,5 @@
 
+
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -38,7 +39,7 @@ const NAV_SECTIONS = [
   {
     label: 'Administración',
     items: [
-      { path: '/caja-chica', icon: 'wallet', label: 'Caja chica' },
+      { path: '/finanzas',   icon: 'wallet', label: 'Finanzas' },
       { path: '/usuarios',   icon: 'user',   label: 'Usuarios', adminOnly: true },
       { path: '/landing',    icon: 'globe',  label: 'Landing pública' },
     ]

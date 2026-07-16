@@ -1,4 +1,5 @@
 
+
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -34,6 +35,8 @@ const MODULES = [
     ]
   },
 ]
+
+const DIAS_ESTANCADO = 7
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon, color, delta }) {
@@ -116,16 +119,19 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({})
   const [actividades, setActividades] = useState([])
+  const [estancados, setEstancados] = useState([])
+  const [resumenSemana, setResumenSemana] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
-      const [p, c, pr, pub, pros] = await Promise.all([
+      const [p, c, pr, pub, pros, proyectosData] = await Promise.all([
         supabase.from('proyectos').select('id', { count: 'exact', head: true }),
         supabase.from('clientes').select('id', { count: 'exact', head: true }),
         supabase.from('roble_publicaciones').select('id', { count: 'exact', head: true }).eq('estado', 'borrador'),
         supabase.from('roble_publicaciones').select('id', { count: 'exact', head: true }).eq('estado', 'publicado'),
         supabase.from('prospectos').select('id', { count: 'exact', head: true }).eq('activo', true),
+        supabase.from('proyectos').select('id, nombre, estado, fecha_cotizado, fecha_entrega_real, valor_final, valor_estimado, clientes(nombre)'),
       ])
       setStats({
         proyectos: p.count ?? 0,
@@ -133,6 +139,28 @@ export default function Dashboard() {
         borradores: pr.count ?? 0,
         publicados: pub.count ?? 0,
         prospectos: pros.count ?? 0,
+      })
+
+      // ── Proactivo #1: proyectos "Cotizado" que llevan mas de DIAS_ESTANCADO sin pasar a "Seña pagada" ──
+      const proyectos = proyectosData.data || []
+      const hoy = new Date()
+      const estanc = proyectos.filter(pr => {
+        if (pr.estado !== 'cotizado' || !pr.fecha_cotizado) return false
+        const dias = Math.floor((hoy - new Date(pr.fecha_cotizado)) / 86400000)
+        return dias >= DIAS_ESTANCADO
+      }).map(pr => ({ ...pr, dias: Math.floor((hoy - new Date(pr.fecha_cotizado)) / 86400000) }))
+        .sort((a,b) => b.dias - a.dias)
+      setEstancados(estanc)
+
+      // ── Proactivo #2: resumen de la semana, sin que nadie lo pida ──
+      const inicioSemana = new Date(); inicioSemana.setHours(0,0,0,0); inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1)
+      const entregadosSemana = proyectos.filter(pr => pr.estado === 'entregado' && pr.fecha_entrega_real && new Date(pr.fecha_entrega_real) >= inicioSemana)
+      const cotizadosSemana = proyectos.filter(pr => pr.fecha_cotizado && new Date(pr.fecha_cotizado) >= inicioSemana)
+      const valorCotizadoSemana = cotizadosSemana.reduce((s,pr) => s + Number(pr.valor_final || pr.valor_estimado || 0), 0)
+      setResumenSemana({
+        entregados: entregadosSemana.length,
+        cotizados: cotizadosSemana.length,
+        valorCotizado: valorCotizadoSemana,
       })
 
       // Actividad reciente
@@ -154,6 +182,7 @@ export default function Dashboard() {
 
   const CANAL_ICON = { instagram:'rrss', tiktok:'tiktok', whatsapp:'users', facebook:'rrss', web:'globe', referido:'users' }
   const ESTADO_COLOR = { nuevo:'var(--z-info)', contactado:'#a78bfa', calificado:'var(--z-warning)', cotizado:'#fb923c', ganado:'var(--z-success)', perdido:'var(--z-error)' }
+  const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
 
   return (
     <Layout>
@@ -162,6 +191,48 @@ export default function Dashboard() {
         subtitle={new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
       />
       <PageContent>
+        {/* ── Zebrano te avisa: proactivo, sin que nadie lo pida ──────────────── */}
+        {!loading && (estancados.length > 0 || resumenSemana) && (
+          <div style={{ marginBottom: 24, display:'flex', flexDirection:'column', gap:10 }}>
+            {estancados.length > 0 && (
+              <div style={{
+                background: 'rgba(176,123,48,0.08)', border: '1px solid rgba(176,123,48,0.25)',
+                borderRadius: 'var(--z-radius-lg)', padding: '14px 18px', display:'flex', alignItems:'flex-start', gap:12,
+              }}>
+                <span style={{ fontSize:18 }}>⚠️</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--z-warning)', marginBottom:4 }}>
+                    {estancados.length} proyecto{estancados.length !== 1 ? 's' : ''} estancado{estancados.length !== 1 ? 's' : ''} en "Cotizado"
+                  </div>
+                  <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
+                    {estancados.slice(0,3).map(e => `${e.clientes?.nombre || 'Sin nombre'} (${e.dias}d)`).join(' · ')}
+                    {estancados.length > 3 && ` y ${estancados.length - 3} más`}
+                    {' — '}sin pasar a "Seña pagada" hace más de {DIAS_ESTANCADO} días.
+                  </div>
+                </div>
+                <button onClick={() => navigate('/proyectos')} style={{
+                  fontSize:11.5, color:'var(--z-warning)', background:'transparent', border:'1px solid rgba(176,123,48,0.35)',
+                  borderRadius:8, padding:'6px 12px', cursor:'pointer', flexShrink:0, whiteSpace:'nowrap',
+                }}>Ver proyectos</button>
+              </div>
+            )}
+            {resumenSemana && (resumenSemana.entregados > 0 || resumenSemana.cotizados > 0) && (
+              <div style={{
+                background: 'var(--z-primary-glow)', border: '1px solid rgba(74,107,54,0.25)',
+                borderRadius: 'var(--z-radius-lg)', padding: '14px 18px', display:'flex', alignItems:'flex-start', gap:12,
+              }}>
+                <span style={{ fontSize:18 }}>📊</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--z-primary-light)', marginBottom:4 }}>Resumen de la semana</div>
+                  <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
+                    {resumenSemana.entregados} entregado{resumenSemana.entregados !== 1 ? 's' : ''} · {resumenSemana.cotizados} cotización{resumenSemana.cotizados !== 1 ? 'es' : ''} nueva{resumenSemana.cotizados !== 1 ? 's' : ''} ({fmt(resumenSemana.valorCotizado)})
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Stats row ─────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 28 }}>
           <StatCard label="Prospectos activos" value={stats.prospectos} icon="funnel" color="#4A6B36" />

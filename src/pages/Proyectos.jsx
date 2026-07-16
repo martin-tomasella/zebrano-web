@@ -19,6 +19,48 @@ const SIGUIENTE = {
   en_fabricacion: { estado:'entregado',      label:'Marcar entregado',     campoFecha:'fecha_entrega_real' },
 };
 
+// ─── Río + carriles: constantes de la nueva visualización ─────────────────────
+// Paleta teal/cyan específica de esta vista (no se agrega a los tokens --z-* globales:
+// el resto de la app se mantiene en la identidad verde/cobre ya shippeada).
+const RIO_DESDE = '#2DD4BF';
+const RIO_HASTA = '#22D3EE';
+
+// Mismo umbral que Dashboard.jsx usa para "proyecto estancado en Cotizado".
+const DIAS_ESTANCADO = 7;
+
+const STAGE_ORDER_IDX = { cotizado:0, sena_pagada:1, en_fabricacion:2, entregado:3 };
+const STAGE_PCT = { cotizado:15, sena_pagada:40, en_fabricacion:70, entregado:100 };
+
+function fechaEntradaEtapa(p) {
+  if (p.estado === 'sena_pagada') return p.fecha_sena_pagada;
+  if (p.estado === 'en_fabricacion') return p.fecha_inicio_fabricacion;
+  if (p.estado === 'entregado') return p.fecha_entrega_real;
+  return p.fecha_cotizado || p.created_at;
+}
+function diasEnEtapa(p) {
+  const f = fechaEntradaEtapa(p);
+  if (!f) return 0;
+  return Math.floor((new Date() - new Date(f)) / 86400000);
+}
+// Misma definición que Dashboard.jsx: cotizado sin avanzar por >= DIAS_ESTANCADO días.
+function esEstancado(p) {
+  if (p.estado !== 'cotizado' || !p.fecha_cotizado) return false;
+  return Math.floor((new Date() - new Date(p.fecha_cotizado)) / 86400000) >= DIAS_ESTANCADO;
+}
+// % de avance en el recorrido cotizado -> entregado. Dentro de "en fabricación",
+// se nudgea con horas reales/estimadas de la OT vinculada cuando existe.
+function calcPct(p) {
+  if (p.estado === 'entregado') return 100;
+  let base = STAGE_PCT[p.estado] ?? 10;
+  if (p.estado === 'en_fabricacion') {
+    const ot = Array.isArray(p.ordenes_trabajo) ? p.ordenes_trabajo[0] : p.ordenes_trabajo;
+    const est = Number(ot?.horas_fabricacion_estimadas || 0);
+    const real = Number(ot?.horas_fabricacion_reales || 0);
+    if (est > 0) base += Math.min(real / est, 1) * 20;
+  }
+  return Math.min(base, 98);
+}
+
 const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—';
 const fechaFmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—';
 
@@ -40,7 +82,7 @@ export default function Proyectos() {
     setLoading(true);
     const { data, error } = await supabase
       .from('proyectos')
-      .select('*, clientes(nombre, telefono, email)')
+      .select('*, clientes(nombre, telefono, email), ordenes_trabajo(numero_ot, horas_fabricacion_estimadas, horas_fabricacion_reales)')
       .order('created_at', { ascending:false });
     if (error) console.error('Error cargando proyectos:', error);
     setProyectos(data || []);
@@ -53,6 +95,18 @@ export default function Proyectos() {
   const activos = proyectos.filter(p => p.estado !== 'cancelado');
   const listado = filtro === 'cancelados' ? cancelados : activos;
   const porEstado = (estado) => listado.filter(p => p.estado === estado);
+
+  // Carriles del río: solo proyectos en alguna de las 4 etapas del funnel,
+  // ordenados por etapa y, dentro de cada etapa, por más tiempo estancado primero.
+  const carriles = listado
+    .filter(p => STAGE_ORDER_IDX[p.estado] !== undefined)
+    .map(p => ({ ...p, _dias: diasEnEtapa(p), _estancado: esEstancado(p) }))
+    .sort((a, b) => {
+      const ia = STAGE_ORDER_IDX[a.estado] ?? 99;
+      const ib = STAGE_ORDER_IDX[b.estado] ?? 99;
+      if (ia !== ib) return ia - ib;
+      return b._dias - a._dias;
+    });
 
   const valorPipeline = activos.filter(p => p.estado !== 'entregado').reduce((s,p) => s + Number(p.valor_final || p.valor_estimado || 0), 0);
   const mesActual = new Date().toISOString().slice(0,7);
@@ -189,34 +243,73 @@ export default function Proyectos() {
             ))}
           </div>
         ) : (
-          <div style={{ display:'flex', gap:14, overflowX:'auto', paddingBottom:8 }}>
-            {COLUMNAS.map(col => (
-              <div key={col.id} style={{ minWidth:250, flex:'0 0 250px' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, padding:'6px 10px', background:'var(--z-card)', borderRadius:8, border:'1px solid var(--z-border)' }}>
-                  <span style={{ fontSize:11, color:col.color, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em' }}>{col.label}</span>
-                  <span style={{ fontSize:11, color:'var(--z-text-3)', background:'rgba(74,107,54,0.1)', padding:'2px 8px', borderRadius:10 }}>{porEstado(col.id).length}</span>
-                </div>
-                {porEstado(col.id).map(p => {
-                  const dias = diasPara(p.fecha_entrega_estimada);
-                  return (
-                    <div key={p.id} onClick={() => seleccionar(p)}
-                      style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderLeft:`3px solid ${col.color}`, borderRadius:10, padding:'12px 14px', marginBottom:8, cursor:'pointer', transition:'var(--z-transition)' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = col.color+'66'; e.currentTarget.style.boxShadow = `0 4px 16px ${col.color}22`; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                      <div style={{ fontSize:13, fontWeight:500, color:'var(--z-text)', marginBottom:4 }}>{p.clientes?.nombre || 'Sin nombre'}</div>
-                      {(p.tipo_trabajo || p.descripcion) && <div style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize', marginBottom:4 }}>{p.tipo_trabajo || p.descripcion}</div>}
-                      <div style={{ fontSize:12, color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</div>
-                      {dias !== null && col.id !== 'entregado' && (
-                        <div style={{ fontSize:10, color: dias < 0 ? 'var(--z-error)' : dias <= 5 ? 'var(--z-warning)' : 'var(--z-text-muted)', marginTop:6 }}>
-                          {dias < 0 ? `${Math.abs(dias)} días de retraso` : dias === 0 ? 'Entrega hoy' : `${dias} días para entrega`}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {porEstado(col.id).length === 0 && <div style={{ fontSize:11, color:'var(--z-text-muted)', textAlign:'center', padding:16 }}>Sin proyectos</div>}
+          <div>
+            {/* ── Río: vista general de las 4 etapas del funnel ─────────────────── */}
+            <div style={{ marginBottom:22 }}>
+              <div style={{
+                height:8, borderRadius:99, overflow:'hidden',
+                background:'rgba(45,212,191,0.12)', border:'1px solid rgba(45,212,191,0.18)',
+              }}>
+                <div style={{
+                  height:'100%', width:'100%', opacity:0.85,
+                  background:`linear-gradient(90deg, ${RIO_DESDE} 0%, ${RIO_HASTA} 100%)`,
+                }} />
               </div>
-            ))}
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
+                {COLUMNAS.map((col, i) => (
+                  <span key={col.id} style={{
+                    fontSize:10, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.06em',
+                    flex:1, textAlign: i === 0 ? 'left' : i === COLUMNAS.length - 1 ? 'right' : 'center',
+                  }}>
+                    {col.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Carriles: un renglón por proyecto activo ──────────────────────── */}
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {carriles.map(p => {
+                const pct = calcPct(p);
+                const ot = Array.isArray(p.ordenes_trabajo) ? p.ordenes_trabajo[0] : p.ordenes_trabajo;
+                return (
+                  <div key={p.id} onClick={() => seleccionar(p)}
+                    style={{
+                      background:'var(--z-card)',
+                      border: `1px solid ${p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'}`,
+                      borderRadius:10, padding:'12px 16px', cursor:'pointer', transition:'var(--z-transition)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = p._estancado ? 'var(--z-warning)' : 'var(--z-border-hover)'; e.currentTarget.style.boxShadow = 'var(--z-shadow-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                      <span style={{ fontSize:13, fontWeight:500, color:'var(--z-text)' }}>{p.clientes?.nombre || 'Sin nombre'}</span>
+                      {ot?.numero_ot && (
+                        <span style={{ fontSize:10.5, fontFamily:'monospace', color:'var(--z-text-3)' }}>{ot.numero_ot}</span>
+                      )}
+                      <Badge value={p.estado} />
+                      {p._estancado && (
+                        <span style={{ fontSize:10, color:'var(--z-warning)', display:'inline-flex', alignItems:'center', gap:3 }}>
+                          🚩 {p._dias}d estancado
+                        </span>
+                      )}
+                      <span style={{ marginLeft:'auto', fontSize:12.5, color:'var(--z-success)', fontWeight:500 }}>
+                        {fmt(p.valor_final || p.valor_estimado)}
+                      </span>
+                    </div>
+                    <div style={{ height:5, borderRadius:99, background:'var(--z-bg-2)', overflow:'hidden' }}>
+                      <div style={{
+                        height:'100%', width:`${pct}%`, borderRadius:99, transition:'width 0.3s',
+                        background: p._estancado ? 'var(--z-warning)' : `linear-gradient(90deg, ${RIO_DESDE}, ${RIO_HASTA})`,
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {carriles.length === 0 && (
+                <div style={{ fontSize:12, color:'var(--z-text-muted)', textAlign:'center', padding:24 }}>Sin proyectos en el funnel</div>
+              )}
+            </div>
           </div>
         )}
       </PageContent>

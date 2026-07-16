@@ -1,8 +1,9 @@
 
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import AgentBitacora from './AgentBitacora'
 
 // ─── Nav items con menú completo ──────────────────────────────────────────────
 const NAV_SECTIONS = [
@@ -105,6 +106,7 @@ export function Layout({ children }) {
   const { profile, signOut } = useAuth()
   const navigate  = useNavigate()
   const location  = useLocation()
+  const [bitacoraColapsada, setBitacoraColapsada] = useState(false)
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/'
@@ -236,9 +238,12 @@ export function Layout({ children }) {
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      <main style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
         {children}
       </main>
+
+      {/* ── Bitácora de Zebrano (panel global) ──────────────────────────────── */}
+      <AgentBitacora collapsed={bitacoraColapsada} onToggle={() => setBitacoraColapsada(c => !c)} />
     </div>
   )
 }

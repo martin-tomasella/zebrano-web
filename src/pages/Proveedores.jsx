@@ -1,18 +1,21 @@
-import { useEffect, useState } from 'react'
+
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { Layout, Topbar, PageContent } from '../components/Layout'
-import { Card, KpiCard, SectionTitle, Table, Spinner, Btn, Input } from '../components/ui'
+import { Card, KpiCard, Btn, Input, Spinner } from '../components/ui'
 
 const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
+const fechaFmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—'
 
 export default function Proveedores() {
-  const [tab, setTab] = useState('proveedores')
   const [proveedores, setProveedores] = useState([])
   const [compras, setCompras] = useState([])
   const [materiales, setMateriales] = useState([])
   const [herrajes, setHerrajes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
+  const [seleccionadoId, setSeleccionadoId] = useState(null)
+  const [formAbierto, setFormAbierto] = useState(null) // 'proveedor' | 'compra' | null
   const [saving, setSaving] = useState(false)
 
   const [formProv, setFormProv] = useState({ nombre:'', contacto:'', telefono:'', email:'' })
@@ -24,7 +27,7 @@ export default function Proveedores() {
     setLoading(true)
     const [{ data: p }, { data: c }, { data: m }, { data: h }] = await Promise.all([
       supabase.from('proveedores').select('*').eq('activo', true).order('nombre'),
-      supabase.from('compras_insumos').select('*, proveedores(nombre), catalogo_materiales(nombre), catalogo_herrajes(nombre)').order('fecha', { ascending:false }).limit(100),
+      supabase.from('compras_insumos').select('*, proveedores(nombre), catalogo_materiales(nombre), catalogo_herrajes(nombre)').order('fecha', { ascending:false }).limit(300),
       supabase.from('catalogo_materiales').select('id,nombre').eq('activo', true).order('nombre'),
       supabase.from('catalogo_herrajes').select('id,nombre').eq('activo', true).order('nombre'),
     ])
@@ -35,6 +38,15 @@ export default function Proveedores() {
     setLoading(false)
   }
 
+  const comprasPorProveedor = useMemo(() => {
+    const map = {}
+    for (const c of compras) {
+      if (!c.proveedor_id) continue
+      ;(map[c.proveedor_id] ||= []).push(c)
+    }
+    return map
+  }, [compras])
+
   async function crearProveedor(e) {
     e.preventDefault()
     if (!formProv.nombre) return
@@ -43,7 +55,7 @@ export default function Proveedores() {
     setSaving(false)
     if (error) { alert('No se pudo guardar el proveedor: ' + error.message); return }
     setFormProv({ nombre:'', contacto:'', telefono:'', email:'' })
-    setShowForm(false)
+    setFormAbierto(null)
     load()
   }
 
@@ -63,34 +75,44 @@ export default function Proveedores() {
     })
     setSaving(false)
     if (error) { alert('No se pudo registrar la compra: ' + error.message); return }
-    setFormCompra({ proveedor_id:'', insumo_tipo:'material', insumo_id:'', cantidad:'', precio_unitario:'', fecha: new Date().toISOString().slice(0,10) })
-    setShowForm(false)
+    setFormCompra({ proveedor_id: seleccionadoId || '', insumo_tipo:'material', insumo_id:'', cantidad:'', precio_unitario:'', fecha: new Date().toISOString().slice(0,10) })
+    setFormAbierto(null)
     load()
   }
 
-  const totalComprasMes = compras.filter(c => c.fecha?.slice(0,7) === new Date().toISOString().slice(0,7)).reduce((s,c) => s + Number(c.precio_total || c.cantidad*c.precio_unitario || 0), 0)
+  const filtrados = proveedores.filter(p => !busqueda || (p.nombre||'').toLowerCase().includes(busqueda.toLowerCase()))
+  const seleccionado = proveedores.find(p => p.id === seleccionadoId)
+  const comprasSeleccionado = comprasPorProveedor[seleccionadoId] || []
+
+  const mesActual = new Date().toISOString().slice(0,7)
+  const totalComprasMes = compras.filter(c => c.fecha?.slice(0,7) === mesActual).reduce((s,c) => s + Number(c.precio_total || c.cantidad*c.precio_unitario || 0), 0)
+
+  function abrirCompra(proveedorId) {
+    setFormCompra(f => ({ ...f, proveedor_id: proveedorId || '' }))
+    setFormAbierto('compra')
+  }
 
   return (
     <Layout>
       <Topbar
         title="Proveedores e insumos"
         subtitle={`${proveedores.length} proveedores activos`}
-        actions={<Btn small onClick={() => setShowForm(v => !v)}>{showForm ? 'Cancelar' : (tab === 'proveedores' ? '+ Proveedor' : '+ Compra')}</Btn>}
+        actions={
+          <div style={{ display:'flex', gap:8 }}>
+            <Btn small variant="ghost" onClick={() => setFormAbierto(v => v === 'proveedor' ? null : 'proveedor')}>{formAbierto === 'proveedor' ? 'Cancelar' : '+ Proveedor'}</Btn>
+            <Btn small onClick={() => formAbierto === 'compra' ? setFormAbierto(null) : abrirCompra(seleccionadoId)}>{formAbierto === 'compra' ? 'Cancelar' : '+ Compra'}</Btn>
+          </div>
+        }
       />
       <PageContent>
         {loading ? <Spinner /> : <>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, marginBottom:20 }}>
             <KpiCard label="Comprado este mes" value={fmt(totalComprasMes)} accent />
             <KpiCard label="Proveedores activos" value={proveedores.length} />
-            <KpiCard label="Compras registradas" value={compras.length} detail="últimas 100" />
+            <KpiCard label="Compras registradas" value={compras.length} detail="últimas 300" />
           </div>
 
-          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
-            <Btn small variant={tab === 'proveedores' ? 'primary' : 'ghost'} onClick={() => { setTab('proveedores'); setShowForm(false) }}>Proveedores</Btn>
-            <Btn small variant={tab === 'compras' ? 'primary' : 'ghost'} onClick={() => { setTab('compras'); setShowForm(false) }}>Historial de compras</Btn>
-          </div>
-
-          {showForm && tab === 'proveedores' && (
+          {formAbierto === 'proveedor' && (
             <Card style={{ marginBottom:20 }}>
               <form onSubmit={crearProveedor}>
                 <Input label="Nombre" value={formProv.nombre} onChange={e => setFormProv({...formProv, nombre:e.target.value})} required />
@@ -104,7 +126,7 @@ export default function Proveedores() {
             </Card>
           )}
 
-          {showForm && tab === 'compras' && (
+          {formAbierto === 'compra' && (
             <Card style={{ marginBottom:20 }}>
               <form onSubmit={crearCompra}>
                 <div style={{ marginBottom:14 }}>
@@ -140,37 +162,75 @@ export default function Proveedores() {
             </Card>
           )}
 
-          {tab === 'proveedores' ? (
-            <>
-              <SectionTitle>Proveedores</SectionTitle>
-              <Table
-                cols={[
-                  { key:'nombre', label:'Nombre' },
-                  { key:'contacto', label:'Contacto', render:r => r.contacto || '—' },
-                  { key:'telefono', label:'Teléfono', render:r => r.telefono || '—' },
-                  { key:'email', label:'Email', render:r => r.email || '—' },
-                ]}
-                rows={proveedores}
-                empty="Sin proveedores registrados"
-              />
-            </>
-          ) : (
-            <>
-              <SectionTitle>Historial de compras</SectionTitle>
-              <Table
-                cols={[
-                  { key:'fecha', label:'Fecha' },
-                  { key:'proveedor', label:'Proveedor', render:r => r.proveedores?.nombre || '—' },
-                  { key:'insumo', label:'Insumo', render:r => r.catalogo_materiales?.nombre || r.catalogo_herrajes?.nombre || '—' },
-                  { key:'cantidad', label:'Cantidad' },
-                  { key:'precio_unitario', label:'Precio unit.', render:r => fmt(r.precio_unitario) },
-                  { key:'precio_total', label:'Total', render:r => fmt(r.precio_total || r.cantidad*r.precio_unitario) },
-                ]}
-                rows={compras}
-                empty="Sin compras registradas"
-              />
-            </>
-          )}
+          <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+            {/* Panel izquierdo: lista de proveedores */}
+            <div style={{ width:280, flexShrink:0, background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden' }}>
+              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--z-border)' }}>
+                <input placeholder="Buscar proveedor..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                  style={{ width:'100%', padding:'7px 12px', fontSize:12.5, background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:8, color:'var(--z-text)', outline:'none' }} />
+              </div>
+              <div style={{ maxHeight:520, overflowY:'auto' }}>
+                {filtrados.length === 0 ? (
+                  <div style={{ padding:20, fontSize:12.5, color:'var(--z-text-muted)', textAlign:'center' }}>Sin proveedores</div>
+                ) : filtrados.map(p => {
+                  const compras_p = comprasPorProveedor[p.id] || []
+                  const activo = seleccionadoId === p.id
+                  return (
+                    <div key={p.id} onClick={() => setSeleccionadoId(p.id)} style={{
+                      padding:'11px 14px', cursor:'pointer', borderLeft: activo ? '3px solid var(--z-primary)' : '3px solid transparent',
+                      background: activo ? 'var(--z-primary-glow)' : 'transparent', borderBottom:'1px solid rgba(74,107,54,0.07)',
+                    }}
+                    onMouseEnter={e => { if (!activo) e.currentTarget.style.background = 'var(--z-card-hover)' }}
+                    onMouseLeave={e => { if (!activo) e.currentTarget.style.background = 'transparent' }}>
+                      <div style={{ fontSize:13, fontWeight:500, color: activo ? 'var(--z-primary-light)' : 'var(--z-text)' }}>{p.nombre}</div>
+                      <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:2 }}>{compras_p.length} compra{compras_p.length !== 1 ? 's' : ''}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Panel derecho: detalle + historial de compras */}
+            <div style={{ flex:1, background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', padding:24, minHeight:400 }}>
+              {!seleccionado ? (
+                <div style={{ textAlign:'center', padding:64, color:'var(--z-text-muted)' }}>
+                  <div style={{ fontSize:36, marginBottom:10 }}>🚚</div>
+                  <p>Elegí un proveedor para ver su historial de compras</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+                    <h2 style={{ margin:0, fontSize:19 }}>{seleccionado.nombre}</h2>
+                    <Btn small onClick={() => abrirCompra(seleccionado.id)}>+ Compra</Btn>
+                  </div>
+                  <div style={{ display:'flex', gap:16, fontSize:12.5, color:'var(--z-text-2)', marginBottom:20 }}>
+                    {seleccionado.contacto && <span>👤 {seleccionado.contacto}</span>}
+                    {seleccionado.telefono && <span>📞 {seleccionado.telefono}</span>}
+                    {seleccionado.email && <span>✉️ {seleccionado.email}</span>}
+                  </div>
+
+                  <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:10 }}>
+                    Historial de compras ({comprasSeleccionado.length})
+                  </div>
+                  {comprasSeleccionado.length === 0 ? (
+                    <div style={{ fontSize:12.5, color:'var(--z-text-muted)' }}>Sin compras registradas a este proveedor todavía.</div>
+                  ) : (
+                    <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:400, overflowY:'auto' }}>
+                      {comprasSeleccionado.map(c => (
+                        <div key={c.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'var(--z-bg-2)', borderRadius:10, border:'1px solid var(--z-border)' }}>
+                          <div>
+                            <div style={{ fontSize:13, color:'var(--z-text)' }}>{c.catalogo_materiales?.nombre || c.catalogo_herrajes?.nombre || 'Insumo'}</div>
+                            <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:2 }}>{fechaFmt(c.fecha)} · {c.cantidad} un. × {fmt(c.precio_unitario)}</div>
+                          </div>
+                          <span style={{ fontSize:13, color:'var(--z-success)', fontWeight:500 }}>{fmt(c.precio_total || c.cantidad*c.precio_unitario)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </>}
       </PageContent>
     </Layout>

@@ -10,11 +10,12 @@ export default function Produccion() {
   useEffect(() => { load() }, [])
 
   async function load() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('proyectos')
-      .select('*, clientes(nombre,apellido)')
+      .select('*, clientes(nombre)')
       .eq('estado', 'en_fabricacion')
       .order('fecha_entrega_estimada')
+    if (error) console.error('Error cargando produccion:', error)
     setProyectos(data || [])
     setLoading(false)
   }
@@ -62,7 +63,7 @@ export default function Produccion() {
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
                     <div>
                       <div style={{ fontWeight:600, fontSize:15, color:'var(--z-text)', marginBottom:3 }}>
-                        {p.clientes?.nombre} {p.clientes?.apellido}
+                        {p.clientes?.nombre || 'Cliente sin nombre'}
                       </div>
                       <div style={{ fontSize:13, color:'var(--z-text-2)' }}>{p.nombre || p.descripcion}</div>
                     </div>

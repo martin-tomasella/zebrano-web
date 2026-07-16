@@ -1,25 +1,23 @@
+
 import React, { useState, useRef, useEffect } from 'react'
 import { supabase, N8N_COTIZADOR } from '../lib/supabase'
 import { Layout, Topbar } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 
+const MENSAJE_INICIAL = { role:'assistant', text:'Hola, soy el cotizador de Zebrano. Contame qué necesita el cliente — tipo de mueble, medidas, material — y te armo la cotización.' }
+
 export default function Cotizador() {
   const { user } = useAuth()
-  const [messages, setMessages]   = useState([
-    { role:'assistant', text:'Hola, soy el cotizador de Zebrano. Contame qué necesita el cliente — tipo de mueble, medidas, material — y te armo la cotización.' }
-  ])
+  const [messages, setMessages]   = useState([MENSAJE_INICIAL])
   const [input, setInput]         = useState('')
   const [loading, setLoading]     = useState(false)
+  const [loadingHist, setLoadingHist] = useState(false)
   const [sesionId, setSesionId]   = useState(null)
   const [sesiones, setSesiones]   = useState([])
-  const [diseno, setDiseno]       = useState(null)
-  const [resumen, setResumen]     = useState(null)
-  const [sesionEstado, setSesionEstado] = useState(null)
   const endRef = useRef(null)
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
   useEffect(() => { loadSesiones() }, [])
-  useEffect(() => { cargarEstado(sesionId) }, [sesionId])
 
   async function loadSesiones() {
     const { data } = await supabase
@@ -30,16 +28,43 @@ export default function Cotizador() {
     setSesiones(data || [])
   }
 
-  async function cargarEstado(sid) {
-    if (!sid) { setDiseno(null); setResumen(null); setSesionEstado(null); return }
-    const [{ data: d }, { data: r }, { data: s }] = await Promise.all([
-      supabase.from('cotizacion_diseno').select('*').eq('sesion_id', sid).maybeSingle(),
-      supabase.from('cotizacion_resumen').select('*').eq('sesion_id', sid).maybeSingle(),
-      supabase.from('cotizacion_sesiones').select('estado').eq('id', sid).maybeSingle(),
-    ])
-    setDiseno(d || null)
-    setResumen(r || null)
-    setSesionEstado(s?.estado || null)
+  // Etiqueta de la sesion en el sidebar: nombre del cliente si la IA lo capturo,
+  // si no el tipo de trabajo, y como ultimo recurso un identificador corto + fecha.
+  // Antes siempre decia "Sin nombre" para casi todas las sesiones porque el nombre
+  // del cliente solo se guarda si aparece explicitamente en la conversacion.
+  function etiquetaSesion(s) {
+    if (s.cliente_nombre) return s.cliente_nombre
+    if (s.tipo_trabajo) return `${s.tipo_trabajo} · ${s.id.slice(0,8)}`
+    return `Sesión ${s.id.slice(0,8)}`
+  }
+
+  // Carga los mensajes reales de una sesion pasada. Antes, hacer click en el
+  // historial solo guardaba el sesionId pero nunca traia los mensajes, asi que
+  // el chat se quedaba con lo que hubiera en pantalla (parecia que se "perdia"
+  // el historico al navegar).
+  async function loadMensajes(id) {
+    setLoadingHist(true)
+    const { data, error } = await supabase
+      .from('cotizacion_mensajes')
+      .select('rol, contenido, imagenes, created_at')
+      .eq('sesion_id', id)
+      .order('created_at', { ascending: true })
+    if (error) console.error('Error cargando mensajes de la sesion:', error)
+    if (data && data.length > 0) {
+      setMessages(data.map(m => ({
+        role: m.rol === 'user' ? 'user' : 'assistant',
+        text: m.contenido || '(sin texto)',
+      })))
+    } else {
+      setMessages([{ role:'assistant', text:'Esta sesión todavía no tiene mensajes.' }])
+    }
+    setLoadingHist(false)
+  }
+
+  function seleccionarSesion(id) {
+    if (id === sesionId) return
+    setSesionId(id)
+    loadMensajes(id)
   }
 
   async function send() {
@@ -60,81 +85,48 @@ export default function Cotizador() {
       if (newSesionId && newSesionId !== sesionId) {
         setSesionId(newSesionId)
         loadSesiones()
+      } else if (newSesionId === sesionId) {
+        loadSesiones()
       }
       setMessages(m => [...m, { role:'assistant', text: reply }])
-      if (newSesionId) await cargarEstado(newSesionId)
     } catch (e) {
       setMessages(m => [...m, { role:'assistant', text:'❌ Error al conectar con el agente. Verificá que n8n esté activo.', error: true }])
     }
     setLoading(false)
   }
 
-  async function aprobarDiseno() {
-    if (!sesionId || loading) return
-    setLoading(true)
-    try {
-      const res = await fetch(N8N_COTIZADOR, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ sesion_id: sesionId, aprobar_svg: true })
-      })
-      const data = await res.json()
-      setMessages(m => [...m, { role:'assistant', text: data.respuesta || 'Render generado.', error: data.ok === false }])
-      await cargarEstado(sesionId)
-    } catch (e) {
-      setMessages(m => [...m, { role:'assistant', text:'❌ Error al aprobar el diseño.', error: true }])
-    }
-    setLoading(false)
-  }
-
-  async function aprobarCotizacion() {
-    if (!sesionId || loading) return
-    setLoading(true)
-    try {
-      const res = await fetch(N8N_COTIZADOR, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ sesion_id: sesionId, aprobar_cotizacion: true })
-      })
-      const data = await res.json()
-      setMessages(m => [...m, { role:'assistant', text: data.respuesta || data.error || 'Cotización aprobada.', error: data.ok === false }])
-      await cargarEstado(sesionId)
-      loadSesiones()
-    } catch (e) {
-      setMessages(m => [...m, { role:'assistant', text:'❌ Error al aprobar la cotización.', error: true }])
-    }
-    setLoading(false)
-  }
-
   function nuevaSesion() {
     setSesionId(null)
-    setDiseno(null)
-    setResumen(null)
-    setSesionEstado(null)
     setMessages([{ role:'assistant', text:'Nueva sesión iniciada. ¿Qué necesita cotizar el cliente?' }])
   }
 
   return (
     <Layout>
       <Topbar title="Cotizador AI" subtitle="Agente Zebrano · conectado a n8n" actions={
-        <button className="btn btn-ghost btn-sm" onClick={nuevaSesion}>+ Nueva sesión</button>
+        <button onClick={nuevaSesion} style={{
+          padding:'6px 14px', borderRadius:'var(--radius-md)', fontSize:12,
+          background:'transparent', border:'0.5px solid var(--z-border)', cursor:'pointer', color:'var(--z-muted)'
+        }}>+ Nueva sesión</button>
       } />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         {/* Historial de sesiones */}
-        <div style={{ width:200, borderRight:'1px solid var(--z-border)', overflowY:'auto', padding:'12px 0', background:'var(--z-sidebar-bg)' }}>
-          <div style={{ padding:'0 12px 8px', fontSize:10, color:'var(--z-text-muted)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Sesiones recientes</div>
-          {sesiones.length === 0 && <div style={{ padding:'0 12px', fontSize:12, color:'var(--z-text-muted)' }}>Sin historial</div>}
+        <div style={{ width:200, borderRight:'0.5px solid var(--z-border)', overflowY:'auto', padding:'12px 0', background:'#fff' }}>
+          <div style={{ padding:'0 12px 8px', fontSize:10, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Sesiones recientes</div>
+          {sesiones.length === 0 && <div style={{ padding:'0 12px', fontSize:12, color:'var(--z-hint)' }}>Sin historial</div>}
           {sesiones.map(s => (
-            <div key={s.id} onClick={() => setSesionId(s.id)} style={{
+            <div key={s.id} onClick={() => seleccionarSesion(s.id)} style={{
               padding:'8px 12px', cursor:'pointer', fontSize:12,
-              background: sesionId===s.id ? 'rgba(74,107,54,0.18)' : 'transparent',
-              color: sesionId===s.id ? 'var(--z-text)' : 'var(--z-text-2)',
-              borderLeft: sesionId===s.id ? '2px solid #7AAE5A' : '2px solid transparent',
+              background: sesionId===s.id ? 'var(--z-green-lt)' : 'transparent',
+              color: sesionId===s.id ? 'var(--z-green-dk)' : 'var(--z-muted)',
+              borderLeft: sesionId===s.id ? '2px solid var(--z-green)' : '2px solid transparent',
             }}>
-              <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {s.cliente_nombre || 'Sin nombre'}
+              <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textTransform:'capitalize' }}>
+                {etiquetaSesion(s)}
               </div>
-              <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:1 }}>
-                {new Date(s.created_at).toLocaleDateString('es-AR')}
+              <div style={{ fontSize:11, color:'var(--z-hint)', marginTop:1, display:'flex', justifyContent:'space-between', gap:6 }}>
+                <span>{new Date(s.created_at).toLocaleDateString('es-AR')}</span>
+                {s.estado==='aprobada' && <span title="Cotización aprobada">✓</span>}
               </div>
             </div>
           ))}
@@ -143,23 +135,25 @@ export default function Cotizador() {
         {/* Chat */}
         <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
           <div style={{ flex:1, overflowY:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14 }}>
+            {loadingHist && (
+              <div style={{ textAlign:'center', fontSize:12, color:'var(--z-hint)' }}>Cargando historial...</div>
+            )}
             {messages.map((m, i) => (
               <div key={i} style={{ display:'flex', gap:10, flexDirection: m.role==='user' ? 'row-reverse' : 'row', alignItems:'flex-start' }}>
                 <div style={{
                   width:28, height:28, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:11, fontWeight:600,
-                  background: m.role==='user' ? 'rgba(99,102,241,0.15)' : 'rgba(74,107,54,0.18)',
-                  color: m.role==='user' ? '#a5b4fc' : '#7AAE5A',
-                  border: m.role==='user' ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(74,107,54,0.35)',
+                  fontSize:11, fontWeight:500,
+                  background: m.role==='user' ? '#B5D4F4' : '#E1F5EE',
+                  color: m.role==='user' ? '#185FA5' : '#0F6E56',
                 }}>
                   {m.role==='user' ? 'MN' : 'ZB'}
                 </div>
                 <div style={{
-                  maxWidth:'72%', padding:'10px 14px', borderRadius: m.role==='user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
-                  fontSize:13, lineHeight:1.6, whiteSpace:'pre-wrap',
-                  background: m.role==='user' ? 'rgba(74,107,54,0.22)' : 'var(--z-card)',
-                  border: '1px solid ' + (m.error ? 'rgba(160,64,42,0.4)' : 'var(--z-border)'),
-                  color: m.error ? 'var(--z-error)' : 'var(--z-text)',
+                  maxWidth:'72%', padding:'10px 14px', borderRadius:12, fontSize:13, lineHeight:1.6,
+                  background: m.role==='user' ? '#1D9E75' : '#F7F6F2',
+                  color: m.role==='user' ? '#fff' : m.error ? '#A32D2D' : 'var(--z-text)',
+                  borderRadius: m.role==='user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
+                  whiteSpace:'pre-wrap',
                 }}>
                   {m.text}
                 </div>
@@ -167,68 +161,36 @@ export default function Cotizador() {
             ))}
             {loading && (
               <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(74,107,54,0.18)', border:'1px solid rgba(74,107,54,0.35)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600, color:'#7AAE5A' }}>ZB</div>
-                <div style={{ padding:'12px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'4px 12px 12px 12px' }}>
+                <div style={{ width:28, height:28, borderRadius:'50%', background:'#E1F5EE', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:500, color:'#0F6E56' }}>ZB</div>
+                <div style={{ padding:'12px 16px', background:'#F7F6F2', borderRadius:'4px 12px 12px 12px' }}>
                   <div style={{ display:'flex', gap:4 }}>
-                    {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--z-text-muted)', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
+                    {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--z-hint)', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
                   </div>
                   <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}`}</style>
                 </div>
               </div>
             )}
-
-            {/* Panel de estado: plano, render y cotizacion con acciones de aprobacion */}
-            {diseno && (diseno.svg_tecnico || diseno.render_fotorrealista_url || (resumen && resumen.precio_sugerido > 0) || sesionEstado === 'aprobada') && (
-            <div style={{ padding:'14px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:8, display:'flex', flexDirection:'column', gap:12 }}>
-              {diseno.svg_tecnico && (
-                <div>
-                  <div style={{ fontSize:11, color:'var(--z-text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>Plano técnico</div>
-                  <div style={{ background:'#fff', borderRadius:6, padding:8, maxWidth:420, overflow:'hidden' }} dangerouslySetInnerHTML={{ __html: diseno.svg_tecnico }} />
-                  {!diseno.svg_aprobado && (
-                    <button className="btn btn-primary" style={{ marginTop:8 }} onClick={aprobarDiseno} disabled={loading}>
-                      Aprobar diseño y generar render
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {diseno.render_fotorrealista_url && (
-                <div>
-                  <div style={{ fontSize:11, color:'var(--z-text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>Render fotorrealista</div>
-                  <img src={diseno.render_fotorrealista_url} alt="Render" style={{ maxWidth:420, width:'100%', borderRadius:6, border:'1px solid var(--z-border)' }} />
-                </div>
-              )}
-
-              {resumen && Number(resumen.precio_sugerido) > 0 && sesionEstado !== 'aprobada' && (
-                <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-                  <div style={{ fontSize:15, fontWeight:600, color:'var(--z-text)' }}>
-                    Precio sugerido: ${Number(resumen.precio_sugerido).toLocaleString('es-AR')}
-                  </div>
-                  <button className="btn btn-primary" onClick={aprobarCotizacion} disabled={loading}>
-                    Aprobar cotización y crear OT
-                  </button>
-                </div>
-              )}
-
-              {sesionEstado === 'aprobada' && (
-                <div style={{ fontSize:13, color:'#7AAE5A', fontWeight:600 }}>
-                  ✓ Cotización aprobada — orden de trabajo creada.
-                </div>
-              )}
-            </div>
-            )}
             <div ref={endRef} />
           </div>
 
-          <div style={{ padding:'12px 24px', borderTop:'1px solid var(--z-border)', background:'var(--z-sidebar-bg)', display:'flex', gap:10 }}>
+          <div style={{ padding:'12px 24px', borderTop:'0.5px solid var(--z-border)', background:'#fff', display:'flex', gap:10 }}>
             <textarea
               value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               placeholder="Ej: placard 3 cuerpos melamina blanco, 2,40m de frente, 2m alto..."
               rows={2}
-              style={{ flex:1, resize:'none', fontSize:13 }}
+              style={{
+                flex:1, resize:'none', border:'0.5px solid var(--z-border)', borderRadius:'var(--radius-md)',
+                padding:'8px 12px', fontSize:13, color:'var(--z-text)', background:'#fff', fontFamily:'inherit', outline:'none'
+              }}
+              onFocus={e => e.target.style.borderColor='var(--z-green)'}
+              onBlur={e  => e.target.style.borderColor='var(--z-border)'}
             />
-            <button className="btn btn-primary" onClick={send} disabled={loading || !input.trim()}>Enviar</button>
+            <button onClick={send} disabled={loading || !input.trim()} style={{
+              padding:'0 20px', background:'var(--z-green)', color:'#fff',
+              border:'none', borderRadius:'var(--radius-md)', fontSize:13, fontWeight:500,
+              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1
+            }}>Enviar</button>
           </div>
         </div>
       </div>

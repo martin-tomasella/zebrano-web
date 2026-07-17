@@ -9,6 +9,11 @@
     "react-router-dom": "^6.21.0",
     "react-scripts": "5.0.1"
   },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.31",
+    "autoprefixer": "^10.4.16"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

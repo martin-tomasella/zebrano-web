@@ -20,6 +20,28 @@ function colorDias(dias) {
   return 'var(--z-success)'
 }
 
+// ─── Chip de riesgo (mismo lenguaje visual que Badge: dot + mono, sin tocar ui.jsx) ──
+function RiskChip({ dias }) {
+  if (dias === null) return null
+  const conf = dias < 0
+    ? { color: 'var(--z-error)',   bg: 'rgba(255,180,171,0.15)', border: 'rgba(255,180,171,0.3)', label: `${Math.abs(dias)}D RETRASO` }
+    : dias <= 5
+    ? { color: 'var(--z-warning)', bg: 'rgba(227,179,65,0.15)',  border: 'rgba(227,179,65,0.3)',  label: dias === 0 ? 'ENTREGA HOY' : `${dias}D · EN RIESGO` }
+    : { color: 'var(--z-success)', bg: 'rgba(172,210,146,0.15)', border: 'rgba(172,210,146,0.3)', label: 'A TIEMPO' }
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap:5,
+      padding:'2px 9px', borderRadius:99, fontSize:10,
+      fontFamily:'var(--font-mono)', fontWeight:500, letterSpacing:'0.05em',
+      textTransform:'uppercase',
+      background:conf.bg, color:conf.color, border:`1px solid ${conf.border}`,
+    }}>
+      <span style={{ width:4, height:4, borderRadius:'50%', background:conf.color, display:'inline-block', flexShrink:0 }}/>
+      {conf.label}
+    </span>
+  )
+}
+
 export default function Produccion() {
   const [tab, setTab] = useState('lista')
   const [proyectos, setProyectos] = useState([])
@@ -75,11 +97,46 @@ export default function Produccion() {
 
   const conRetraso = proyectos.filter(p => { const d = diasRestantes(p.fecha_entrega_estimada); return d !== null && d < 0 }).length
   const valorEnTaller = proyectos.reduce((s,p) => s + Number(p.valor_final || p.valor_estimado || 0), 0)
+  const pctATiempo = proyectos.length > 0 ? Math.round(((proyectos.length - conRetraso) / proyectos.length) * 100) : 0
+
+  // ── Proyecto más crítico (derivado de datos ya cargados, sin queries nuevas) ──
+  const masCritico = useMemo(() => {
+    let peor = null, peorDias = Infinity
+    for (const p of proyectos) {
+      const d = diasRestantes(p.fecha_entrega_estimada)
+      if (d !== null && d < 0 && d < peorDias) { peorDias = d; peor = p }
+    }
+    return peor
+  }, [proyectos])
 
   return (
     <Layout>
       <Topbar title="Producción" subtitle={`${proyectos.length} trabajos en taller${conRetraso > 0 ? ` · ${conRetraso} con retraso` : ''}`} />
       <PageContent>
+
+        {/* ── Alerta crítica: proyectos con retraso (derivado de fecha_entrega_estimada) ── */}
+        {!loading && conRetraso > 0 && masCritico && (
+          <div style={{
+            display:'flex', alignItems:'center', gap:14, padding:'14px 18px', marginBottom:20,
+            background:'rgba(255,180,171,0.08)', border:'1px solid rgba(255,180,171,0.35)', borderRadius:'var(--radius-lg)',
+          }}>
+            <div style={{ width:34, height:34, borderRadius:'var(--radius-sm)', flexShrink:0, background:'var(--z-error)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize:18, color:'var(--z-on-error)' }}>warning</span>
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, color:'var(--z-error)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Alerta crítica</span>
+              <p style={{ margin:'3px 0 0', fontSize:13, color:'var(--z-text)', lineHeight:1.5 }}>
+                {conRetraso} proyecto{conRetraso !== 1 ? 's' : ''} con retraso en producción. El más urgente:{' '}
+                <strong style={{ color:'var(--z-error)' }}>{masCritico.clientes?.nombre || 'Sin nombre'}</strong>
+                {' '}— {Math.abs(diasRestantes(masCritico.fecha_entrega_estimada))}d de retraso sobre la entrega estimada ({fechaFmt(masCritico.fecha_entrega_estimada)}).
+              </p>
+            </div>
+            <Btn small variant="ghost" onClick={() => setSeleccionado(masCritico)} style={{ color:'var(--z-error)', borderColor:'rgba(255,180,171,0.35)', flexShrink:0 }}>
+              Ver detalle
+            </Btn>
+          </div>
+        )}
+
         <div style={{ display:'flex', gap:8, marginBottom:20 }}>
           {[['lista','Lista'],['gantt','Gantt'],['calendario','Calendario']].map(([v,l]) => (
             <Btn key={v} small variant={tab === v ? 'primary' : 'ghost'} onClick={() => setTab(v)}>{l}</Btn>
@@ -105,7 +162,6 @@ export default function Produccion() {
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
                 {proyectos.map(p => {
                   const dias = diasRestantes(p.fecha_entrega_estimada)
-                  const color = colorDias(dias)
                   return (
                     <Card key={p.id} style={{ cursor:'pointer', transition:'var(--z-transition)' }}>
                       <div onClick={() => setSeleccionado(p)}>
@@ -117,12 +173,8 @@ export default function Produccion() {
                           <Badge value="en_fabricacion" />
                         </div>
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:12 }}>
-                          <span style={{ fontSize:12, color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</span>
-                          {dias !== null && (
-                            <span style={{ fontSize:11.5, fontWeight:600, color }}>
-                              {dias < 0 ? `${Math.abs(dias)}d retraso` : dias === 0 ? 'Entrega hoy' : `${dias}d restantes`}
-                            </span>
-                          )}
+                          <span style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</span>
+                          <RiskChip dias={dias} />
                         </div>
                       </div>
                     </Card>
@@ -133,6 +185,27 @@ export default function Produccion() {
 
             {tab === 'gantt' && <GanttView proyectos={proyectos} otPorProyecto={otPorProyecto} onSeleccionar={setSeleccionado} />}
             {tab === 'calendario' && <CalendarioView proyectos={proyectos} mes={mesCalendario} setMes={setMesCalendario} onSeleccionar={setSeleccionado} />}
+
+            {/* ── Footer stat strip: activas / a tiempo / con retraso (derivado, sin datos nuevos) ── */}
+            <div style={{
+              marginTop:24, padding:'14px 22px', display:'flex', gap:32, alignItems:'center', flexWrap:'wrap',
+              background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-lg)',
+            }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Órdenes activas</span>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:20, fontWeight:700, color:'var(--z-text)' }}>{proyectos.length}</span>
+              </div>
+              <div style={{ width:1, height:28, background:'var(--z-border)' }} />
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Tasa a tiempo</span>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:20, fontWeight:700, color: pctATiempo >= 80 ? 'var(--z-success)' : pctATiempo >= 50 ? 'var(--z-warning)' : 'var(--z-error)' }}>{pctATiempo}%</span>
+              </div>
+              <div style={{ width:1, height:28, background:'var(--z-border)' }} />
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Con retraso</span>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:20, fontWeight:700, color: conRetraso > 0 ? 'var(--z-error)' : 'var(--z-text)' }}>{conRetraso}</span>
+              </div>
+            </div>
           </>
         )}
       </PageContent>
@@ -180,6 +253,8 @@ export default function Produccion() {
 // Escala simple de 8 semanas. Cada fila es un proyecto: barra de fabricacion +
 // tramos de instalacion al final (si estan cargados). Si no hay horas cargadas
 // todavia, se muestra una barra unica de "en fabricacion" sin split.
+// (Matemática de posicionamiento sin tocar — solo se agregan grid de fondo y
+// marcador de "hoy" como capas puramente visuales sobre los mismos valores.)
 function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
   const inicio = new Date(); inicio.setHours(0,0,0,0); inicio.setDate(inicio.getDate() - inicio.getDay() + 1)
   const totalDias = 56 // 8 semanas
@@ -190,9 +265,11 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
     return Math.max(0, Math.min(100, (d / totalDias) * 100))
   }
 
+  const xHoy = pos(new Date())
+
   return (
     <div>
-      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--z-text-muted)', marginBottom:8, padding:'0 4px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, fontFamily:'var(--font-mono)', color:'var(--z-text-muted)', marginBottom:8, padding:'0 4px' }}>
         <span>{inicio.toLocaleDateString('es-AR')}</span>
         <span>8 semanas →</span>
         <span>{fin.toLocaleDateString('es-AR')}</span>
@@ -214,7 +291,11 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
               <div style={{ width:150, flexShrink:0, fontSize:12.5, color:'var(--z-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {p.clientes?.nombre || 'Sin nombre'}
               </div>
-              <div style={{ flex:1, position:'relative', height:22, background:'var(--z-bg-2)', borderRadius:6, border:'1px solid var(--z-border)' }}>
+              <div style={{
+                flex:1, position:'relative', height:22, background:'var(--z-bg-2)', borderRadius:6, border:'1px solid var(--z-border)',
+                backgroundImage:'repeating-linear-gradient(to right, var(--z-border) 0, var(--z-border) 1px, transparent 1px, transparent 12.5%)',
+              }}>
+                <div style={{ position:'absolute', left:`${xHoy}%`, top:-2, bottom:-2, width:1, background:'var(--z-primary)', boxShadow:'0 0 6px rgba(172,210,146,0.5)' }} />
                 <div title={`Fabricación: ${hf || '—'}h`} style={{
                   position:'absolute', left:`${x1}%`, width:`${Math.max(1,xSplit-x1)}%`, top:2, bottom:2,
                   background:'var(--z-primary)', borderRadius:4,
@@ -224,7 +305,7 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
                   background:'var(--z-secondary)', borderRadius:4,
                 }} />
               </div>
-              <div style={{ width:70, flexShrink:0, fontSize:11, color:'var(--z-text-muted)', textAlign:'right' }}>{fechaFmt(hasta)}</div>
+              <div style={{ width:70, flexShrink:0, fontSize:11, fontFamily:'var(--font-mono)', color:'var(--z-text-muted)', textAlign:'right' }}>{fechaFmt(hasta)}</div>
             </div>
           )
         })}
@@ -232,6 +313,7 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
       <div style={{ display:'flex', gap:16, marginTop:16, fontSize:11, color:'var(--z-text-muted)' }}>
         <span><span style={{ display:'inline-block', width:10, height:10, background:'var(--z-primary)', borderRadius:2, marginRight:5 }} />Fabricación</span>
         <span><span style={{ display:'inline-block', width:10, height:10, background:'var(--z-secondary)', borderRadius:2, marginRight:5 }} />Instalación</span>
+        <span><span style={{ display:'inline-block', width:2, height:10, background:'var(--z-primary)', marginRight:5, verticalAlign:'middle' }} />Hoy</span>
         <span>Sin horas cargadas todavía: la barra usa una proporción por defecto (80/20).</span>
       </div>
     </div>
@@ -271,7 +353,7 @@ function CalendarioView({ proyectos, mes, setMes, onSeleccionar }) {
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6, marginBottom:6 }}>
         {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
-          <div key={d} style={{ fontSize:10, color:'var(--z-text-muted)', textAlign:'center', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d}</div>
+          <div key={d} style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--z-text-muted)', textAlign:'center', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d}</div>
         ))}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6 }}>
@@ -285,7 +367,7 @@ function CalendarioView({ proyectos, mes, setMes, onSeleccionar }) {
               minHeight:74, borderRadius:8, border: hoy ? '1px solid var(--z-primary)' : '1px solid var(--z-border)',
               background: entregas.length > 0 ? 'var(--z-primary-glow)' : 'var(--z-card)', padding:6,
             }}>
-              <div style={{ fontSize:11, color: hoy ? 'var(--z-primary-light)' : 'var(--z-text-muted)', marginBottom:4 }}>{d.getDate()}</div>
+              <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color: hoy ? 'var(--z-primary-light)' : 'var(--z-text-muted)', marginBottom:4 }}>{d.getDate()}</div>
               {entregas.slice(0,2).map(p => (
                 <div key={p.id} onClick={() => onSeleccionar(p)} style={{
                   fontSize:10, color:'var(--z-text)', background:'var(--z-card)', borderRadius:4, padding:'2px 5px',

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout'
+import { Card, KpiCard, Btn } from '../components/ui'
 
 // ─── Módulos del sistema ───────────────────────────────────────────────────────
 const MODULES = [
@@ -37,38 +38,6 @@ const MODULES = [
 ]
 
 const DIAS_ESTANCADO = 7
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon, color, delta }) {
-  return (
-    <div style={{
-      background: 'var(--z-card)', border: '1px solid var(--z-border)',
-      borderRadius: 'var(--z-radius-lg)', padding: '18px 20px',
-      display: 'flex', alignItems: 'center', gap: 16,
-      transition: 'var(--z-transition)',
-    }}
-    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--z-border-hover)'; e.currentTarget.style.boxShadow = 'var(--z-shadow-primary)'; }}
-    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-        background: `${color}22`, border: `1px solid ${color}44`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color,
-      }}>
-        <Icon name={icon} size={20} color={color} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--z-text)', lineHeight: 1.2 }}>{value ?? '—'}</div>
-        <div style={{ fontSize: 12, color: 'var(--z-text-3)', marginTop: 2 }}>{label}</div>
-      </div>
-      {delta !== undefined && (
-        <span style={{ fontSize: 11, color: delta >= 0 ? 'var(--z-success)' : 'var(--z-error)', fontWeight: 600 }}>
-          {delta >= 0 ? '+' : ''}{delta}
-        </span>
-      )}
-    </div>
-  )
-}
 
 // ─── Module card ──────────────────────────────────────────────────────────────
 function ModuleCard({ item, color, navigate }) {
@@ -184,6 +153,8 @@ export default function Dashboard() {
   const ESTADO_COLOR = { nuevo:'var(--z-info)', contactado:'#a78bfa', calificado:'var(--z-warning)', cotizado:'#fb923c', ganado:'var(--z-success)', perdido:'var(--z-error)' }
   const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
 
+  const tieneInsight = !loading && (estancados.length > 0 || (resumenSemana && (resumenSemana.entregados > 0 || resumenSemana.cotizados > 0)))
+
   return (
     <Layout>
       <Topbar
@@ -191,55 +162,63 @@ export default function Dashboard() {
         subtitle={new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
       />
       <PageContent>
-        {/* ── Zebrano te avisa: proactivo, sin que nadie lo pida ──────────────── */}
-        {!loading && (estancados.length > 0 || resumenSemana) && (
-          <div style={{ marginBottom: 24, display:'flex', flexDirection:'column', gap:10 }}>
-            {estancados.length > 0 && (
+        {/* ── Agent Zebrano Insights: proactivo, sin que nadie lo pida ────────── */}
+        {tieneInsight && (
+          <Card
+            padding="16px 20px"
+            style={{ marginBottom: 24, borderLeft: '3px solid var(--z-secondary)' }}
+          >
+            <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
               <div style={{
-                background: 'rgba(176,123,48,0.08)', border: '1px solid rgba(176,123,48,0.25)',
-                borderRadius: 'var(--z-radius-lg)', padding: '14px 18px', display:'flex', alignItems:'flex-start', gap:12,
-              }}>
-                <span style={{ fontSize:18 }}>⚠️</span>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:600, color:'var(--z-warning)', marginBottom:4 }}>
-                    {estancados.length} proyecto{estancados.length !== 1 ? 's' : ''} estancado{estancados.length !== 1 ? 's' : ''} en "Cotizado"
-                  </div>
-                  <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
-                    {estancados.slice(0,3).map(e => `${e.clientes?.nombre || 'Sin nombre'} (${e.dias}d)`).join(' · ')}
-                    {estancados.length > 3 && ` y ${estancados.length - 3} más`}
-                    {' — '}sin pasar a "Seña pagada" hace más de {DIAS_ESTANCADO} días.
-                  </div>
+                width:36, height:36, borderRadius:10, flexShrink:0, fontSize:16,
+                background:'rgba(248,178,217,0.12)', border:'1px solid rgba(248,178,217,0.3)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>🤖</div>
+              <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12, minWidth:0 }}>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:600, color:'var(--z-secondary)', textTransform:'uppercase', letterSpacing:'0.12em' }}>
+                  Agent Zebrano Insights
                 </div>
-                <button onClick={() => navigate('/proyectos')} style={{
-                  fontSize:11.5, color:'var(--z-warning)', background:'transparent', border:'1px solid rgba(176,123,48,0.35)',
-                  borderRadius:8, padding:'6px 12px', cursor:'pointer', flexShrink:0, whiteSpace:'nowrap',
-                }}>Ver proyectos</button>
-              </div>
-            )}
-            {resumenSemana && (resumenSemana.entregados > 0 || resumenSemana.cotizados > 0) && (
-              <div style={{
-                background: 'var(--z-primary-glow)', border: '1px solid rgba(74,107,54,0.25)',
-                borderRadius: 'var(--z-radius-lg)', padding: '14px 18px', display:'flex', alignItems:'flex-start', gap:12,
-              }}>
-                <span style={{ fontSize:18 }}>📊</span>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:600, color:'var(--z-primary-light)', marginBottom:4 }}>Resumen de la semana</div>
-                  <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
-                    {resumenSemana.entregados} entregado{resumenSemana.entregados !== 1 ? 's' : ''} · {resumenSemana.cotizados} cotización{resumenSemana.cotizados !== 1 ? 'es' : ''} nueva{resumenSemana.cotizados !== 1 ? 's' : ''} ({fmt(resumenSemana.valorCotizado)})
+                {estancados.length > 0 && (
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:12, flexWrap:'wrap' }}>
+                    <div style={{ flex:1, minWidth:200 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:'var(--z-warning)', marginBottom:4 }}>
+                        {estancados.length} proyecto{estancados.length !== 1 ? 's' : ''} estancado{estancados.length !== 1 ? 's' : ''} en "Cotizado"
+                      </div>
+                      <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
+                        {estancados.slice(0,3).map(e => `${e.clientes?.nombre || 'Sin nombre'} (${e.dias}d)`).join(' · ')}
+                        {estancados.length > 3 && ` y ${estancados.length - 3} más`}
+                        {' — '}sin pasar a "Seña pagada" hace más de {DIAS_ESTANCADO} días.
+                      </div>
+                    </div>
+                    <Btn
+                      variant="ghost" small
+                      onClick={() => navigate('/proyectos')}
+                      style={{ color:'var(--z-warning)', borderColor:'rgba(176,123,48,0.35)', flexShrink:0, whiteSpace:'nowrap' }}
+                    >
+                      Ver proyectos
+                    </Btn>
                   </div>
-                </div>
+                )}
+                {resumenSemana && (resumenSemana.entregados > 0 || resumenSemana.cotizados > 0) && (
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--z-primary-light)', marginBottom:4 }}>Resumen de la semana</div>
+                    <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
+                      {resumenSemana.entregados} entregado{resumenSemana.entregados !== 1 ? 's' : ''} · {resumenSemana.cotizados} cotización{resumenSemana.cotizados !== 1 ? 'es' : ''} nueva{resumenSemana.cotizados !== 1 ? 's' : ''} ({fmt(resumenSemana.valorCotizado)})
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          </Card>
         )}
 
-        {/* ── Stats row ─────────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 28 }}>
-          <StatCard label="Prospectos activos" value={stats.prospectos} icon="funnel" color="#4A6B36" />
-          <StatCard label="Clientes"           value={stats.clientes}   icon="users"  color="#6366f1" />
-          <StatCard label="Proyectos"          value={stats.proyectos}  icon="layers" color="#7AAE5A" />
-          <StatCard label="Borradores RRSS"    value={stats.borradores} icon="rrss"   color="#fbbf24" />
-          <StatCard label="Publicaciones"      value={stats.publicados} icon="tiktok" color="#4ade80" />
+        {/* ── KPI row ───────────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 28 }}>
+          <KpiCard label="Prospectos activos" value={stats.prospectos ?? '—'} detail="Pipeline activo" accent />
+          <KpiCard label="Clientes"           value={stats.clientes ?? '—'} />
+          <KpiCard label="Proyectos"          value={stats.proyectos ?? '—'} />
+          <KpiCard label="Borradores RRSS"    value={stats.borradores ?? '—'} />
+          <KpiCard label="Publicaciones"      value={stats.publicados ?? '—'} />
         </div>
 
         {/* ── Dos columnas ─────────────────────────────────────────────────── */}
@@ -273,7 +252,7 @@ export default function Dashboard() {
               </span>
             </div>
 
-            <div style={{ background: 'var(--z-card)', border: '1px solid var(--z-border)', borderRadius: 'var(--z-radius-lg)', overflow: 'hidden' }}>
+            <Card padding="0" style={{ overflow: 'hidden' }}>
               {loading ? (
                 <div style={{ padding: 32, textAlign: 'center', color: 'var(--z-text-muted)' }}>Cargando...</div>
               ) : actividades.length === 0 ? (
@@ -335,7 +314,7 @@ export default function Dashboard() {
                   Ver todos los prospectos →
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* Quick actions */}
             <div style={{ marginTop: 20 }}>

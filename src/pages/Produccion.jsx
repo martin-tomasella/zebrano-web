@@ -2,7 +2,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { Layout, Topbar, PageContent } from '../components/Layout'
-import { Card, KpiCard, Btn, Badge } from '../components/ui'
 
 const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
 const fechaFmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—'
@@ -14,29 +13,36 @@ function diasRestantes(fecha) {
 }
 
 function colorDias(dias) {
-  if (dias === null) return 'var(--z-text-muted)'
-  if (dias < 0)  return 'var(--z-error)'
-  if (dias <= 5) return 'var(--z-warning)'
-  return 'var(--z-success)'
+  if (dias === null) return '#43483e'
+  if (dias < 0)  return '#ffb4ab'
+  if (dias <= 5) return '#e3b341'
+  return '#acd292'
 }
 
-// ─── Chip de riesgo (mismo lenguaje visual que Badge: dot + mono, sin tocar ui.jsx) ──
+// ─── Badge de estado "En fabricación" (mismo lenguaje visual que Proyectos.jsx) ──
+function EstadoBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium uppercase tracking-wide bg-[#acd292]/[0.15] text-[#acd292] border border-[#acd292]/30">
+      <span className="w-1 h-1 rounded-full flex-shrink-0 bg-[#acd292]" />
+      En fabricación
+    </span>
+  )
+}
+
+// ─── Chip de riesgo (dot + mono, literal Tailwind) ────────────────────────────
 function RiskChip({ dias }) {
   if (dias === null) return null
   const conf = dias < 0
-    ? { color: 'var(--z-error)',   bg: 'rgba(255,180,171,0.15)', border: 'rgba(255,180,171,0.3)', label: `${Math.abs(dias)}D RETRASO` }
+    ? { color: '#ffb4ab', bg: 'rgba(255,180,171,0.15)', border: 'rgba(255,180,171,0.3)', label: `${Math.abs(dias)}D RETRASO` }
     : dias <= 5
-    ? { color: 'var(--z-warning)', bg: 'rgba(227,179,65,0.15)',  border: 'rgba(227,179,65,0.3)',  label: dias === 0 ? 'ENTREGA HOY' : `${dias}D · EN RIESGO` }
-    : { color: 'var(--z-success)', bg: 'rgba(172,210,146,0.15)', border: 'rgba(172,210,146,0.3)', label: 'A TIEMPO' }
+    ? { color: '#e3b341', bg: 'rgba(227,179,65,0.15)',  border: 'rgba(227,179,65,0.3)',  label: dias === 0 ? 'ENTREGA HOY' : `${dias}D · EN RIESGO` }
+    : { color: '#acd292', bg: 'rgba(172,210,146,0.15)', border: 'rgba(172,210,146,0.3)', label: 'A TIEMPO' }
   return (
-    <span style={{
-      display:'inline-flex', alignItems:'center', gap:5,
-      padding:'2px 9px', borderRadius:99, fontSize:10,
-      fontFamily:'var(--font-mono)', fontWeight:500, letterSpacing:'0.05em',
-      textTransform:'uppercase',
-      background:conf.bg, color:conf.color, border:`1px solid ${conf.border}`,
-    }}>
-      <span style={{ width:4, height:4, borderRadius:'50%', background:conf.color, display:'inline-block', flexShrink:0 }}/>
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium uppercase tracking-wide"
+      style={{ background:conf.bg, color:conf.color, border:`1px solid ${conf.border}` }}
+    >
+      <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background:conf.color }} />
       {conf.label}
     </span>
   )
@@ -116,68 +122,86 @@ export default function Produccion() {
 
         {/* ── Alerta crítica: proyectos con retraso (derivado de fecha_entrega_estimada) ── */}
         {!loading && conRetraso > 0 && masCritico && (
-          <div style={{
-            display:'flex', alignItems:'center', gap:14, padding:'14px 18px', marginBottom:20,
-            background:'rgba(255,180,171,0.08)', border:'1px solid rgba(255,180,171,0.35)', borderRadius:'var(--radius-lg)',
-          }}>
-            <div style={{ width:34, height:34, borderRadius:'var(--radius-sm)', flexShrink:0, background:'var(--z-error)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize:18, color:'var(--z-on-error)' }}>warning</span>
+          <div className="flex items-center gap-3.5 px-[18px] py-3.5 mb-5 bg-[#ffb4ab]/10 border border-[#ffb4ab]/30 rounded-lg">
+            <div className="w-[34px] h-[34px] rounded flex-shrink-0 bg-[#ffb4ab] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[18px] text-[#690005]">warning</span>
             </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, color:'var(--z-error)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Alerta crítica</span>
-              <p style={{ margin:'3px 0 0', fontSize:13, color:'var(--z-text)', lineHeight:1.5 }}>
+            <div className="flex-1 min-w-0">
+              <span className="font-mono text-[10px] font-bold text-[#ffb4ab] uppercase tracking-[0.12em]">Alerta crítica</span>
+              <p className="mt-[3px] text-[13px] text-[#e5e2e1] leading-relaxed">
                 {conRetraso} proyecto{conRetraso !== 1 ? 's' : ''} con retraso en producción. El más urgente:{' '}
-                <strong style={{ color:'var(--z-error)' }}>{masCritico.clientes?.nombre || 'Sin nombre'}</strong>
+                <strong className="text-[#ffb4ab]">{masCritico.clientes?.nombre || 'Sin nombre'}</strong>
                 {' '}— {Math.abs(diasRestantes(masCritico.fecha_entrega_estimada))}d de retraso sobre la entrega estimada ({fechaFmt(masCritico.fecha_entrega_estimada)}).
               </p>
             </div>
-            <Btn small variant="ghost" onClick={() => setSeleccionado(masCritico)} style={{ color:'var(--z-error)', borderColor:'rgba(255,180,171,0.35)', flexShrink:0 }}>
+            <button
+              onClick={() => setSeleccionado(masCritico)}
+              className="flex-shrink-0 bg-transparent border border-[#ffb4ab]/35 text-[#ffb4ab] px-3 py-1.5 rounded font-mono text-[11px] uppercase tracking-wide hover:bg-[#ffb4ab]/10 transition-colors"
+            >
               Ver detalle
-            </Btn>
+            </button>
           </div>
         )}
 
-        <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+        <div className="flex gap-6 mb-5 border-b border-[#2d2d2d]">
           {[['lista','Lista'],['gantt','Gantt'],['calendario','Calendario']].map(([v,l]) => (
-            <Btn key={v} small variant={tab === v ? 'primary' : 'ghost'} onClick={() => setTab(v)}>{l}</Btn>
+            <button
+              key={v}
+              onClick={() => setTab(v)}
+              className={`pb-2.5 px-0.5 -mb-px text-[13px] font-medium border-b-2 transition-colors ${tab === v ? 'text-[#acd292] border-[#acd292]' : 'text-[#8d9386] border-transparent hover:text-[#e5e2e1]'}`}
+            >
+              {l}
+            </button>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
+          <div className="text-center py-12 text-[#43483e]">Cargando...</div>
         ) : proyectos.length === 0 ? (
-          <div style={{ textAlign:'center', padding:64, border:'1px dashed var(--z-border)', borderRadius:'var(--z-radius-xl)', color:'var(--z-text-muted)' }}>
-            <div style={{ fontSize:40, marginBottom:12 }}>🔨</div>
+          <div className="text-center py-16 border border-dashed border-[#2d2d2d] rounded-xl text-[#43483e]">
+            <div className="text-4xl mb-3">🔨</div>
             <p>No hay trabajos en producción actualmente</p>
           </div>
         ) : (
           <>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, marginBottom:20 }}>
-              <KpiCard label="En taller" value={proyectos.length} />
-              <KpiCard label="Valor en producción" value={fmt(valorEnTaller)} accent />
-              <KpiCard label="Con retraso" value={conRetraso} detail={conRetraso > 0 ? 'requieren atención' : 'todo en fecha'} />
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">En taller</div>
+                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{proyectos.length}</div>
+              </div>
+              <div className="bg-[#acd292] rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[9px] text-[#193708]/65 uppercase tracking-widest mb-[5px]">Valor en producción</div>
+                <div className="font-mono text-2xl font-bold text-[#193708] leading-none">{fmt(valorEnTaller)}</div>
+              </div>
+              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Con retraso</div>
+                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{conRetraso}</div>
+                <div className="font-mono text-[9px] text-[#43483e] mt-1 tracking-wide">{conRetraso > 0 ? 'requieren atención' : 'todo en fecha'}</div>
+              </div>
             </div>
 
             {tab === 'lista' && (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
+              <div className="grid gap-3.5" style={{ gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))' }}>
                 {proyectos.map(p => {
                   const dias = diasRestantes(p.fecha_entrega_estimada)
                   return (
-                    <Card key={p.id} style={{ cursor:'pointer', transition:'var(--z-transition)' }}>
-                      <div onClick={() => setSeleccionado(p)}>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
-                          <div>
-                            <div style={{ fontWeight:600, fontSize:14.5, color:'var(--z-text)' }}>{p.clientes?.nombre || 'Sin nombre'}</div>
-                            <div style={{ fontSize:12.5, color:'var(--z-text-2)', textTransform:'capitalize', marginTop:2 }}>{p.tipo_trabajo || p.descripcion || '—'}</div>
-                          </div>
-                          <Badge value="en_fabricacion" />
+                    <div
+                      key={p.id}
+                      onClick={() => setSeleccionado(p)}
+                      className="bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#2d2d2d] rounded p-3.5 cursor-pointer hover:border-[#acd292] hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      <div className="flex justify-between items-start mb-2.5">
+                        <div>
+                          <div className="font-semibold text-[14.5px] text-[#e5e2e1]">{p.clientes?.nombre || 'Sin nombre'}</div>
+                          <div className="text-[12.5px] text-[#c3c8ba] capitalize mt-0.5">{p.tipo_trabajo || p.descripcion || '—'}</div>
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:12 }}>
-                          <span style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</span>
-                          <RiskChip dias={dias} />
-                        </div>
+                        <EstadoBadge />
                       </div>
-                    </Card>
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="font-mono text-xs text-[#acd292]">{fmt(p.valor_final || p.valor_estimado)}</span>
+                        <RiskChip dias={dias} />
+                      </div>
+                    </div>
                   )
                 })}
               </div>
@@ -187,23 +211,20 @@ export default function Produccion() {
             {tab === 'calendario' && <CalendarioView proyectos={proyectos} mes={mesCalendario} setMes={setMesCalendario} onSeleccionar={setSeleccionado} />}
 
             {/* ── Footer stat strip: activas / a tiempo / con retraso (derivado, sin datos nuevos) ── */}
-            <div style={{
-              marginTop:24, padding:'14px 22px', display:'flex', gap:32, alignItems:'center', flexWrap:'wrap',
-              background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-lg)',
-            }}>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Órdenes activas</span>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:20, fontWeight:700, color:'var(--z-text)' }}>{proyectos.length}</span>
+            <div className="mt-6 px-[22px] py-[14px] flex items-center gap-8 flex-wrap bg-[#0e0e0e] border border-[#2d2d2d] rounded-lg">
+              <div className="flex flex-col gap-[3px]">
+                <span className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.12em]">Órdenes activas</span>
+                <span className="font-mono text-xl font-bold text-[#e5e2e1]">{proyectos.length}</span>
               </div>
-              <div style={{ width:1, height:28, background:'var(--z-border)' }} />
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Tasa a tiempo</span>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:20, fontWeight:700, color: pctATiempo >= 80 ? 'var(--z-success)' : pctATiempo >= 50 ? 'var(--z-warning)' : 'var(--z-error)' }}>{pctATiempo}%</span>
+              <div className="w-px h-7 bg-[#2d2d2d]" />
+              <div className="flex flex-col gap-[3px]">
+                <span className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.12em]">Tasa a tiempo</span>
+                <span className="font-mono text-xl font-bold" style={{ color: pctATiempo >= 80 ? '#acd292' : pctATiempo >= 50 ? '#e3b341' : '#ffb4ab' }}>{pctATiempo}%</span>
               </div>
-              <div style={{ width:1, height:28, background:'var(--z-border)' }} />
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Con retraso</span>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:20, fontWeight:700, color: conRetraso > 0 ? 'var(--z-error)' : 'var(--z-text)' }}>{conRetraso}</span>
+              <div className="w-px h-7 bg-[#2d2d2d]" />
+              <div className="flex flex-col gap-[3px]">
+                <span className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.12em]">Con retraso</span>
+                <span className="font-mono text-xl font-bold" style={{ color: conRetraso > 0 ? '#ffb4ab' : '#e5e2e1' }}>{conRetraso}</span>
               </div>
             </div>
           </>
@@ -211,36 +232,51 @@ export default function Produccion() {
       </PageContent>
 
       {seleccionado && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }} onClick={() => setSeleccionado(null)}>
-          <div style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-xl)', padding:28, width:440 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={() => setSeleccionado(null)}>
+          <div
+            className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-xl p-7 w-[440px]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-1.5">
               <div>
-                <h2 style={{ margin:0, fontSize:18 }}>{seleccionado.clientes?.nombre || 'Sin nombre'}</h2>
-                <div style={{ fontSize:12, color:'var(--z-text-3)', textTransform:'capitalize', marginTop:2 }}>{seleccionado.tipo_trabajo || seleccionado.descripcion || '—'}</div>
+                <h2 className="text-lg font-semibold text-[#e5e2e1] m-0">{seleccionado.clientes?.nombre || 'Sin nombre'}</h2>
+                <div className="text-xs text-[#8d9386] capitalize mt-0.5">{seleccionado.tipo_trabajo || seleccionado.descripcion || '—'}</div>
               </div>
-              <button onClick={() => setSeleccionado(null)} style={{ background:'none', border:'none', color:'var(--z-text-3)', cursor:'pointer', fontSize:18 }}>✕</button>
+              <button onClick={() => setSeleccionado(null)} className="bg-transparent border-none text-[#8d9386] hover:text-[#e5e2e1] cursor-pointer text-lg leading-none transition-colors">✕</button>
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, margin:'14px 0 16px' }}>
-              <KpiCard label="Valor" value={fmt(seleccionado.valor_final || seleccionado.valor_estimado)} />
-              <KpiCard label="Entrega estimada" value={fechaFmt(seleccionado.fecha_entrega_estimada)} />
+            <div className="grid grid-cols-2 gap-3 my-3.5 mb-4">
+              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Valor</div>
+                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{fmt(seleccionado.valor_final || seleccionado.valor_estimado)}</div>
+              </div>
+              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Entrega estimada</div>
+                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{fechaFmt(seleccionado.fecha_entrega_estimada)}</div>
+              </div>
             </div>
 
             {(seleccionado.clientes?.telefono || seleccionado.clientes?.email) && (
-              <div style={{ fontSize:12, color:'var(--z-text-2)', marginBottom:16, display:'flex', gap:14 }}>
+              <div className="text-xs text-[#c3c8ba] mb-4 flex gap-3.5">
                 {seleccionado.clientes?.telefono && <span>📞 {seleccionado.clientes.telefono}</span>}
                 {seleccionado.clientes?.email && <span>✉️ {seleccionado.clientes.email}</span>}
               </div>
             )}
 
             {seleccionado.fecha_inicio_fabricacion && (
-              <div style={{ fontSize:12.5, color:'var(--z-text-2)', marginBottom:18 }}>
+              <div className="text-[12.5px] text-[#c3c8ba] mb-[18px]">
                 En fabricación desde {fechaFmt(seleccionado.fecha_inicio_fabricacion)}
               </div>
             )}
 
-            <div style={{ display:'flex', justifyContent:'flex-end' }}>
-              <Btn onClick={() => marcarEntregado(seleccionado)} disabled={guardando}>{guardando ? 'Guardando...' : 'Marcar entregado'}</Btn>
+            <div className="flex justify-end">
+              <button
+                onClick={() => marcarEntregado(seleccionado)}
+                disabled={guardando}
+                className="bg-[#acd292] text-[#193708] px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {guardando ? 'Guardando...' : 'Marcar entregado'}
+              </button>
             </div>
           </div>
         </div>
@@ -253,8 +289,8 @@ export default function Produccion() {
 // Escala simple de 8 semanas. Cada fila es un proyecto: barra de fabricacion +
 // tramos de instalacion al final (si estan cargados). Si no hay horas cargadas
 // todavia, se muestra una barra unica de "en fabricacion" sin split.
-// (Matemática de posicionamiento sin tocar — solo se agregan grid de fondo y
-// marcador de "hoy" como capas puramente visuales sobre los mismos valores.)
+// (Matemática de posicionamiento sin tocar — solo se restyleó con Tailwind
+// literal sobre las mismas variables x1/x2/xSplit/xHoy en %.)
 function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
   const inicio = new Date(); inicio.setHours(0,0,0,0); inicio.setDate(inicio.getDate() - inicio.getDay() + 1)
   const totalDias = 56 // 8 semanas
@@ -269,12 +305,12 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
 
   return (
     <div>
-      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, fontFamily:'var(--font-mono)', color:'var(--z-text-muted)', marginBottom:8, padding:'0 4px' }}>
+      <div className="flex justify-between px-1 mb-2 font-mono text-[11px] text-[#43483e]">
         <span>{inicio.toLocaleDateString('es-AR')}</span>
         <span>8 semanas →</span>
         <span>{fin.toLocaleDateString('es-AR')}</span>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+      <div className="flex flex-col gap-2.5">
         {proyectos.map(p => {
           const ot = otPorProyecto[p.id]
           const desde = p.fecha_inicio_fabricacion || new Date().toISOString().slice(0,10)
@@ -287,33 +323,35 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
           const xSplit = x1 + (x2 - x1) * pctFab
           const tramos = ot?.tramos_instalacion
           return (
-            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:12, cursor:'pointer' }} onClick={() => onSeleccionar(p)}>
-              <div style={{ width:150, flexShrink:0, fontSize:12.5, color:'var(--z-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            <div key={p.id} className="flex items-center gap-3 cursor-pointer" onClick={() => onSeleccionar(p)}>
+              <div className="w-[150px] flex-shrink-0 text-[12.5px] text-[#e5e2e1] overflow-hidden text-ellipsis whitespace-nowrap">
                 {p.clientes?.nombre || 'Sin nombre'}
               </div>
-              <div style={{
-                flex:1, position:'relative', height:22, background:'var(--z-bg-2)', borderRadius:6, border:'1px solid var(--z-border)',
-                backgroundImage:'repeating-linear-gradient(to right, var(--z-border) 0, var(--z-border) 1px, transparent 1px, transparent 12.5%)',
-              }}>
-                <div style={{ position:'absolute', left:`${xHoy}%`, top:-2, bottom:-2, width:1, background:'var(--z-primary)', boxShadow:'0 0 6px rgba(172,210,146,0.5)' }} />
-                <div title={`Fabricación: ${hf || '—'}h`} style={{
-                  position:'absolute', left:`${x1}%`, width:`${Math.max(1,xSplit-x1)}%`, top:2, bottom:2,
-                  background:'var(--z-primary)', borderRadius:4,
-                }} />
-                <div title={`Instalación: ${hi || '—'}h${tramos ? ` en ${tramos.length} tramos` : ''}`} style={{
-                  position:'absolute', left:`${xSplit}%`, width:`${Math.max(1,x2-xSplit)}%`, top:2, bottom:2,
-                  background:'var(--z-secondary)', borderRadius:4,
-                }} />
+              <div
+                className="flex-1 relative h-[22px] bg-[#0e0e0e] rounded border border-[#2d2d2d]"
+                style={{ backgroundImage:'repeating-linear-gradient(to right, #2d2d2d 0, #2d2d2d 1px, transparent 1px, transparent 12.5%)' }}
+              >
+                <div className="absolute -top-0.5 -bottom-0.5 w-px bg-[#acd292] shadow-[0_0_6px_rgba(172,210,146,0.5)]" style={{ left:`${xHoy}%` }} />
+                <div
+                  title={`Fabricación: ${hf || '—'}h`}
+                  className="absolute top-0.5 bottom-0.5 bg-[#acd292] rounded"
+                  style={{ left:`${x1}%`, width:`${Math.max(1,xSplit-x1)}%` }}
+                />
+                <div
+                  title={`Instalación: ${hi || '—'}h${tramos ? ` en ${tramos.length} tramos` : ''}`}
+                  className="absolute top-0.5 bottom-0.5 bg-[#f8b2d9] rounded"
+                  style={{ left:`${xSplit}%`, width:`${Math.max(1,x2-xSplit)}%` }}
+                />
               </div>
-              <div style={{ width:70, flexShrink:0, fontSize:11, fontFamily:'var(--font-mono)', color:'var(--z-text-muted)', textAlign:'right' }}>{fechaFmt(hasta)}</div>
+              <div className="w-[70px] flex-shrink-0 font-mono text-[11px] text-[#43483e] text-right">{fechaFmt(hasta)}</div>
             </div>
           )
         })}
       </div>
-      <div style={{ display:'flex', gap:16, marginTop:16, fontSize:11, color:'var(--z-text-muted)' }}>
-        <span><span style={{ display:'inline-block', width:10, height:10, background:'var(--z-primary)', borderRadius:2, marginRight:5 }} />Fabricación</span>
-        <span><span style={{ display:'inline-block', width:10, height:10, background:'var(--z-secondary)', borderRadius:2, marginRight:5 }} />Instalación</span>
-        <span><span style={{ display:'inline-block', width:2, height:10, background:'var(--z-primary)', marginRight:5, verticalAlign:'middle' }} />Hoy</span>
+      <div className="flex gap-4 mt-4 text-[11px] text-[#43483e]">
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#acd292]" />Fabricación</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#f8b2d9]" />Instalación</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-0.5 h-2.5 bg-[#acd292]" />Hoy</span>
         <span>Sin horas cargadas todavía: la barra usa una proporción por defecto (80/20).</span>
       </div>
     </div>
@@ -346,37 +384,38 @@ function CalendarioView({ proyectos, mes, setMes, onSeleccionar }) {
 
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom:14 }}>
-        <button onClick={() => cambiarMes(-1)} style={{ background:'none', border:'1px solid var(--z-border)', borderRadius:8, color:'var(--z-text-2)', cursor:'pointer', padding:'4px 10px' }}>‹</button>
-        <div style={{ fontSize:14, fontWeight:600, color:'var(--z-text)', minWidth:160, textAlign:'center' }}>{MESES[mesIdx]} {anio}</div>
-        <button onClick={() => cambiarMes(1)} style={{ background:'none', border:'1px solid var(--z-border)', borderRadius:8, color:'var(--z-text-2)', cursor:'pointer', padding:'4px 10px' }}>›</button>
+      <div className="flex items-center justify-center gap-4 mb-3.5">
+        <button onClick={() => cambiarMes(-1)} className="bg-transparent border border-[#2d2d2d] rounded text-[#c3c8ba] cursor-pointer px-2.5 py-1 hover:border-[#acd292] hover:text-[#e5e2e1] transition-colors">‹</button>
+        <div className="text-sm font-semibold text-[#e5e2e1] min-w-[160px] text-center">{MESES[mesIdx]} {anio}</div>
+        <button onClick={() => cambiarMes(1)} className="bg-transparent border border-[#2d2d2d] rounded text-[#c3c8ba] cursor-pointer px-2.5 py-1 hover:border-[#acd292] hover:text-[#e5e2e1] transition-colors">›</button>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6, marginBottom:6 }}>
+      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
-          <div key={d} style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--z-text-muted)', textAlign:'center', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d}</div>
+          <div key={d} className="font-mono text-[10px] text-[#43483e] text-center uppercase tracking-wide">{d}</div>
         ))}
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6 }}>
+      <div className="grid grid-cols-7 gap-1.5">
         {dias.map((d, i) => {
           if (!d) return <div key={i} />
           const key = d.toISOString().slice(0,10)
           const entregas = porDia[key] || []
           const hoy = key === new Date().toISOString().slice(0,10)
           return (
-            <div key={i} style={{
-              minHeight:74, borderRadius:8, border: hoy ? '1px solid var(--z-primary)' : '1px solid var(--z-border)',
-              background: entregas.length > 0 ? 'var(--z-primary-glow)' : 'var(--z-card)', padding:6,
-            }}>
-              <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color: hoy ? 'var(--z-primary-light)' : 'var(--z-text-muted)', marginBottom:4 }}>{d.getDate()}</div>
+            <div
+              key={i}
+              className={`min-h-[74px] rounded-lg border p-1.5 ${hoy ? 'border-[#acd292]' : 'border-[#2d2d2d]'} ${entregas.length > 0 ? 'bg-[#acd292]/[0.14]' : 'bg-[#1c1b1b]'}`}
+            >
+              <div className={`font-mono text-[11px] mb-1 ${hoy ? 'text-[#c7eeac]' : 'text-[#43483e]'}`}>{d.getDate()}</div>
               {entregas.slice(0,2).map(p => (
-                <div key={p.id} onClick={() => onSeleccionar(p)} style={{
-                  fontSize:10, color:'var(--z-text)', background:'var(--z-card)', borderRadius:4, padding:'2px 5px',
-                  marginBottom:2, cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                }}>
+                <div
+                  key={p.id}
+                  onClick={() => onSeleccionar(p)}
+                  className="text-[10px] text-[#e5e2e1] bg-[#1c1b1b] rounded px-[5px] py-0.5 mb-0.5 cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap"
+                >
                   {p.clientes?.nombre || 'Sin nombre'}
                 </div>
               ))}
-              {entregas.length > 2 && <div style={{ fontSize:9, color:'var(--z-text-muted)' }}>+{entregas.length-2} más</div>}
+              {entregas.length > 2 && <div className="text-[9px] text-[#43483e]">+{entregas.length-2} más</div>}
             </div>
           )
         })}

@@ -52,6 +52,16 @@ export default function Clientes() {
   const seleccionado = clientes.find(c => c.id === seleccionadoId);
   const trabajosSeleccionado = (proyectosPorCliente[seleccionadoId] || []);
 
+  // KPIs del cliente seleccionado — mismo cálculo que las globales de arriba,
+  // pero acotado a trabajosSeleccionado (ya cargado, sin queries nuevas).
+  const statsCliente = useMemo(() => {
+    const validos = trabajosSeleccionado.filter(p => p.estado !== 'cancelado');
+    const facturado = validos.reduce((s,p) => s + Number(p.valor_final || p.valor_estimado || 0), 0);
+    const cantidad = validos.length;
+    const ticket = cantidad > 0 ? facturado / cantidad : 0;
+    return { facturado, cantidad, ticket };
+  }, [trabajosSeleccionado]);
+
   function ultimoTrabajo(clienteId) {
     const trabajos = proyectosPorCliente[clienteId];
     if (!trabajos || trabajos.length === 0) return null;
@@ -73,13 +83,19 @@ export default function Clientes() {
             </div>
 
             <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
-              {/* Panel izquierdo: lista */}
-              <div style={{ width:300, flexShrink:0, background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden' }}>
-                <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--z-border)' }}>
-                  <input placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                    style={{ width:'100%', padding:'7px 12px', fontSize:12.5, background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:8, color:'var(--z-text)', outline:'none' }} />
+              {/* ── Panel izquierdo: maestro (lista de clientes) ─────────────────── */}
+              <div style={{ width:320, flexShrink:0, background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-lg)', overflow:'hidden' }}>
+                <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--z-border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <span style={{ fontSize:15, fontWeight:600, color:'var(--z-text)' }}>Clientes</span>
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, color:'var(--z-text-3)', background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:6, padding:'3px 8px' }}>
+                    {filtrados.length} {filtrados.length === 1 ? 'registro' : 'registros'}
+                  </span>
                 </div>
-                <div style={{ maxHeight:520, overflowY:'auto' }}>
+                <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--z-border)' }}>
+                  <input placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                    style={{ width:'100%', padding:'7px 12px', fontSize:12.5, fontFamily:'var(--font-mono)', background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:99, color:'var(--z-text)', outline:'none' }} />
+                </div>
+                <div style={{ maxHeight:560, overflowY:'auto' }}>
                   {filtrados.length === 0 ? (
                     <div style={{ padding:20, fontSize:12.5, color:'var(--z-text-muted)', textAlign:'center' }}>Sin resultados</div>
                   ) : filtrados.map(c => {
@@ -87,23 +103,37 @@ export default function Clientes() {
                     const activo = seleccionadoId === c.id;
                     return (
                       <div key={c.id} onClick={() => setSeleccionadoId(c.id)} style={{
-                        padding:'11px 14px', cursor:'pointer', borderLeft: activo ? '3px solid var(--z-primary)' : '3px solid transparent',
-                        background: activo ? 'var(--z-primary-glow)' : 'transparent', borderBottom:'1px solid rgba(74,107,54,0.07)',
+                        padding:'13px 16px', cursor:'pointer', borderLeft: activo ? '3px solid var(--z-primary)' : '3px solid transparent',
+                        background: activo ? 'var(--z-active-bg)' : 'transparent', borderBottom:'1px solid var(--z-border)',
+                        transition:'var(--z-transition)',
                       }}
                       onMouseEnter={e => { if (!activo) e.currentTarget.style.background = 'var(--z-card-hover)'; }}
                       onMouseLeave={e => { if (!activo) e.currentTarget.style.background = 'transparent'; }}>
-                        <div style={{ fontSize:13, fontWeight:500, color: activo ? 'var(--z-primary-light)' : 'var(--z-text)' }}>{c.nombre || 'Sin nombre'}</div>
-                        <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:2 }}>
-                          {ult ? `${ult.tipo_trabajo || ult.descripcion || 'Trabajo'} · ${fechaFmt(ult.fecha_creacion)}` : 'Sin trabajos aún'}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8, marginBottom:4 }}>
+                          <div style={{ fontSize:14, fontWeight:600, color: activo ? 'var(--z-primary-light)' : 'var(--z-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            {c.nombre || 'Sin nombre'}
+                          </div>
+                          {ult
+                            ? <Badge value={ult.estado} />
+                            : <span style={{ fontFamily:'var(--font-mono)', fontSize:9.5, color:'var(--z-text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', flexShrink:0 }}>Sin trabajos</span>}
                         </div>
+                        <div style={{ fontSize:11.5, color:'var(--z-text-2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {ult ? `${ult.tipo_trabajo || ult.descripcion || 'Trabajo'}` : 'Todavía no tiene trabajos'}
+                        </div>
+                        {ult && (
+                          <div style={{ display:'flex', justifyContent:'space-between', marginTop:8 }}>
+                            <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, color:'var(--z-text-3)' }}>{fmt(ult.valor_final || ult.valor_estimado)}</span>
+                            <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, color:'var(--z-text-3)' }}>{fechaFmt(ult.fecha_creacion)}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Panel derecho: detalle */}
-              <div style={{ flex:1, background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', padding:24, minHeight:400 }}>
+              {/* ── Panel derecho: detalle del cliente seleccionado ──────────────── */}
+              <div style={{ flex:1, background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-lg)', overflow:'hidden', minHeight:400 }}>
                 {!seleccionado ? (
                   <div style={{ textAlign:'center', padding:64, color:'var(--z-text-muted)' }}>
                     <div style={{ fontSize:36, marginBottom:10 }}>👤</div>
@@ -111,41 +141,78 @@ export default function Clientes() {
                   </div>
                 ) : (
                   <>
-                    <h2 style={{ margin:'0 0 4px', fontSize:19 }}>{seleccionado.nombre}</h2>
-                    <div style={{ display:'flex', gap:16, fontSize:12.5, color:'var(--z-text-2)', marginBottom:20 }}>
-                      {seleccionado.telefono && <span>📞 {seleccionado.telefono}</span>}
-                      {seleccionado.email && <span>✉️ {seleccionado.email}</span>}
-                      {seleccionado.direccion_obra && <span>📍 {seleccionado.direccion_obra}</span>}
+                    {/* Header */}
+                    <div style={{ padding:'24px 28px', borderBottom:'1px solid var(--z-border)', background:'var(--z-bg-2)' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
+                        <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Clientes</span>
+                        <span className="material-symbols-outlined" style={{ fontSize:13, color:'var(--z-text-muted)' }}>chevron_right</span>
+                        <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--z-primary)', textTransform:'uppercase', letterSpacing:'0.1em' }}>{(seleccionado.nombre || 'Sin nombre').toUpperCase()}</span>
+                      </div>
+                      <h2 style={{ margin:'0 0 12px', fontSize:22, fontWeight:600, color:'var(--z-text)' }}>{seleccionado.nombre}</h2>
+                      <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                        {seleccionado.telefono && (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 12px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:99, fontSize:12, color:'var(--z-text-2)' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize:14 }}>call</span> {seleccionado.telefono}
+                          </span>
+                        )}
+                        {seleccionado.email && (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 12px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:99, fontSize:12, color:'var(--z-text-2)' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize:14 }}>mail</span> {seleccionado.email}
+                          </span>
+                        )}
+                        {seleccionado.direccion_obra && (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 12px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:99, fontSize:12, color:'var(--z-text-2)' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize:14 }}>location_on</span> {seleccionado.direccion_obra}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:10 }}>
-                      Historial de trabajos ({trabajosSeleccionado.length})
+                    {/* KPIs del cliente */}
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, padding:'20px 28px' }}>
+                      <KpiCard label="Facturado (cliente)" value={fmt(statsCliente.facturado)} accent />
+                      <KpiCard label="Trabajos" value={statsCliente.cantidad} />
+                      <KpiCard label="Ticket promedio" value={fmt(statsCliente.ticket)} />
                     </div>
-                    {trabajosSeleccionado.length === 0 ? (
-                      <div style={{ fontSize:12.5, color:'var(--z-text-muted)' }}>Todavía no tiene trabajos registrados.</div>
-                    ) : (
-                      <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:360, overflowY:'auto' }}>
-                        {trabajosSeleccionado.map(p => (
-                          <div key={p.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'var(--z-bg-2)', borderRadius:10, border:'1px solid var(--z-border)' }}>
-                            <div>
-                              <div style={{ fontSize:13, color:'var(--z-text)', textTransform:'capitalize' }}>{p.tipo_trabajo || p.descripcion || 'Trabajo'}</div>
-                              <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:2 }}>{fechaFmt(p.fecha_creacion)}</div>
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                              <span style={{ fontSize:12.5, color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</span>
-                              <Badge value={p.estado} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
 
-                    {seleccionado.notas && (
-                      <div style={{ marginTop:20 }}>
-                        <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6 }}>Notas</div>
-                        <div style={{ fontSize:12.5, color:'var(--z-text-2)', whiteSpace:'pre-wrap' }}>{seleccionado.notas}</div>
+                    {/* Historial de trabajos — timeline */}
+                    <div style={{ padding:'4px 28px 28px' }}>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:500, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:16 }}>
+                        Historial de trabajos ({trabajosSeleccionado.length})
                       </div>
-                    )}
+                      {trabajosSeleccionado.length === 0 ? (
+                        <div style={{ fontSize:12.5, color:'var(--z-text-muted)' }}>Todavía no tiene trabajos registrados.</div>
+                      ) : (
+                        <div style={{ position:'relative', marginLeft:6, borderLeft:'1px solid var(--z-border)' }}>
+                          {trabajosSeleccionado.map((p, i) => (
+                            <div key={p.id} style={{ position:'relative', paddingLeft:24, paddingBottom: i < trabajosSeleccionado.length - 1 ? 18 : 0 }}>
+                              <div style={{
+                                position:'absolute', left:-5, top:4, width:9, height:9, borderRadius:'50%',
+                                background: i === 0 ? 'var(--z-primary)' : 'var(--z-text-muted)',
+                                border:'3px solid var(--z-bg-2)', boxSizing:'content-box',
+                              }} />
+                              <div style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-md)', padding:'12px 16px' }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, fontWeight:700, color: i === 0 ? 'var(--z-primary)' : 'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                                    {fechaFmt(p.fecha_creacion)}
+                                  </span>
+                                  <Badge value={p.estado} />
+                                </div>
+                                <div style={{ fontSize:13.5, fontWeight:600, color:'var(--z-text)', textTransform:'capitalize' }}>{p.tipo_trabajo || p.descripcion || 'Trabajo'}</div>
+                                <div style={{ fontSize:12, color:'var(--z-success)', fontFamily:'var(--font-mono)', marginTop:4 }}>{fmt(p.valor_final || p.valor_estimado)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {seleccionado.notas && (
+                        <div style={{ marginTop:22 }}>
+                          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:500, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:8 }}>Notas</div>
+                          <div style={{ fontSize:12.5, color:'var(--z-text-2)', whiteSpace:'pre-wrap', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-md)', padding:'12px 16px' }}>{seleccionado.notas}</div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

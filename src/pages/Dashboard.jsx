@@ -1,11 +1,9 @@
 
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Layout, Topbar, PageContent, Icon } from '../components/Layout'
-import { Card, KpiCard, Btn } from '../components/ui'
+import { Layout, Topbar, PageContent } from '../components/Layout'
 
 // ─── Módulos del sistema ───────────────────────────────────────────────────────
 const MODULES = [
@@ -13,74 +11,57 @@ const MODULES = [
     section: 'Ventas',
     color: '#4A6B36',
     items: [
-      { path: '/prospectos', icon: 'funnel', label: 'Prospectos', desc: 'Pipeline de oportunidades y seguimiento', stat_key: 'prospectos' },
-      { path: '/clientes',   icon: 'users',  label: 'Clientes',   desc: 'Base de clientes y historial de compras', stat_key: 'clientes' },
-      { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', desc: 'Generación de presupuestos con IA', stat_key: null },
+      { path: '/prospectos', icon: 'filter_alt', label: 'Prospectos', desc: 'Pipeline de oportunidades y seguimiento' },
+      { path: '/clientes',   icon: 'group',      label: 'Clientes',   desc: 'Base de clientes y historial de compras' },
+      { path: '/cotizador',  icon: 'auto_awesome', label: 'Cotizador AI', desc: 'Generación de presupuestos con IA' },
     ]
   },
   {
     section: 'Producción',
     color: '#6366f1',
     items: [
-      { path: '/proyectos',  icon: 'layers', label: 'Proyectos',  desc: 'Estado y seguimiento de obras', stat_key: 'proyectos' },
-      { path: '/produccion', icon: 'gear',   label: 'Producción', desc: 'Órdenes de trabajo y carpinteros', stat_key: null },
+      { path: '/proyectos',  icon: 'layers',   label: 'Proyectos',  desc: 'Estado y seguimiento de obras' },
+      { path: '/produccion', icon: 'settings', label: 'Producción', desc: 'Órdenes de trabajo y carpinteros' },
     ]
   },
   {
     section: 'Marketing & RRSS',
     color: '#7AAE5A',
     items: [
-      { path: '/tiktok',        icon: 'tiktok',  label: 'TikTok',          desc: 'Publicaciones y gestión de cuenta @zebrano.ma', stat_key: null },
-      { path: '/rrss',          icon: 'rrss',    label: 'Instagram / FB',  desc: 'Borradores, aprobación y programación', stat_key: 'publicaciones' },
-      { path: '/rrss/importar', icon: 'upload',  label: 'Importar fotos',  desc: 'Clasificación con IA desde galería', stat_key: null },
+      { path: '/tiktok',        icon: 'music_note',   label: 'TikTok',          desc: 'Publicaciones y gestión de cuenta @zebrano.ma' },
+      { path: '/rrss',          icon: 'photo_camera', label: 'Instagram / FB',  desc: 'Borradores, aprobación y programación' },
+      { path: '/rrss/importar', icon: 'upload',       label: 'Importar fotos',  desc: 'Clasificación con IA desde galería' },
     ]
   },
 ]
 
-const DIAS_ESTANCADO = 7
+const QUICK_ACTIONS = [
+  { label: '+ Nuevo prospecto', path: '/prospectos', color: '#4A6B36' },
+  { label: '📸 Importar fotos', path: '/rrss/importar', color: '#7AAE5A' },
+  { label: '🎵 Gestionar TikTok', path: '/tiktok', color: '#a78bfa' },
+  { label: '💰 Ver publicaciones', path: '/rrss', color: '#6366f1' },
+]
 
-// ─── Module card ──────────────────────────────────────────────────────────────
-function ModuleCard({ item, color, navigate }) {
-  return (
-    <div
-      onClick={() => navigate(item.path)}
-      style={{
-        background: 'var(--z-card)', border: '1px solid var(--z-border)',
-        borderRadius: 'var(--z-radius-lg)', padding: '16px 18px',
-        cursor: 'pointer', transition: 'var(--z-transition)',
-        display: 'flex', alignItems: 'center', gap: 14,
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = color + '55'
-        e.currentTarget.style.background = color + '08'
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = `0 8px 24px ${color}20`
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'var(--z-border)'
-        e.currentTarget.style.background = 'var(--z-card)'
-        e.currentTarget.style.transform = 'none'
-        e.currentTarget.style.boxShadow = 'none'
-      }}
-    >
-      <div style={{
-        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-        background: color + '18', border: `1px solid ${color}33`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color,
-      }}>
-        <Icon name={item.icon} size={18} color={color} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--z-text)', marginBottom: 2 }}>{item.label}</div>
-        <div style={{ fontSize: 11, color: 'var(--z-text-3)', lineHeight: 1.4 }}>{item.desc}</div>
-      </div>
-      <div style={{ color: 'var(--z-text-muted)', flexShrink: 0 }}>
-        <Icon name="chevron" size={14} color="currentColor" />
-      </div>
-    </div>
-  )
+const CANAL_ICON = { instagram: 'photo_camera', tiktok: 'music_note', whatsapp: 'group', facebook: 'photo_camera', web: 'public', referido: 'group' }
+
+const PROSPECTO_CHIP = {
+  nuevo:      'bg-[#c3c8ba]/15 text-[#c3c8ba] border border-[#c3c8ba]/30',
+  contactado: 'bg-[#a78bfa]/15 text-[#a78bfa] border border-[#a78bfa]/30',
+  calificado: 'bg-[#e3b341]/15 text-[#e3b341] border border-[#e3b341]/30',
+  cotizado:   'bg-[#fb923c]/15 text-[#fb923c] border border-[#fb923c]/30',
+  ganado:     'bg-[#acd292]/15 text-[#acd292] border border-[#acd292]/30',
+  perdido:    'bg-[#ffb4ab]/15 text-[#ffb4ab] border border-[#ffb4ab]/30',
 }
+const PROSPECTO_CHIP_DEFAULT = 'bg-[#8d9386]/15 text-[#8d9386] border border-[#8d9386]/30'
+
+const PROYECTO_CHIP = {
+  cotizado: 'bg-[#fb923c]/15 text-[#fb923c] border border-[#fb923c]/30',
+  'seña pagada': 'bg-[#acd292]/15 text-[#acd292] border border-[#acd292]/30',
+  entregado: 'bg-[#c7eeac]/15 text-[#c7eeac] border border-[#c7eeac]/30',
+}
+const PROYECTO_CHIP_DEFAULT = 'bg-[#8d9386]/15 text-[#8d9386] border border-[#8d9386]/30'
+
+const DIAS_ESTANCADO = 7
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
@@ -90,6 +71,7 @@ export default function Dashboard() {
   const [actividades, setActividades] = useState([])
   const [estancados, setEstancados] = useState([])
   const [resumenSemana, setResumenSemana] = useState(null)
+  const [proyectos, setProyectos] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -111,9 +93,10 @@ export default function Dashboard() {
       })
 
       // ── Proactivo #1: proyectos "Cotizado" que llevan mas de DIAS_ESTANCADO sin pasar a "Seña pagada" ──
-      const proyectos = proyectosData.data || []
+      const proyectosList = proyectosData.data || []
+      setProyectos(proyectosList)
       const hoy = new Date()
-      const estanc = proyectos.filter(pr => {
+      const estanc = proyectosList.filter(pr => {
         if (pr.estado !== 'cotizado' || !pr.fecha_cotizado) return false
         const dias = Math.floor((hoy - new Date(pr.fecha_cotizado)) / 86400000)
         return dias >= DIAS_ESTANCADO
@@ -123,8 +106,8 @@ export default function Dashboard() {
 
       // ── Proactivo #2: resumen de la semana, sin que nadie lo pida ──
       const inicioSemana = new Date(); inicioSemana.setHours(0,0,0,0); inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1)
-      const entregadosSemana = proyectos.filter(pr => pr.estado === 'entregado' && pr.fecha_entrega_real && new Date(pr.fecha_entrega_real) >= inicioSemana)
-      const cotizadosSemana = proyectos.filter(pr => pr.fecha_cotizado && new Date(pr.fecha_cotizado) >= inicioSemana)
+      const entregadosSemana = proyectosList.filter(pr => pr.estado === 'entregado' && pr.fecha_entrega_real && new Date(pr.fecha_entrega_real) >= inicioSemana)
+      const cotizadosSemana = proyectosList.filter(pr => pr.fecha_cotizado && new Date(pr.fecha_cotizado) >= inicioSemana)
       const valorCotizadoSemana = cotizadosSemana.reduce((s,pr) => s + Number(pr.valor_final || pr.valor_estimado || 0), 0)
       setResumenSemana({
         entregados: entregadosSemana.length,
@@ -148,199 +131,256 @@ export default function Dashboard() {
   const hora = new Date().getHours()
   const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
   const nombre = profile?.nombre?.split(' ')[0] || 'Martín'
+  const fechaHoy = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-  const CANAL_ICON = { instagram:'rrss', tiktok:'tiktok', whatsapp:'users', facebook:'rrss', web:'globe', referido:'users' }
-  const ESTADO_COLOR = { nuevo:'var(--z-info)', contactado:'#a78bfa', calificado:'var(--z-warning)', cotizado:'#fb923c', ganado:'var(--z-success)', perdido:'var(--z-error)' }
   const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
 
   const tieneInsight = !loading && (estancados.length > 0 || (resumenSemana && (resumenSemana.entregados > 0 || resumenSemana.cotizados > 0)))
 
+  const proyectosActivos = proyectos.filter(p => p.estado !== 'entregado')
+  const valoresProyectos = proyectos.map(p => Number(p.valor_final || p.valor_estimado || 0)).filter(v => v > 0)
+  const avgTicket = valoresProyectos.length ? valoresProyectos.reduce((s, v) => s + v, 0) / valoresProyectos.length : null
+
   return (
     <Layout>
-      <Topbar
-        title={`${saludo}, ${nombre}`}
-        subtitle={new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
-      />
+      <Topbar title={`${saludo}, ${nombre}`} subtitle={fechaHoy} />
       <PageContent>
-        {/* ── Agent Zebrano Insights: proactivo, sin que nadie lo pida ────────── */}
+        {/* ── Header row: título + CTA (equivalente a "Operations Overview" del mock) ── */}
+        <div className="flex justify-between items-end mb-8 flex-wrap gap-4">
+          <div>
+            <h2 className="text-[32px] leading-[40px] font-semibold tracking-[-0.02em] text-[#e5e2e1] mb-1">
+              Resumen de Operación
+            </h2>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8d9386]">{fechaHoy}</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate('/cotizador')}
+              className="bg-[#4a6b36] text-[#c3eaa8] px-4 py-2 rounded font-mono text-xs uppercase tracking-wide flex items-center gap-2 hover:brightness-110 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              Nueva cotización
+            </button>
+          </div>
+        </div>
+
+        {/* ── Agent Zebrano Insights ──────────────────────────────────────────── */}
         {tieneInsight && (
-          <Card
-            padding="16px 20px"
-            style={{ marginBottom: 24, borderLeft: '3px solid var(--z-secondary)' }}
-          >
-            <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
-              <div style={{
-                width:36, height:36, borderRadius:10, flexShrink:0, fontSize:16,
-                background:'rgba(248,178,217,0.12)', border:'1px solid rgba(248,178,217,0.3)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-              }}>🤖</div>
-              <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12, minWidth:0 }}>
-                <div style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:600, color:'var(--z-secondary)', textTransform:'uppercase', letterSpacing:'0.12em' }}>
-                  Agent Zebrano Insights
-                </div>
+          <div className="bg-[#1c1b1b]/80 backdrop-blur-sm border border-[#2d2d2d] border-l-4 border-l-[#acd292] rounded-xl p-6 mb-8 relative overflow-hidden">
+            <div className="absolute -right-8 -bottom-8 opacity-5 pointer-events-none">
+              <span className="material-symbols-outlined text-[160px]" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+            </div>
+            <div className="flex items-start gap-4 relative z-10">
+              <div className="w-10 h-10 rounded-lg bg-[#895072] flex items-center justify-center text-[#ffd3e9] shadow-lg flex-shrink-0">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col gap-3">
+                <h3 className="font-mono text-[10px] text-[#f8b2d9] uppercase tracking-widest">Agent Zebrano Insights</h3>
+
                 {estancados.length > 0 && (
-                  <div style={{ display:'flex', alignItems:'flex-start', gap:12, flexWrap:'wrap' }}>
-                    <div style={{ flex:1, minWidth:200 }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--z-warning)', marginBottom:4 }}>
+                  <div className="flex items-start gap-3 flex-wrap">
+                    <div className="flex-1 min-w-[200px]">
+                      <p className="text-sm font-semibold text-[#e3b341] mb-1">
                         {estancados.length} proyecto{estancados.length !== 1 ? 's' : ''} estancado{estancados.length !== 1 ? 's' : ''} en "Cotizado"
-                      </div>
-                      <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
+                      </p>
+                      <p className="text-xs text-[#c3c8ba] leading-relaxed">
                         {estancados.slice(0,3).map(e => `${e.clientes?.nombre || 'Sin nombre'} (${e.dias}d)`).join(' · ')}
                         {estancados.length > 3 && ` y ${estancados.length - 3} más`}
                         {' — '}sin pasar a "Seña pagada" hace más de {DIAS_ESTANCADO} días.
-                      </div>
+                      </p>
                     </div>
-                    <Btn
-                      variant="ghost" small
+                    <button
                       onClick={() => navigate('/proyectos')}
-                      style={{ color:'var(--z-warning)', borderColor:'rgba(176,123,48,0.35)', flexShrink:0, whiteSpace:'nowrap' }}
+                      className="border border-[#e3b341]/40 text-[#e3b341] text-[10px] font-mono uppercase tracking-wide px-3 py-1.5 rounded hover:bg-[#e3b341]/10 transition-colors flex-shrink-0 whitespace-nowrap"
                     >
                       Ver proyectos
-                    </Btn>
+                    </button>
                   </div>
                 )}
+
                 {resumenSemana && (resumenSemana.entregados > 0 || resumenSemana.cotizados > 0) && (
                   <div>
-                    <div style={{ fontSize:13, fontWeight:600, color:'var(--z-primary-light)', marginBottom:4 }}>Resumen de la semana</div>
-                    <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5 }}>
+                    <p className="text-sm font-semibold text-[#c7eeac] mb-1">Resumen de la semana</p>
+                    <p className="text-xs text-[#c3c8ba] leading-relaxed">
                       {resumenSemana.entregados} entregado{resumenSemana.entregados !== 1 ? 's' : ''} · {resumenSemana.cotizados} cotización{resumenSemana.cotizados !== 1 ? 'es' : ''} nueva{resumenSemana.cotizados !== 1 ? 's' : ''} ({fmt(resumenSemana.valorCotizado)})
-                    </div>
+                    </p>
                   </div>
                 )}
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* ── KPI row ───────────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 28 }}>
-          <KpiCard label="Prospectos activos" value={stats.prospectos ?? '—'} detail="Pipeline activo" accent />
-          <KpiCard label="Clientes"           value={stats.clientes ?? '—'} />
-          <KpiCard label="Proyectos"          value={stats.proyectos ?? '—'} />
-          <KpiCard label="Borradores RRSS"    value={stats.borradores ?? '—'} />
-          <KpiCard label="Publicaciones"      value={stats.publicados ?? '—'} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded p-6">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[#8d9386] font-mono text-[10px] uppercase tracking-widest">Cotizado esta semana</span>
+              <span className="material-symbols-outlined text-[#acd292] text-lg">trending_up</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-[32px] text-[#e5e2e1] font-bold">{loading ? '—' : fmt(resumenSemana?.valorCotizado)}</span>
+            </div>
+            <p className="mt-4 text-[10px] font-mono text-[#8d9386]">
+              {resumenSemana?.cotizados ?? 0} cotización{(resumenSemana?.cotizados ?? 0) !== 1 ? 'es' : ''} nueva{(resumenSemana?.cotizados ?? 0) !== 1 ? 's' : ''}
+            </p>
+          </div>
+
+          <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded p-6">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[#8d9386] font-mono text-[10px] uppercase tracking-widest">Proyectos activos</span>
+              <span className="material-symbols-outlined text-[#acd292] text-lg">factory</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-[32px] text-[#e5e2e1] font-bold">{loading ? '—' : proyectosActivos.length}</span>
+              <span className="text-[#8d9386] font-mono text-[10px]">/ {proyectos.length} totales</span>
+            </div>
+            <p className="mt-4 text-[10px] font-mono text-[#8d9386]">En curso, sin entregar</p>
+          </div>
+
+          <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded p-6">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[#8d9386] font-mono text-[10px] uppercase tracking-widest">Ticket promedio</span>
+              <span className="material-symbols-outlined text-[#b0d09c] text-lg">payments</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-[32px] text-[#e5e2e1] font-bold">{loading ? '—' : fmt(avgTicket)}</span>
+            </div>
+            <p className="mt-4 text-[10px] font-mono text-[#8d9386]">Por proyecto cotizado</p>
+          </div>
         </div>
 
-        {/* ── Dos columnas ─────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+        {/* ── Dos columnas: Proyectos activos + Módulos / Prospectos recientes ── */}
+        <div className="grid grid-cols-12 gap-8">
 
-          {/* Módulos del sistema */}
-          <div>
-            {MODULES.map((section) => (
-              <div key={section.section} style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 3, height: 16, borderRadius: 2, background: section.color }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {section.section}
-                  </span>
+          {/* Columna izquierda: Proyectos activos + módulos del sistema */}
+          <div className="col-span-12 lg:col-span-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-[#e5e2e1]">Proyectos activos</h3>
+              <button onClick={() => navigate('/proyectos')} className="text-[#acd292] font-mono text-[10px] uppercase tracking-wide hover:underline">
+                Ver todos los proyectos
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded p-8 text-center text-[#43483e] text-sm">Cargando...</div>
+            ) : proyectosActivos.length === 0 ? (
+              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded p-8 text-center text-[#43483e] text-sm">No hay proyectos activos</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {proyectosActivos.slice(0, 4).map(p => (
+                  <div
+                    key={p.id}
+                    onClick={() => navigate('/proyectos')}
+                    className="bg-[#1c1b1b] border border-[#2d2d2d] rounded overflow-hidden group cursor-pointer hover:border-[#acd292] transition-colors duration-300"
+                  >
+                    <div className="h-24 relative overflow-hidden bg-gradient-to-br from-[#201f1f] to-[#0e0e0e] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[#43483e] text-4xl group-hover:text-[#acd292]/40 transition-colors">layers</span>
+                      <div className="absolute top-3 left-3 px-2 py-1 rounded bg-[#131313]/80 backdrop-blur border border-[#2d2d2d] font-mono text-[10px] text-[#e5e2e1]">
+                        PRJ-{p.id}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h4 className="text-base font-semibold text-[#e5e2e1] group-hover:text-[#acd292] transition-colors truncate">
+                        {p.nombre || 'Sin nombre'}
+                      </h4>
+                      <p className="text-[#8d9386] text-xs mb-3 truncate">{p.clientes?.nombre || 'Sin cliente'}</p>
+                      <span className={`inline-block px-2 py-1 rounded font-mono text-[10px] uppercase ${PROYECTO_CHIP[p.estado] || PROYECTO_CHIP_DEFAULT}`}>
+                        {p.estado}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Módulos del sistema */}
+            {MODULES.map(section => (
+              <div key={section.section} className="mt-8">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-[3px] h-4 rounded" style={{ background: section.color }} />
+                  <span className="text-[11px] font-semibold text-[#8d9386] uppercase tracking-wider">{section.section}</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {section.items.map(item => (
-                    <ModuleCard key={item.path} item={item} color={section.color} navigate={navigate} />
+                    <div
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      className="flex items-center gap-3.5 bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-4 py-3 cursor-pointer hover:border-[#acd292]/50 transition-colors"
+                    >
+                      <div
+                        className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                        style={{ background: section.color + '18', border: `1px solid ${section.color}33`, color: section.color }}
+                      >
+                        <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-[#e5e2e1]">{item.label}</div>
+                        <div className="text-[11px] text-[#8d9386] leading-snug">{item.desc}</div>
+                      </div>
+                      <span className="material-symbols-outlined text-[#43483e] text-sm flex-shrink-0">chevron_right</span>
+                    </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Panel lateral: actividad reciente */}
-          <div>
-            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 3, height: 16, borderRadius: 2, background: '#4A6B36' }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Prospectos recientes
-              </span>
+          {/* Columna derecha: Prospectos recientes + Acciones rápidas */}
+          <div className="col-span-12 lg:col-span-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-[#e5e2e1]">Prospectos recientes</h3>
             </div>
-
-            <Card padding="0" style={{ overflow: 'hidden' }}>
+            <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded p-4 space-y-4">
               {loading ? (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--z-text-muted)' }}>Cargando...</div>
+                <p className="text-center text-[#43483e] text-sm py-8">Cargando...</p>
               ) : actividades.length === 0 ? (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--z-text-muted)' }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
-                  <p style={{ fontSize: 13 }}>Sin prospectos aún</p>
+                <div className="text-center text-[#43483e] py-8">
+                  <div className="text-2xl mb-2">📭</div>
+                  <p className="text-sm">Sin prospectos aún</p>
                 </div>
               ) : (
-                actividades.map((p, i) => (
-                  <div key={p.id}
-                    onClick={() => navigate(`/prospectos/${p.id}`)}
-                    style={{
-                      padding: '12px 16px', cursor: 'pointer',
-                      borderBottom: i < actividades.length - 1 ? '1px solid var(--z-border)' : 'none',
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      transition: 'var(--z-transition)',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(74,107,54,0.04)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                      background: 'rgba(74,107,54,0.1)', border: '1px solid rgba(74,107,54,0.2)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#4A6B36',
-                    }}>
-                      <Icon name={CANAL_ICON[p.canal_origen] || 'users'} size={15} color="currentColor" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--z-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {p.nombre || 'Sin nombre'} {p.apellido || ''}
+                <div className="space-y-3">
+                  {actividades.map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => navigate(`/prospectos/${p.id}`)}
+                      className="flex items-start gap-3 p-3 rounded bg-[#161616] border border-[#2d2d2d] cursor-pointer hover:border-[#acd292]/40 transition-colors"
+                    >
+                      <div className="mt-0.5 w-8 h-8 rounded bg-[#acd292]/10 flex items-center justify-center text-[#acd292] flex-shrink-0">
+                        <span className="material-symbols-outlined text-sm">{CANAL_ICON[p.canal_origen] || 'group'}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--z-text-3)', marginTop: 1, textTransform: 'capitalize' }}>
-                        {p.canal_origen || 'directo'}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <h5 className="font-mono text-sm text-[#e5e2e1] truncate">{p.nombre || 'Sin nombre'} {p.apellido || ''}</h5>
+                          <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${PROSPECTO_CHIP[p.estado] || PROSPECTO_CHIP_DEFAULT}`}>
+                            {p.estado}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[#8d9386] font-mono uppercase mt-1">{p.canal_origen || 'directo'}</p>
                       </div>
                     </div>
-                    <span style={{
-                      fontSize: 10, padding: '2px 8px', borderRadius: 20, flexShrink: 0,
-                      background: (ESTADO_COLOR[p.estado] || 'var(--z-text-muted)') + '18',
-                      color: ESTADO_COLOR[p.estado] || 'var(--z-text-muted)',
-                      border: `1px solid ${(ESTADO_COLOR[p.estado] || 'var(--z-text-muted)')}33`,
-                      textTransform: 'capitalize',
-                    }}>{p.estado}</span>
-                  </div>
-                ))
-              )}
-              {actividades.length > 0 && (
-                <div
-                  onClick={() => navigate('/prospectos')}
-                  style={{
-                    padding: '10px 16px', cursor: 'pointer', textAlign: 'center',
-                    fontSize: 12, color: '#4A6B36', fontWeight: 500,
-                    borderTop: '1px solid var(--z-border)',
-                    transition: 'var(--z-transition)',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(74,107,54,0.05)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  Ver todos los prospectos →
+                  ))}
                 </div>
               )}
-            </Card>
+              <button
+                onClick={() => navigate('/prospectos')}
+                className="w-full py-2 border border-[#2d2d2d] rounded font-mono text-[10px] uppercase tracking-wide text-[#8d9386] hover:bg-[#201f1f] hover:text-[#e5e2e1] transition-colors"
+              >
+                Ver todos los prospectos
+              </button>
+            </div>
 
-            {/* Quick actions */}
-            <div style={{ marginTop: 20 }}>
-              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 3, height: 16, borderRadius: 2, background: '#7AAE5A' }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Acciones rápidas
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  { label: '+ Nuevo prospecto', path: '/prospectos', color: '#4A6B36' },
-                  { label: '📸 Importar fotos',  path: '/rrss/importar', color: '#7AAE5A' },
-                  { label: '🎵 Gestionar TikTok', path: '/tiktok', color: '#a78bfa' },
-                  { label: '💰 Ver publicaciones', path: '/rrss', color: '#6366f1' },
-                ].map(a => (
-                  <button key={a.path}
+            {/* Acciones rápidas */}
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold text-[#e5e2e1] mb-4">Acciones rápidas</h3>
+              <div className="flex flex-col gap-2">
+                {QUICK_ACTIONS.map(a => (
+                  <button
+                    key={a.path}
                     onClick={() => navigate(a.path)}
-                    style={{
-                      width: '100%', padding: '10px 16px', borderRadius: 10,
-                      background: a.color + '10', border: `1px solid ${a.color}25`,
-                      color: a.color, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                      textAlign: 'left', transition: 'var(--z-transition)',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = a.color + '20'; e.currentTarget.style.borderColor = a.color + '50'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = a.color + '10'; e.currentTarget.style.borderColor = a.color + '25'; }}
+                    className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    style={{ background: a.color + '10', border: `1px solid ${a.color}25`, color: a.color }}
                   >
                     {a.label}
                   </button>

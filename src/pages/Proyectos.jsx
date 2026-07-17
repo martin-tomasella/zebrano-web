@@ -19,16 +19,9 @@ const SIGUIENTE = {
   en_fabricacion: { estado:'entregado',      label:'Marcar entregado',     campoFecha:'fecha_entrega_real' },
 };
 
-// ─── Río + carriles: constantes de la nueva visualización ─────────────────────
-// Paleta teal/cyan específica de esta vista (no se agrega a los tokens --z-* globales:
-// el resto de la app se mantiene en la identidad verde/cobre ya shippeada).
-const RIO_DESDE = '#2DD4BF';
-const RIO_HASTA = '#22D3EE';
-
 // Mismo umbral que Dashboard.jsx usa para "proyecto estancado en Cotizado".
 const DIAS_ESTANCADO = 7;
 
-const STAGE_ORDER_IDX = { cotizado:0, sena_pagada:1, en_fabricacion:2, entregado:3 };
 const STAGE_PCT = { cotizado:15, sena_pagada:40, en_fabricacion:70, entregado:100 };
 
 function fechaEntradaEtapa(p) {
@@ -95,18 +88,6 @@ export default function Proyectos() {
   const activos = proyectos.filter(p => p.estado !== 'cancelado');
   const listado = filtro === 'cancelados' ? cancelados : activos;
   const porEstado = (estado) => listado.filter(p => p.estado === estado);
-
-  // Carriles del río: solo proyectos en alguna de las 4 etapas del funnel,
-  // ordenados por etapa y, dentro de cada etapa, por más tiempo estancado primero.
-  const carriles = listado
-    .filter(p => STAGE_ORDER_IDX[p.estado] !== undefined)
-    .map(p => ({ ...p, _dias: diasEnEtapa(p), _estancado: esEstancado(p) }))
-    .sort((a, b) => {
-      const ia = STAGE_ORDER_IDX[a.estado] ?? 99;
-      const ib = STAGE_ORDER_IDX[b.estado] ?? 99;
-      if (ia !== ib) return ia - ib;
-      return b._dias - a._dias;
-    });
 
   const valorPipeline = activos.filter(p => p.estado !== 'entregado').reduce((s,p) => s + Number(p.valor_final || p.valor_estimado || 0), 0);
   const mesActual = new Date().toISOString().slice(0,7);
@@ -243,73 +224,86 @@ export default function Proyectos() {
             ))}
           </div>
         ) : (
-          <div>
-            {/* ── Río: vista general de las 4 etapas del funnel ─────────────────── */}
-            <div style={{ marginBottom:22 }}>
-              <div style={{
-                height:8, borderRadius:99, overflow:'hidden',
-                background:'rgba(45,212,191,0.12)', border:'1px solid rgba(45,212,191,0.18)',
-              }}>
-                <div style={{
-                  height:'100%', width:'100%', opacity:0.85,
-                  background:`linear-gradient(90deg, ${RIO_DESDE} 0%, ${RIO_HASTA} 100%)`,
-                }} />
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
-                {COLUMNAS.map((col, i) => (
-                  <span key={col.id} style={{
-                    fontSize:10, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.06em',
-                    flex:1, textAlign: i === 0 ? 'left' : i === COLUMNAS.length - 1 ? 'right' : 'center',
-                  }}>
-                    {col.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Carriles: un renglón por proyecto activo ──────────────────────── */}
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {carriles.map(p => {
-                const pct = calcPct(p);
-                const ot = Array.isArray(p.ordenes_trabajo) ? p.ordenes_trabajo[0] : p.ordenes_trabajo;
-                return (
-                  <div key={p.id} onClick={() => seleccionar(p)}
-                    style={{
-                      background:'var(--z-card)',
-                      border: `1px solid ${p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'}`,
-                      borderRadius:10, padding:'12px 16px', cursor:'pointer', transition:'var(--z-transition)',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = p._estancado ? 'var(--z-warning)' : 'var(--z-border-hover)'; e.currentTarget.style.boxShadow = 'var(--z-shadow-primary)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}
-                  >
-                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                      <span style={{ fontSize:13, fontWeight:500, color:'var(--z-text)' }}>{p.clientes?.nombre || 'Sin nombre'}</span>
-                      {ot?.numero_ot && (
-                        <span style={{ fontSize:10.5, fontFamily:'monospace', color:'var(--z-text-3)' }}>{ot.numero_ot}</span>
-                      )}
-                      <Badge value={p.estado} />
-                      {p._estancado && (
-                        <span style={{ fontSize:10, color:'var(--z-warning)', display:'inline-flex', alignItems:'center', gap:3 }}>
-                          🚩 {p._dias}d estancado
-                        </span>
-                      )}
-                      <span style={{ marginLeft:'auto', fontSize:12.5, color:'var(--z-success)', fontWeight:500 }}>
-                        {fmt(p.valor_final || p.valor_estimado)}
-                      </span>
-                    </div>
-                    <div style={{ height:5, borderRadius:99, background:'var(--z-bg-2)', overflow:'hidden' }}>
-                      <div style={{
-                        height:'100%', width:`${pct}%`, borderRadius:99, transition:'width 0.3s',
-                        background: p._estancado ? 'var(--z-warning)' : `linear-gradient(90deg, ${RIO_DESDE}, ${RIO_HASTA})`,
-                      }} />
-                    </div>
+          // ── Kanban: una columna por etapa real del pipeline (COLUMNAS) ──────
+          <div style={{ display:'flex', gap:16, overflowX:'auto', paddingBottom:8, alignItems:'flex-start' }}>
+            {COLUMNAS.map(col => {
+              const cards = porEstado(col.id)
+                .map(p => ({ ...p, _dias: diasEnEtapa(p), _estancado: esEstancado(p) }))
+                .sort((a,b) => b._dias - a._dias);
+              return (
+                <div key={col.id} style={{ minWidth:280, maxWidth:280, flexShrink:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12, padding:'0 2px' }}>
+                    <span style={{ width:8, height:8, borderRadius:'50%', background:col.color, flexShrink:0 }} />
+                    <span style={{ fontSize:11, fontWeight:600, color:'var(--z-text)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{col.label}</span>
+                    <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--z-text-3)', background:'var(--z-bg-2)', padding:'1px 8px', borderRadius:20, marginLeft:'auto' }}>
+                      {cards.length}
+                    </span>
                   </div>
-                );
-              })}
-              {carriles.length === 0 && (
-                <div style={{ fontSize:12, color:'var(--z-text-muted)', textAlign:'center', padding:24 }}>Sin proyectos en el funnel</div>
-              )}
-            </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    {cards.length === 0 ? (
+                      <div style={{ fontSize:11.5, color:'var(--z-text-muted)', textAlign:'center', padding:'20px 8px', border:'1px dashed var(--z-border)', borderRadius:8 }}>
+                        Sin proyectos
+                      </div>
+                    ) : cards.map(p => {
+                      const pct = calcPct(p);
+                      const ot = Array.isArray(p.ordenes_trabajo) ? p.ordenes_trabajo[0] : p.ordenes_trabajo;
+                      const restante = p.fecha_entrega_estimada ? diasPara(p.fecha_entrega_estimada) : null;
+                      const diasLabel = restante != null ? 'Entrega en' : 'En etapa';
+                      const diasTexto = restante != null ? (restante < 0 ? `${Math.abs(restante)}d atraso` : `${restante}d`) : `${p._dias}d`;
+                      const diasColor = (restante != null && restante < 0) || p._estancado ? 'var(--z-warning)' : 'var(--z-text-2)';
+                      return (
+                        <div key={p.id} onClick={() => seleccionar(p)}
+                          style={{
+                            background:'var(--z-card)',
+                            border: `1px solid ${p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'}`,
+                            borderRadius:10, padding:'12px 14px', cursor:'pointer', transition:'var(--z-transition)',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = p._estancado ? 'var(--z-warning)' : 'var(--z-border-hover)'; e.currentTarget.style.boxShadow = 'var(--z-shadow-primary)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        >
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                            <span style={{
+                              fontSize:10.5, fontFamily:'var(--font-mono)', color: col.color,
+                              background: col.color + '18', border:`1px solid ${col.color}33`,
+                              padding:'2px 7px', borderRadius:4,
+                            }}>
+                              {ot?.numero_ot || `#${p.id.slice(0,8).toUpperCase()}`}
+                            </span>
+                            {p._estancado && (
+                              <span style={{ fontSize:10, color:'var(--z-warning)', display:'inline-flex', alignItems:'center', gap:3 }}>
+                                🚩 estancado
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize:13, fontWeight:600, color:'var(--z-text)', marginBottom:2 }}>
+                            {p.clientes?.nombre || 'Sin nombre'}
+                          </div>
+                          <div style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize', marginBottom:12 }}>
+                            {p.tipo_trabajo || p.descripcion || '—'}
+                          </div>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:8, gap:8 }}>
+                            <div>
+                              <div style={{ fontSize:9, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Valor</div>
+                              <div style={{ fontSize:12.5, fontFamily:'var(--font-mono)', color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</div>
+                            </div>
+                            <div style={{ textAlign:'right' }}>
+                              <div style={{ fontSize:9, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>{diasLabel}</div>
+                              <div style={{ fontSize:12.5, fontFamily:'var(--font-mono)', color: diasColor }}>{diasTexto}</div>
+                            </div>
+                          </div>
+                          <div style={{ height:4, borderRadius:99, background:'var(--z-bg-2)', overflow:'hidden' }}>
+                            <div style={{
+                              height:'100%', width:`${pct}%`, borderRadius:99, transition:'width 0.3s',
+                              background: p._estancado ? 'var(--z-warning)' : col.color,
+                            }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </PageContent>

@@ -1,71 +1,96 @@
 
 /* ============================================
-   ZEBRANO ERP — Design System v3.0
-   Tema: espresso oscuro + verde bosque + cobre
-   (carpintería, serio, sin la estética "AI morada" anterior)
+   ZEBRANO ERP — Design System v4.0
+   Tema: Industrial Precision Dark
+   (carga técnica, alto contraste, IBM Plex Sans + JetBrains Mono)
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 
 :root {
-  /* — Superficies (espresso oscuro, no negro puro) — */
-  --z-bg:             #0A0E07;
-  --z-bg-2:           #080B06;
-  --z-card:           #0D120A;
-  --z-card-hover:     #121810;
-  --z-sidebar-bg:     #070A05;
-  --z-sidebar-w:      236px;
+  /* — Superficies (carbón profundo, tiers M3-style) — */
+  --z-bg:             #131313;
+  --z-bg-2:           #0e0e0e;
+  --z-card:           #1c1b1b;
+  --z-card-hover:     #201f1f;
+  --z-sidebar-bg:     #0e0e0e;
+  --z-sidebar-w:      256px;
 
   /* — Bordes — */
-  --z-border:         rgba(74,107,54,0.14);
-  --z-border-hover:   rgba(74,107,54,0.32);
+  --z-border:         #2d2d2d;
+  --z-border-hover:   #acd292;
 
-  /* — Acento primario: verde bosque (roble). Secundario: cobre (herrajes) — */
-  --z-primary:        #4A6B36;
-  --z-primary-light:  #7AAE5A;
-  --z-primary-glow:   rgba(74,107,54,0.22);
-  --z-secondary:      #B07B30;
-  --z-secondary-light:#C99A55;
-  --z-accent:         #4A6B36;
+  /* — Acento primario: verde señal. Secundario: magenta "voz de IA" — */
+  --z-primary:        #acd292;
+  --z-primary-light:  #c7eeac;
+  --z-primary-glow:   rgba(172,210,146,0.22);
+  --z-secondary:      #f8b2d9;
+  --z-secondary-light:#ffd8eb;
+  --z-accent:         #acd292;
 
-  /* — Texto (cálido, no gris puro) — */
-  --z-text:           #E8DFD0;
-  --z-text-2:         #C9C2B4;
-  --z-text-3:         #8A8578;
-  --z-text-muted:     #5E5A4E;
-  --z-hint:           #8A8578;
-  --z-ghost:          #5E5A4E;
-  --z-muted:          #706B5C;
+  /* — Texto sobre acentos (contraste) — */
+  --z-on-primary:     #193708;
+  --z-on-secondary:   #4f1f3e;
+  --z-on-error:       #690005;
+
+  /* — Texto (escala neutra) — */
+  --z-text:           #e5e2e1;
+  --z-text-2:         #c3c8ba;
+  --z-text-3:         #8d9386;
+  --z-text-muted:     #43483e;
+  --z-hint:           #8d9386;
+  --z-ghost:          #43483e;
+  --z-muted:          #6f7568;
 
   /* — Semánticos — */
-  --z-success:        #7AAE5A;
-  --z-warning:        #B07B30;
-  --z-error:          #A0402A;
-  --z-info:           #8A9E82;
+  --z-success:        #acd292;
+  --z-warning:        #e3b341;
+  --z-error:          #ffb4ab;
+  --z-info:           #c3c8ba;
 
-  --z-shadow:         0 4px 24px rgba(0,0,0,0.4);
-  --z-shadow-primary: 0 0 24px rgba(74,107,54,0.18);
-  --z-glow:           0 0 16px rgba(74,107,54,0.25);
+  /* — Zebra striping (tablas densas) — */
+  --z-zebra:           #161616;
+  --z-active-bg:       #344e25;
 
-  --z-gradient:       linear-gradient(135deg, #4A6B36 0%, #7AAE5A 100%);
-  --z-gradient-dark:  linear-gradient(135deg, rgba(74,107,54,0.12) 0%, rgba(176,123,48,0.06) 100%);
+  --z-shadow:         0 2px 4px rgba(0,0,0,0.4);
+  --z-shadow-primary: 0 0 12px rgba(172,210,146,0.15);
+  --z-glow:           0 0 8px rgba(172,210,146,0.18);
 
-  /* — Tipografía: sans para UI, serif suave para títulos grandes — */
-  --font-body:        'Inter', -apple-system, sans-serif;
-  --font-display:     'Fraunces', 'Inter', -apple-system, serif;
+  --z-gradient:       linear-gradient(135deg, #acd292 0%, #c7eeac 100%);
+  --z-gradient-dark:  linear-gradient(135deg, rgba(172,210,146,0.12) 0%, rgba(248,178,217,0.06) 100%);
+
+  /* — Tipografía: IBM Plex Sans para UI, JetBrains Mono para datos/labels — */
+  --font-body:        'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:     'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:        'JetBrains Mono', 'SF Mono', Consolas, monospace;
   --z-font:           var(--font-body);
 
-  /* — Radios (alias nuevos + viejos para no romper nada que ya los use) — */
-  --radius-sm:        6px;
-  --radius-md:        10px;
-  --radius-lg:         14px;
-  --radius-xl:        20px;
+  /* — Radios (soft industrial: 4/6/8/12px) — */
+  --radius-sm:        0.25rem;
+  --radius-md:        0.375rem;
+  --radius-lg:        0.5rem;
+  --radius-xl:        0.75rem;
   --z-radius-sm:       var(--radius-sm);
   --z-radius:          var(--radius-md);
   --z-radius-lg:       var(--radius-lg);
   --z-radius-xl:       var(--radius-xl);
 
   --z-transition:     all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* — Material Symbols (ligature icon font, usado por Icon en Layout.jsx) — */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
 }
 
 /* — Reset & Base — */
@@ -88,35 +113,39 @@ html, body, #root {
 /* — Scrollbar — */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--z-text-muted); border-radius: 20px; }
+::-webkit-scrollbar-thumb { background: var(--z-text-muted); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--z-primary); }
 
-/* — Tipografía — */
-h1 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 500; letter-spacing: -0.01em; color: var(--z-text); }
-h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 500; letter-spacing: -0.01em; color: var(--z-text); }
-h3 { font-size: 1rem; font-weight: 600; color: var(--z-text); }
-p  { color: var(--z-text-2); font-size: 14px; }
+/* — Tipografía (escala DESIGN.md: headline-lg/md/sm, body-lg/md, label-md/sm) — */
+h1 { font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 40px; letter-spacing: -0.02em; color: var(--z-text); }
+h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 32px; letter-spacing: -0.01em; color: var(--z-text); }
+h3 { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 28px; color: var(--z-text); }
+p  { color: var(--z-text-2); font-size: 14px; line-height: 20px; }
+
+.label-md { font-family: var(--font-mono); font-size: 12px; font-weight: 500; line-height: 16px; letter-spacing: 0.05em; }
+.label-sm { font-family: var(--font-mono); font-size: 10px; font-weight: 500; line-height: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+.mono { font-family: var(--font-mono); }
 
 /* — Botones — */
 .btn {
   display: inline-flex; align-items: center; gap: 7px;
-  padding: 9px 18px; border-radius: var(--z-radius);
+  padding: 9px 18px; border-radius: var(--radius-sm);
   font-size: 13.5px; font-weight: 500; cursor: pointer;
   border: none; transition: var(--z-transition);
-  text-decoration: none; white-space: nowrap; font-family: var(--z-font);
+  text-decoration: none; white-space: nowrap; font-family: var(--font-body);
 }
 .btn-primary {
-  background: var(--z-primary); color: #E8DFD0;
-  box-shadow: 0 0 16px rgba(74,107,54,0.25);
+  background: var(--z-primary); color: var(--z-on-primary);
 }
-.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
 .btn-ghost {
   background: transparent; color: var(--z-text-2);
   border: 1px solid var(--z-border);
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px;
 }
-.btn-ghost:hover { border-color: var(--z-primary); color: var(--z-text); background: var(--z-primary-glow); }
-.btn-sm { padding: 6px 14px; font-size: 12.5px; }
+.btn-ghost:hover { border-color: var(--z-primary); color: var(--z-text); background: rgba(172,210,146,0.08); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
 .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
 
 /* — Cards — */
@@ -127,45 +156,49 @@ p  { color: var(--z-text-2); font-size: 14px; }
   padding: 20px;
   transition: var(--z-transition);
 }
-.card:hover { border-color: var(--z-border-hover); box-shadow: var(--z-shadow-primary); }
+.card:hover { border-color: var(--z-primary); box-shadow: var(--z-shadow-primary); }
 
-/* — Badges — */
+/* — Badges / Chips (dot indicator + 15% opacity de color de estado, mono text) — */
 .badge {
-  display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 20px;
-  font-size: 12px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px 3px 8px; border-radius: 999px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.05em; text-transform: uppercase;
 }
-.badge-primary { background: var(--z-primary-glow); color: var(--z-primary-light); border: 1px solid rgba(74,107,54,0.3); }
-.badge-success { background: rgba(122,174,90,0.1); color: var(--z-success); border: 1px solid rgba(122,174,90,0.2); }
-.badge-warning { background: rgba(176,123,48,0.1); color: var(--z-warning); border: 1px solid rgba(176,123,48,0.2); }
-.badge-error   { background: rgba(160,64,42,0.1);  color: var(--z-error);   border: 1px solid rgba(160,64,42,0.2); }
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.badge-primary { background: rgba(172,210,146,0.15); color: var(--z-primary); border: 1px solid rgba(172,210,146,0.3); }
+.badge-success { background: rgba(172,210,146,0.15); color: var(--z-success); border: 1px solid rgba(172,210,146,0.3); }
+.badge-warning { background: rgba(227,179,65,0.15);  color: var(--z-warning); border: 1px solid rgba(227,179,65,0.3); }
+.badge-error   { background: rgba(255,180,171,0.15); color: var(--z-error);   border: 1px solid rgba(255,180,171,0.3); }
 
-/* — Inputs — */
+/* — Inputs (JetBrains Mono para claridad numérica) — */
 input, textarea, select {
   background: var(--z-bg-2); color: var(--z-text);
-  border: 1px solid var(--z-border); border-radius: var(--z-radius);
-  padding: 9px 13px; font-size: 14px; font-family: var(--z-font);
+  border: 1px solid var(--z-border); border-radius: var(--z-radius-sm);
+  padding: 9px 13px; font-size: 13.5px; font-family: var(--font-mono);
   transition: var(--z-transition); outline: none; width: 100%;
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--z-primary);
-  box-shadow: 0 0 0 3px rgba(74,107,54,0.14);
+  box-shadow: 0 0 0 3px rgba(172,210,146,0.14);
 }
-input::placeholder, textarea::placeholder { color: var(--z-text-muted); }
+input::placeholder, textarea::placeholder { color: var(--z-text-muted); font-family: var(--font-mono); }
 select option { background: var(--z-bg-2); color: var(--z-text); }
 
-/* — Tabla — */
+/* — Tabla (zebra striping per DESIGN.md) — */
 table { width: 100%; border-collapse: collapse; }
 th {
-  font-size: 11.5px; font-weight: 600; color: var(--z-text-3);
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 500; color: var(--z-text-3);
   text-transform: uppercase; letter-spacing: 0.08em;
   padding: 12px 16px; border-bottom: 1px solid var(--z-border); text-align: left;
 }
 td {
   padding: 13px 16px; color: var(--z-text); font-size: 14px;
-  border-bottom: 1px solid rgba(74,107,54,0.07);
+  border-bottom: 1px solid var(--z-border);
 }
-tr:hover td { background: rgba(74,107,54,0.05); }
+tr:nth-child(even) td { background: var(--z-zebra); }
+tr:hover td { background: rgba(172,210,146,0.06); }
 
 /* — Overrides críticos para fondos blancos — */
 iframe { background: var(--z-bg) !important; }

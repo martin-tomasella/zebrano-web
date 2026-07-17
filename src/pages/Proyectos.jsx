@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent } from '../components/Layout';
-import { Card, KpiCard, Btn, Badge, Input } from '../components/ui';
 
 const COLUMNAS = [
   { id:'cotizado',       label:'Cotizado',        color:'#B07B30' },
@@ -11,6 +10,17 @@ const COLUMNAS = [
   { id:'entregado',      label:'Entregado',       color:'#4A6B36' },
 ];
 const ESTADO_LABEL = { prospecto:'Prospecto', cotizado:'Cotizado', sena_pagada:'Seña pagada', en_fabricacion:'En fabricación', entregado:'Entregado', cancelado:'Cancelado' };
+
+// Mismos colores que BADGE_MAP en components/ui.jsx, pero como estilos literales
+// (esta página ya no importa Badge de ui.jsx, sólo reutiliza su paleta de estado).
+const BADGE_STYLE = {
+  prospecto:      { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)' },
+  cotizado:       { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)' },
+  sena_pagada:    { bg:'rgba(176,208,156,0.15)', color:'#b0d09c', border:'rgba(176,208,156,0.3)' },
+  en_fabricacion: { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)' },
+  entregado:      { bg:'rgba(111,174,90,0.18)',  color:'#6fae5a', border:'rgba(111,174,90,0.32)' },
+  cancelado:      { bg:'rgba(255,180,171,0.15)', color:'#ffb4ab', border:'rgba(255,180,171,0.3)' },
+};
 
 // Mapa de avance: desde qué estado se puede pasar a cuál, y qué fecha real se sella.
 const SIGUIENTE = {
@@ -60,6 +70,33 @@ const fechaFmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—';
 function diasPara(fecha) {
   if (!fecha) return null;
   return Math.ceil((new Date(fecha) - new Date()) / 86400000);
+}
+
+// ─── Badge de estado (chip: dot + mono uppercase), literal Tailwind ───────────
+function EstadoBadge({ value }) {
+  const s = BADGE_STYLE[value] || { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)' };
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium uppercase tracking-wide"
+      style={{ background:s.bg, color:s.color, border:`1px solid ${s.border}` }}
+    >
+      <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background:s.color }} />
+      {ESTADO_LABEL[value] || value}
+    </span>
+  );
+}
+
+// ─── Input literal (reemplaza <Input/> de ui.jsx) ─────────────────────────────
+function Campo({ label, ...props }) {
+  return (
+    <div>
+      {label && <label className="block font-mono text-[10px] text-[#8d9386] uppercase tracking-wide mb-1.5">{label}</label>}
+      <input
+        {...props}
+        className="w-full px-3 py-2 rounded border border-[#2d2d2d] bg-[#0e0e0e] text-[#e5e2e1] text-[13px] font-mono outline-none focus:border-[#acd292] transition-colors placeholder:text-[#43483e]"
+      />
+    </div>
+  );
 }
 
 export default function Proyectos() {
@@ -194,54 +231,62 @@ export default function Proyectos() {
         title="Proyectos"
         subtitle={`${activos.length} activos · ${fmt(valorPipeline)} en pipeline · ${entregadosMes} entregados este mes`}
         actions={
-          <div style={{ display:'flex', gap:2, background:'rgba(74,107,54,0.08)', borderRadius:8, padding:3 }}>
+          <div className="flex gap-0.5 bg-[#4a6b36]/10 rounded-lg p-[3px]">
             {[['activos','Activos'],['cancelados',`Cancelados (${cancelados.length})`]].map(([v,l]) => (
-              <button key={v} onClick={() => setFiltro(v)} style={{ padding:'5px 12px', fontSize:11, background: filtro===v ? 'rgba(74,107,54,0.2)' : 'transparent', color: filtro===v ? 'var(--z-text)' : 'var(--z-text-3)', border:'none', borderRadius:6, cursor:'pointer' }}>{l}</button>
+              <button
+                key={v}
+                onClick={() => setFiltro(v)}
+                className={`px-3 py-[5px] rounded-md text-[11px] font-medium transition-colors ${filtro===v ? 'bg-[#4a6b36]/25 text-[#e5e2e1]' : 'text-[#8d9386] hover:text-[#e5e2e1]'}`}
+              >
+                {l}
+              </button>
             ))}
           </div>
         }
       />
       <PageContent pad={filtro === 'activos' ? '16px 24px' : 24}>
         {loading ? (
-          <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
+          <div className="text-center py-12 text-[#43483e]">Cargando...</div>
         ) : listado.length === 0 ? (
-          <div style={{ textAlign:'center', padding:64, border:'1px dashed var(--z-border)', borderRadius:'var(--z-radius-xl)', color:'var(--z-text-muted)' }}>
-            <div style={{ fontSize:40, marginBottom:12 }}>📋</div>
+          <div className="text-center py-16 border border-dashed border-[#2d2d2d] rounded-xl text-[#43483e]">
+            <div className="text-4xl mb-3">📋</div>
             <p>{filtro === 'cancelados' ? 'Sin proyectos cancelados' : 'Sin proyectos activos todavía'}</p>
           </div>
         ) : filtro === 'cancelados' ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          <div className="flex flex-col gap-2.5">
             {listado.map(p => (
-              <Card key={p.id} style={{ cursor:'pointer', opacity:0.75 }}>
-                <div onClick={() => seleccionar(p)} style={{ display:'flex', justifyContent:'space-between' }}>
-                  <div>
-                    <div style={{ fontWeight:500, color:'var(--z-text)' }}>{p.clientes?.nombre || 'Sin nombre'}</div>
-                    <div style={{ fontSize:12, color:'var(--z-text-3)', textTransform:'capitalize' }}>{p.tipo_trabajo || p.descripcion || '—'}</div>
-                  </div>
-                  <Badge value="cancelado" />
+              <div
+                key={p.id}
+                onClick={() => seleccionar(p)}
+                className="bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#2d2d2d] rounded p-3 flex justify-between items-center cursor-pointer opacity-75 hover:opacity-100 hover:border-[#acd292] transition-all duration-200"
+              >
+                <div>
+                  <div className="text-sm font-medium text-[#e5e2e1]">{p.clientes?.nombre || 'Sin nombre'}</div>
+                  <div className="text-xs text-[#8d9386] capitalize mt-0.5">{p.tipo_trabajo || p.descripcion || '—'}</div>
                 </div>
-              </Card>
+                <EstadoBadge value="cancelado" />
+              </div>
             ))}
           </div>
         ) : (
           // ── Kanban: una columna por etapa real del pipeline (COLUMNAS) ──────
-          <div style={{ display:'flex', gap:16, overflowX:'auto', paddingBottom:8, alignItems:'flex-start' }}>
+          <div className="flex gap-4 overflow-x-auto pb-2 items-start">
             {COLUMNAS.map(col => {
               const cards = porEstado(col.id)
                 .map(p => ({ ...p, _dias: diasEnEtapa(p), _estancado: esEstancado(p) }))
                 .sort((a,b) => b._dias - a._dias);
               return (
-                <div key={col.id} style={{ minWidth:280, maxWidth:280, flexShrink:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12, padding:'0 2px' }}>
-                    <span style={{ width:8, height:8, borderRadius:'50%', background:col.color, flexShrink:0 }} />
-                    <span style={{ fontSize:11, fontWeight:600, color:'var(--z-text)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{col.label}</span>
-                    <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--z-text-3)', background:'var(--z-bg-2)', padding:'1px 8px', borderRadius:20, marginLeft:'auto' }}>
-                      {cards.length}
+                <div key={col.id} className="min-w-[280px] max-w-[280px] flex-shrink-0 flex flex-col">
+                  <div className="flex items-center gap-2 mb-3 px-0.5">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.color }} />
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-[#e5e2e1] font-semibold">{col.label}</span>
+                    <span className="ml-auto bg-[#201f1f] px-2 py-0.5 rounded text-[10px] font-mono font-bold text-[#8d9386]">
+                      {String(cards.length).padStart(2,'0')}
                     </span>
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1">
                     {cards.length === 0 ? (
-                      <div style={{ fontSize:11.5, color:'var(--z-text-muted)', textAlign:'center', padding:'20px 8px', border:'1px dashed var(--z-border)', borderRadius:8 }}>
+                      <div className="text-[11px] text-[#43483e] text-center py-5 px-2 border border-dashed border-[#2d2d2d] rounded-lg">
                         Sin proyectos
                       </div>
                     ) : cards.map(p => {
@@ -250,52 +295,45 @@ export default function Proyectos() {
                       const restante = p.fecha_entrega_estimada ? diasPara(p.fecha_entrega_estimada) : null;
                       const diasLabel = restante != null ? 'Entrega en' : 'En etapa';
                       const diasTexto = restante != null ? (restante < 0 ? `${Math.abs(restante)}d atraso` : `${restante}d`) : `${p._dias}d`;
-                      const diasColor = (restante != null && restante < 0) || p._estancado ? 'var(--z-warning)' : 'var(--z-text-2)';
+                      const diasColor = (restante != null && restante < 0) || p._estancado ? '#e3b341' : '#c3c8ba';
                       return (
-                        <div key={p.id} onClick={() => seleccionar(p)}
-                          style={{
-                            background:'var(--z-card)',
-                            border: `1px solid ${p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'}`,
-                            borderRadius:10, padding:'12px 14px', cursor:'pointer', transition:'var(--z-transition)',
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = p._estancado ? 'var(--z-warning)' : 'var(--z-border-hover)'; e.currentTarget.style.boxShadow = 'var(--z-shadow-primary)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = p._estancado ? 'rgba(176,123,48,0.35)' : 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        <div
+                          key={p.id}
+                          onClick={() => seleccionar(p)}
+                          className={`bg-[#1a1a1a]/80 backdrop-blur-sm rounded p-3 cursor-pointer group transition-all duration-200 hover:-translate-y-0.5 border ${p._estancado ? 'border-[#e3b341]/40 hover:border-[#e3b341]' : 'border-[#2d2d2d] hover:border-[#acd292]'}`}
                         >
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                            <span style={{
-                              fontSize:10.5, fontFamily:'var(--font-mono)', color: col.color,
-                              background: col.color + '18', border:`1px solid ${col.color}33`,
-                              padding:'2px 7px', borderRadius:4,
-                            }}>
+                          <div className="flex justify-between items-center mb-2">
+                            <span
+                              className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border"
+                              style={{ color: col.color, background: col.color + '18', borderColor: col.color + '33' }}
+                            >
                               {ot?.numero_ot || `#${p.id.slice(0,8).toUpperCase()}`}
                             </span>
                             {p._estancado && (
-                              <span style={{ fontSize:10, color:'var(--z-warning)', display:'inline-flex', alignItems:'center', gap:3 }}>
-                                🚩 estancado
-                              </span>
+                              <span className="text-[10px] text-[#e3b341] inline-flex items-center gap-1">🚩 estancado</span>
                             )}
                           </div>
-                          <div style={{ fontSize:13, fontWeight:600, color:'var(--z-text)', marginBottom:2 }}>
+                          <div className="text-[13px] font-semibold text-[#e5e2e1] mb-0.5">
                             {p.clientes?.nombre || 'Sin nombre'}
                           </div>
-                          <div style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize', marginBottom:12 }}>
+                          <div className="text-[11px] text-[#8d9386] capitalize mb-3">
                             {p.tipo_trabajo || p.descripcion || '—'}
                           </div>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:8, gap:8 }}>
+                          <div className="flex justify-between items-end mb-2 gap-2">
                             <div>
-                              <div style={{ fontSize:9, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Valor</div>
-                              <div style={{ fontSize:12.5, fontFamily:'var(--font-mono)', color:'var(--z-success)' }}>{fmt(p.valor_final || p.valor_estimado)}</div>
+                              <div className="text-[9px] text-[#8d9386] uppercase tracking-wide font-mono mb-0.5">Valor</div>
+                              <div className="text-xs font-mono text-[#acd292]">{fmt(p.valor_final || p.valor_estimado)}</div>
                             </div>
-                            <div style={{ textAlign:'right' }}>
-                              <div style={{ fontSize:9, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>{diasLabel}</div>
-                              <div style={{ fontSize:12.5, fontFamily:'var(--font-mono)', color: diasColor }}>{diasTexto}</div>
+                            <div className="text-right">
+                              <div className="text-[9px] text-[#8d9386] uppercase tracking-wide font-mono mb-0.5">{diasLabel}</div>
+                              <div className="text-xs font-mono" style={{ color: diasColor }}>{diasTexto}</div>
                             </div>
                           </div>
-                          <div style={{ height:4, borderRadius:99, background:'var(--z-bg-2)', overflow:'hidden' }}>
-                            <div style={{
-                              height:'100%', width:`${pct}%`, borderRadius:99, transition:'width 0.3s',
-                              background: p._estancado ? 'var(--z-warning)' : col.color,
-                            }} />
+                          <div className="h-1 rounded-full bg-[#0e0e0e] overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{ width: `${pct}%`, background: p._estancado ? '#e3b341' : col.color }}
+                            />
                           </div>
                         </div>
                       );
@@ -337,37 +375,46 @@ function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia,
   ].filter(t => t.fecha);
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }} onClick={onClose}>
-      <div style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-xl)', padding:28, width:500, maxHeight:'85vh', overflowY:'auto' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={onClose}>
+      <div
+        className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-xl p-7 w-[500px] max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start mb-1.5">
           <div>
-            <h2 style={{ margin:0, fontSize:18 }}>{p.clientes?.nombre || 'Sin nombre'}</h2>
-            <div style={{ fontSize:12, color:'var(--z-text-3)', textTransform:'capitalize', marginTop:2 }}>{p.tipo_trabajo || p.descripcion || '—'}</div>
+            <h2 className="text-lg font-semibold text-[#e5e2e1] m-0">{p.clientes?.nombre || 'Sin nombre'}</h2>
+            <div className="text-xs text-[#8d9386] capitalize mt-0.5">{p.tipo_trabajo || p.descripcion || '—'}</div>
           </div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--z-text-3)', cursor:'pointer', fontSize:18 }}>✕</button>
+          <button onClick={onClose} className="bg-transparent border-none text-[#8d9386] hover:text-[#e5e2e1] cursor-pointer text-lg leading-none transition-colors">✕</button>
         </div>
-        <div style={{ margin:'10px 0 16px' }}><Badge value={p.estado} /></div>
+        <div className="my-2.5 mb-4"><EstadoBadge value={p.estado} /></div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:18 }}>
-          <KpiCard label="Valor" value={fmt(p.valor_final || p.valor_estimado)} />
-          <KpiCard label="Entrega estimada" value={fechaFmt(p.fecha_entrega_estimada)} />
+        <div className="grid grid-cols-2 gap-3 mb-[18px]">
+          <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
+            <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Valor</div>
+            <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{fmt(p.valor_final || p.valor_estimado)}</div>
+          </div>
+          <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
+            <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Entrega estimada</div>
+            <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{fechaFmt(p.fecha_entrega_estimada)}</div>
+          </div>
         </div>
 
         {(p.clientes?.telefono || p.clientes?.email) && (
-          <div style={{ fontSize:12, color:'var(--z-text-2)', marginBottom:16, display:'flex', gap:14 }}>
+          <div className="text-xs text-[#c3c8ba] mb-4 flex gap-3.5">
             {p.clientes?.telefono && <span>📞 {p.clientes.telefono}</span>}
             {p.clientes?.email && <span>✉️ {p.clientes.email}</span>}
           </div>
         )}
 
         {timeline.length > 0 && (
-          <div style={{ marginBottom:20 }}>
-            <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:10 }}>Línea de tiempo</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <div className="mb-5">
+            <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.14em] mb-2.5">Línea de tiempo</div>
+            <div className="flex flex-col gap-2">
               {timeline.map((t,i) => (
-                <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5 }}>
-                  <span style={{ color:'var(--z-text-2)' }}>{t.label}</span>
-                  <span style={{ color:'var(--z-text-3)' }}>{fechaFmt(t.fecha)}</span>
+                <div key={i} className="flex justify-between text-[12.5px]">
+                  <span className="text-[#c3c8ba]">{t.label}</span>
+                  <span className="text-[#8d9386]">{fechaFmt(t.fecha)}</span>
                 </div>
               ))}
             </div>
@@ -375,60 +422,94 @@ function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia,
         )}
 
         {p.notas_internas && (
-          <div style={{ marginBottom:18 }}>
-            <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6 }}>Notas</div>
-            <div style={{ fontSize:12.5, color:'var(--z-text-2)', whiteSpace:'pre-wrap' }}>{p.notas_internas}</div>
+          <div className="mb-[18px]">
+            <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.14em] mb-1.5">Notas</div>
+            <div className="text-[12.5px] text-[#c3c8ba] whitespace-pre-wrap">{p.notas_internas}</div>
           </div>
         )}
 
         {/* Formulario de tiempos: aparece solo al iniciar fabricación */}
         {esPasoTiempos && formTiempos && (
-          <div style={{ background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:12, padding:16, marginBottom:18 }}>
-            <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:10 }}>
+          <div className="bg-[#0e0e0e] border border-[#2d2d2d] rounded-xl p-4 mb-[18px]">
+            <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.14em] mb-2.5">
               Tiempos estimados para producción
             </div>
             {formTiempos.sugerido && (
-              <div style={{ fontSize:11.5, color:'var(--z-primary-light)', marginBottom:12, background:'var(--z-primary-glow)', padding:'6px 10px', borderRadius:8 }}>
+              <div className="text-[11.5px] text-[#c7eeac] mb-3 bg-[#acd292]/[0.14] px-2.5 py-1.5 rounded-lg">
                 🤖 Sugerencia del agente, basada en {formTiempos.basadoEn} trabajos similares de "{p.tipo_trabajo}". Podés editarla.
               </div>
             )}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:10 }}>
-              <Input label="Horas fabricación" type="number" value={formTiempos.horasFabricacion}
+            <div className="grid grid-cols-2 gap-3 mb-2.5">
+              <Campo label="Horas fabricación" type="number" value={formTiempos.horasFabricacion}
                 onChange={e => setFormTiempos(f => ({ ...f, horasFabricacion:e.target.value, sugerido:false }))} />
-              <Input label="Horas instalación (total)" type="number" value={formTiempos.horasInstalacion}
+              <Campo label="Horas instalación (total)" type="number" value={formTiempos.horasInstalacion}
                 onChange={e => setFormTiempos(f => ({ ...f, horasInstalacion:e.target.value, sugerido:false }))} />
             </div>
-            <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--z-text-2)', marginBottom:10 }}>
-              <input type="checkbox" checked={formTiempos.multiTramo} style={{ width:'auto' }}
+            <label className="flex items-center gap-1.5 text-xs text-[#c3c8ba] mb-2.5">
+              <input type="checkbox" checked={formTiempos.multiTramo} className="w-auto"
                 onChange={e => setFormTiempos(f => ({ ...f, multiTramo:e.target.checked }))} />
               Instalación en varios tramos (ej. varios departamentos)
             </label>
             {formTiempos.multiTramo && (
-              <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:8 }}>
+              <div className="flex flex-col gap-2 mb-2">
                 {formTiempos.tramos.map((t,i) => (
-                  <div key={i} style={{ display:'flex', gap:8 }}>
+                  <div key={i} className="flex gap-2">
                     <input placeholder="Ej: Depto 3B" value={t.nombre}
+                      className="flex-1 px-3 py-2 rounded border border-[#2d2d2d] bg-[#0e0e0e] text-[#e5e2e1] text-[13px] font-mono outline-none focus:border-[#acd292] transition-colors placeholder:text-[#43483e]"
                       onChange={e => setFormTiempos(f => { const tr=[...f.tramos]; tr[i]={...tr[i],nombre:e.target.value}; return {...f,tramos:tr}; })} />
-                    <input placeholder="Horas" type="number" style={{ width:90 }} value={t.horas}
+                    <input placeholder="Horas" type="number"
+                      className="w-[90px] px-3 py-2 rounded border border-[#2d2d2d] bg-[#0e0e0e] text-[#e5e2e1] text-[13px] font-mono outline-none focus:border-[#acd292] transition-colors placeholder:text-[#43483e]"
+                      value={t.horas}
                       onChange={e => setFormTiempos(f => { const tr=[...f.tramos]; tr[i]={...tr[i],horas:e.target.value}; return {...f,tramos:tr}; })} />
                   </div>
                 ))}
-                <button className="btn btn-ghost btn-sm" onClick={() => setFormTiempos(f => ({ ...f, tramos:[...f.tramos, { nombre:'', horas:'' }] }))}>+ Agregar tramo</button>
+                <button
+                  onClick={() => setFormTiempos(f => ({ ...f, tramos:[...f.tramos, { nombre:'', horas:'' }] }))}
+                  className="self-start bg-transparent border border-[#2d2d2d] text-[#c3c8ba] px-3.5 py-1.5 rounded font-mono text-[12px] uppercase tracking-wide hover:border-[#acd292] hover:text-[#e5e2e1] transition-colors"
+                >
+                  + Agregar tramo
+                </button>
               </div>
             )}
           </div>
         )}
 
-        <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:8 }}>
-          {p.estado !== 'entregado' && <Btn variant="danger" onClick={onCancelar} disabled={avanzando}>Cancelar proyecto</Btn>}
+        <div className="flex gap-2.5 justify-end mt-2">
+          {p.estado !== 'entregado' && (
+            <button
+              onClick={onCancelar}
+              disabled={avanzando}
+              className="bg-[#ffb4ab] text-[#690005] px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              Cancelar proyecto
+            </button>
+          )}
           {paso && esPasoTiempos && !formTiempos && (
-            <Btn onClick={onAbrirTiempos} disabled={cargandoSugerencia}>{cargandoSugerencia ? 'Buscando datos...' : paso.label}</Btn>
+            <button
+              onClick={onAbrirTiempos}
+              disabled={cargandoSugerencia}
+              className="bg-[#acd292] text-[#193708] px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              {cargandoSugerencia ? 'Buscando datos...' : paso.label}
+            </button>
           )}
           {paso && esPasoTiempos && formTiempos && (
-            <Btn onClick={onConfirmarTiempos} disabled={avanzando}>{avanzando ? 'Guardando...' : 'Confirmar e iniciar fabricación'}</Btn>
+            <button
+              onClick={onConfirmarTiempos}
+              disabled={avanzando}
+              className="bg-[#acd292] text-[#193708] px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              {avanzando ? 'Guardando...' : 'Confirmar e iniciar fabricación'}
+            </button>
           )}
           {paso && !esPasoTiempos && (
-            <Btn onClick={onAvanzar} disabled={avanzando}>{avanzando ? 'Guardando...' : paso.label}</Btn>
+            <button
+              onClick={onAvanzar}
+              disabled={avanzando}
+              className="bg-[#acd292] text-[#193708] px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              {avanzando ? 'Guardando...' : paso.label}
+            </button>
           )}
         </div>
       </div>

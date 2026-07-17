@@ -166,6 +166,35 @@ export default function Finanzas() {
     return Object.entries(map).sort((a,b) => b[0].localeCompare(a[0]))
   }, [rentabilidad])
 
+  // ── KPIs adicionales para el header (derivados de datos ya cargados, sin queries nuevas) ──
+  const margenesValidos = rentabilidad.filter(r => r.margenPct != null)
+  const margenPromedio = margenesValidos.length > 0 ? margenesValidos.reduce((s,r) => s + r.margenPct, 0) / margenesValidos.length : null
+
+  const proyectosPendientesFacturacion = proyectos.filter(p => ['cotizado','sena_pagada','en_fabricacion'].includes(p.estado))
+  const ingresosPendientes = proyectosPendientesFacturacion.reduce((s,p) => s + Number(p.valor_final || p.valor_estimado || 0), 0)
+
+  // ── Categorización de gastos: fijos (recurrentes) vs eventuales ───────────
+  const gastosFijos = aprobados.filter(m => m.recurrente)
+  const gastosEventuales = aprobados.filter(m => !m.recurrente)
+  const totalFijos = gastosFijos.reduce((s,m) => s + Number(m.monto||0), 0)
+  const totalEventuales = gastosEventuales.reduce((s,m) => s + Number(m.monto||0), 0)
+  const totalGastosCat = totalFijos + totalEventuales
+  const pctFijos = totalGastosCat > 0 ? Math.round((totalFijos/totalGastosCat)*100) : 0
+
+  function agruparPorCategoria(lista) {
+    const map = {}
+    for (const m of lista) { map[m.categoria] = (map[m.categoria]||0) + Number(m.monto||0) }
+    return Object.entries(map).sort((a,b) => b[1]-a[1])
+  }
+  const fijosPorCategoria = agruparPorCategoria(gastosFijos)
+  const eventualesPorCategoria = agruparPorCategoria(gastosEventuales)
+
+  // ── Escala del gráfico de flujo de caja (sobre `semanas`, sin tocar el cálculo) ──
+  const maxFlujoSemanal = Math.max(1, ...semanas.flatMap(s => [s.ingresos, s.egresoFijoSemanal + s.eventuales]))
+
+  // ── Total nómina mensual (misma fórmula que semanalDeSueldo, proyectada a mes) ──
+  const nominaMensualTotal = empleados.reduce((s,e) => s + semanalDeSueldo(e), 0) * 4.33
+
   return (
     <Layout>
       <Topbar
@@ -175,6 +204,18 @@ export default function Finanzas() {
       />
       <PageContent>
         {loading ? <Spinner /> : <>
+
+          {/* ── KPI row global (derivado de datos ya cargados) ─────────────────── */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,minmax(0,1fr))', gap:12, marginBottom:20 }}>
+            <KpiCard label="Saldo proyectado (8 sem)" value={fmt(semanas[semanas.length-1]?.acumulado)} accent
+              detail={semanas[semanas.length-1]?.acumulado >= 0 ? 'positivo a 8 semanas' : 'déficit proyectado'} />
+            <KpiCard label="Margen promedio" value={margenPromedio != null ? `${margenPromedio.toFixed(1)}%` : '—'}
+              detail={margenPromedio != null ? `sobre ${margenesValidos.length} trabajo${margenesValidos.length !== 1 ? 's' : ''} con horas` : 'sin horas cargadas'} />
+            <KpiCard label="Ingresos pendientes" value={fmt(ingresosPendientes)}
+              detail={`${proyectosPendientesFacturacion.length} proyecto${proyectosPendientesFacturacion.length !== 1 ? 's' : ''} sin entregar`} />
+            <KpiCard label="Egreso fijo semanal" value={fmt(semanas[0]?.egresoFijoSemanal)} detail="nómina + servicios recurrentes" />
+          </div>
+
           <div style={{ display:'flex', gap:8, marginBottom:20 }}>
             {[['flujo','Flujo de caja'],['nomina','Nómina'],['gastos','Gastos'],['rentabilidad','Rentabilidad']].map(([v,l]) => (
               <Btn key={v} small variant={tab === v ? 'primary' : 'ghost'} onClick={() => setTab(v)}>{l}</Btn>
@@ -213,6 +254,49 @@ export default function Finanzas() {
                 <KpiCard label="Egreso fijo semanal (nómina+servicios)" value={fmt(semanas[0]?.egresoFijoSemanal)} />
                 <KpiCard label="Pendientes de aprobación" value={pendientes.length} />
               </div>
+
+              {/* ── Gráfico de flujo proyectado (divs con altura %, sobre `semanas` sin tocar) ── */}
+              <Card style={{ marginBottom:20, padding:0, overflow:'hidden' }}>
+                <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--z-border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:14, fontWeight:600, color:'var(--z-primary)' }}>Flujo de caja proyectado — 8 semanas</span>
+                  <div style={{ display:'flex', gap:16 }}>
+                    <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--z-text-3)' }}>
+                      <span style={{ width:9, height:9, borderRadius:2, background:'rgba(172,210,146,0.55)', display:'inline-block' }} /> Ingresos esperados
+                    </span>
+                    <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--z-text-3)' }}>
+                      <span style={{ width:9, height:9, borderRadius:2, background:'rgba(255,180,171,0.55)', display:'inline-block' }} /> Egresos (fijos + eventuales)
+                    </span>
+                  </div>
+                </div>
+                <div style={{
+                  padding:'20px 22px 10px', display:'flex', alignItems:'flex-end', gap:10, height:220,
+                  backgroundImage:'linear-gradient(var(--z-border) 1px, transparent 1px)', backgroundSize:'100% 25%',
+                }}>
+                  {semanas.map((s, i) => {
+                    const hIngreso = Math.max(1, (s.ingresos / maxFlujoSemanal) * 100)
+                    const hEgreso = Math.max(1, ((s.egresoFijoSemanal + s.eventuales) / maxFlujoSemanal) * 100)
+                    const deficit = s.saldoSemana < 0
+                    return (
+                      <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%' }}>
+                        <div
+                          title={`${fechaFmt(s.inicio)} – ${fechaFmt(s.fin)} · Ingresos ${fmt(s.ingresos)} · Egresos ${fmt(s.egresoFijoSemanal + s.eventuales)} · Saldo ${fmt(s.saldoSemana)}`}
+                          style={{ width:'100%', flex:1, display:'flex', flexDirection:'column', justifyContent:'flex-end', cursor:'default' }}
+                        >
+                          <div style={{ width:'100%', height:`${hIngreso}%`, background:'rgba(172,210,146,0.4)', borderRadius:'3px 3px 0 0', minHeight:2 }} />
+                          <div style={{
+                            width:'100%', height:`${hEgreso}%`, background: deficit ? 'rgba(255,180,171,0.6)' : 'rgba(255,180,171,0.3)',
+                            border: deficit ? '1px solid var(--z-error)' : 'none', borderRadius:'0 0 3px 3px', minHeight:2,
+                          }} />
+                        </div>
+                        <span style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight: deficit ? 700 : 400, color: deficit ? 'var(--z-error)' : 'var(--z-text-muted)' }}>
+                          S{i+1}{deficit ? ' ⚠' : ''}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+
               <SectionTitle>Próximas 8 semanas</SectionTitle>
               <Table
                 cols={[
@@ -261,11 +345,77 @@ export default function Finanzas() {
                 })}
                 {empleados.length === 0 && <div style={{ fontSize:12.5, color:'var(--z-text-muted)' }}>Sin empleados activos cargados en Usuarios.</div>}
               </div>
+              {empleados.length > 0 && (
+                <div style={{
+                  marginTop:14, padding:'14px 20px', display:'flex', justifyContent:'space-between', alignItems:'center',
+                  background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:'var(--radius-lg)',
+                }}>
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, fontWeight:600, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>
+                    Nómina mensual estimada
+                  </span>
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize:18, fontWeight:700, color:'var(--z-text)' }}>{fmt(nominaMensualTotal)}</span>
+                </div>
+              )}
             </>
           )}
 
           {tab === 'gastos' && (
             <>
+              {/* ── Categorización de gastos: fijos (recurrentes) vs eventuales ── */}
+              <Card style={{ marginBottom:20 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                  <span style={{ fontSize:14, fontWeight:600, color:'var(--z-primary)' }}>Categorización de gastos (aprobados)</span>
+                </div>
+                {totalGastosCat === 0 ? (
+                  <div style={{ fontSize:12.5, color:'var(--z-text-muted)' }}>Sin gastos aprobados todavía.</div>
+                ) : (
+                  <>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
+                      <div>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
+                          <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, fontWeight:600, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Fijos</span>
+                          <span style={{ fontFamily:'var(--font-mono)', fontSize:14, fontWeight:700, color:'var(--z-text)' }}>{fmt(totalFijos)}</span>
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {fijosPorCategoria.length === 0
+                            ? <span style={{ fontSize:11.5, color:'var(--z-text-muted)' }}>Sin gastos fijos aprobados</span>
+                            : fijosPorCategoria.map(([cat, monto]) => (
+                              <div key={cat} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 12px', background:'var(--z-bg-2)', border:'1px solid var(--z-border)', borderRadius:6 }}>
+                                <span style={{ fontSize:12, color:'var(--z-text-2)' }}>{CAT_LABEL[cat] || cat}</span>
+                                <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--z-text)' }}>{fmt(monto)}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
+                          <span style={{ fontFamily:'var(--font-mono)', fontSize:10.5, fontWeight:600, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Eventuales</span>
+                          <span style={{ fontFamily:'var(--font-mono)', fontSize:14, fontWeight:700, color:'var(--z-secondary)' }}>{fmt(totalEventuales)}</span>
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {eventualesPorCategoria.length === 0
+                            ? <span style={{ fontSize:11.5, color:'var(--z-text-muted)' }}>Sin gastos eventuales aprobados</span>
+                            : eventualesPorCategoria.map(([cat, monto]) => (
+                              <div key={cat} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 12px', background:'rgba(248,178,217,0.05)', border:'1px solid rgba(248,178,217,0.2)', borderRadius:6 }}>
+                                <span style={{ fontSize:12, color:'var(--z-text-2)' }}>{CAT_LABEL[cat] || cat}</span>
+                                <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--z-secondary)' }}>{fmt(monto)}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop:18, height:8, borderRadius:99, overflow:'hidden', display:'flex', background:'var(--z-bg-2)' }}>
+                      <div style={{ width:`${pctFijos}%`, background:'var(--z-primary)' }} />
+                      <div style={{ width:`${100-pctFijos}%`, background:'var(--z-secondary)' }} />
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, fontSize:11, fontFamily:'var(--font-mono)' }}>
+                      <span style={{ color:'var(--z-primary)' }}>FIJOS: {pctFijos}%</span>
+                      <span style={{ color:'var(--z-secondary)' }}>EVENTUALES: {100-pctFijos}%</span>
+                    </div>
+                  </>
+                )}
+              </Card>
+
               <SectionTitle>Movimientos (fijos y eventuales)</SectionTitle>
               <Table
                 cols={[

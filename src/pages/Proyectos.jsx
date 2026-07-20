@@ -367,6 +367,30 @@ export default function Proyectos() {
 function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia, setFormTiempos, onClose, onAvanzar, onAbrirTiempos, onConfirmarTiempos, onCancelar }) {
   const paso = SIGUIENTE[p.estado];
   const esPasoTiempos = paso?.estado === 'en_fabricacion';
+  const [pagoMonto, setPagoMonto] = useState(p.valor_final || p.valor_estimado || '');
+  const [pagoConcepto, setPagoConcepto] = useState('Seña');
+  const [generandoPago, setGenerandoPago] = useState(false);
+  const [linkPago, setLinkPago] = useState(null);
+  const [errorPago, setErrorPago] = useState(null);
+
+  async function generarLinkPago() {
+    setGenerandoPago(true);
+    setErrorPago(null);
+    try {
+      const r = await fetch('https://xsciujuvkbubnhhnpcix.supabase.co/functions/v1/zebrano-pagos-mp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'crear_link_pago', proyecto_id: p.id, concepto: pagoConcepto, monto: Number(pagoMonto) }),
+      });
+      const d = await r.json();
+      if (!d.ok) { setErrorPago(d.error || 'No se pudo generar el link de pago.'); return; }
+      setLinkPago(d.init_point);
+    } catch (e) {
+      setErrorPago('Error de conexión al generar el link de pago.');
+    } finally {
+      setGenerandoPago(false);
+    }
+  }
   const timeline = [
     { label:'Cotizado',       fecha: p.fecha_cotizado },
     { label:'Seña pagada',    fecha: p.fecha_sena_pagada },
@@ -425,6 +449,45 @@ function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia,
           <div className="mb-[18px]">
             <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.14em] mb-1.5">Notas</div>
             <div className="text-[12.5px] text-[#c3c8ba] whitespace-pre-wrap">{p.notas_internas}</div>
+          </div>
+        )}
+
+        {p.estado !== 'cancelado' && (
+          <div className="bg-[#0e0e0e] border border-[#2d2d2d] rounded-xl p-4 mb-[18px]">
+            <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.14em] mb-2.5">
+              Cobro online (Mercado Pago)
+            </div>
+            {linkPago ? (
+              <div className="flex flex-col gap-2">
+                <div className="text-[11.5px] text-[#c7eeac] bg-[#acd292]/[0.14] px-2.5 py-1.5 rounded-lg">
+                  Link generado. Copialo y mandaselo al cliente por WhatsApp.
+                </div>
+                <div className="flex gap-2">
+                  <input readOnly value={linkPago} className="flex-1 px-3 py-2 rounded border border-[#2d2d2d] bg-[#1c1b1b] text-[#e5e2e1] text-[12px] font-mono outline-none" />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(linkPago)}
+                    className="bg-[#acd292] text-[#193708] px-3.5 py-2 rounded font-mono text-[12px] uppercase tracking-wide hover:brightness-110 transition-all"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-2.5">
+                  <Campo label="Concepto" value={pagoConcepto} onChange={e => setPagoConcepto(e.target.value)} />
+                  <Campo label="Monto (ARS)" type="number" value={pagoMonto} onChange={e => setPagoMonto(e.target.value)} />
+                </div>
+                {errorPago && <div className="text-[11.5px] text-[#ffb4ab] mb-2.5">{errorPago}</div>}
+                <button
+                  onClick={generarLinkPago}
+                  disabled={generandoPago || !pagoMonto}
+                  className="bg-transparent border border-[#2d2d2d] text-[#c3c8ba] px-3.5 py-1.5 rounded font-mono text-[12px] uppercase tracking-wide hover:border-[#acd292] hover:text-[#e5e2e1] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {generandoPago ? 'Generando...' : 'Generar link de pago'}
+                </button>
+              </>
+            )}
           </div>
         )}
 

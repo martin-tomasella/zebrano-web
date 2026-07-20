@@ -21,6 +21,8 @@ export default function RRSS() {
   const [showFormLead, setShowFormLead] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
   const [formLead, setFormLead] = useState({ red:'instagram', usuario_rrss:'', tipo_interaccion:'comentario', contacto:'' });
+  const [generandoIA, setGenerandoIA] = useState(false);
+  const [msgGenerarIA, setMsgGenerarIA] = useState(null);
   const navigate = useNavigate();
 
   const cargar = async () => {
@@ -75,8 +77,35 @@ export default function RRSS() {
     cargar();
   }
 
+  // Genera un nuevo borrador (IG/FB + TikTok) a partir de un proyecto real entregado, llamando
+  // directamente al edge function zebrano-rrss-generador. No publica nada — solo crea el
+  // borrador en roble_publicaciones/tiktok_publicaciones para revisar acá.
+  async function generarBorradorIA() {
+    setGenerandoIA(true);
+    setMsgGenerarIA(null);
+    try {
+      const url = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano-rrss-generador`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'generar_borrador' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMsgGenerarIA({ ok: true, texto: 'Borrador generado a partir de un proyecto real entregado. Ya está abajo para revisar.' });
+        cargar();
+      } else {
+        setMsgGenerarIA({ ok: false, texto: data.error || 'No se pudo generar el borrador.' });
+      }
+    } catch (e) {
+      setMsgGenerarIA({ ok: false, texto: 'Error de conexión al generar el borrador.' });
+    }
+    setGenerandoIA(false);
+  }
+
   const filtradas = filtro === 'todos' ? pubs : pubs.filter(p => p.estado === filtro);
   const leadsSinConvertir = leads.filter(l => !l.convertido_a_prospecto);
+  const borradoresIA = pubs.filter(p => p.metadata?.generado_por === 'zebrano-rrss-generador' && p.estado === 'borrador');
 
   return (
     <Layout>
@@ -103,59 +132,120 @@ export default function RRSS() {
               {e} {e!=='todos'&&`(${pubs.filter(p=>p.estado===e).length})`}
             </button>
           ))}
-        </div>
+      </div>
       )}
 
       <PageContent>
         {loading ? (
           <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
         ) : tab === 'publicaciones' ? (
-          filtradas.length === 0 ? (
-            <div style={{ textAlign:'center', padding:64, border:'1px dashed var(--z-border)', borderRadius:'var(--z-radius-xl)', color:'var(--z-text-muted)' }}>
-              <div style={{ fontSize:40, marginBottom:12 }}>📸</div>
-              <p style={{ marginBottom:16 }}>No hay publicaciones. Importá fotos para empezar.</p>
-              <button className="btn btn-primary" onClick={() => navigate('/rrss/importar')}>Importar fotos</button>
-            </div>
-          ) : (
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:14 }}>
-              {filtradas.map(pub => (
-                <div key={pub.id} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden', display:'flex', flexDirection:'column' }}>
-                  {(pub.galeria_trabajos?.thumbnail_url) && (
-                    <div style={{ height:180, overflow:'hidden' }}>
-                      <img src={pub.galeria_trabajos.thumbnail_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                    </div>
-                  )}
-                  <div style={{ padding:'14px 16px', flex:1, display:'flex', flexDirection:'column', gap:8 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <span className="badge" style={{ background:EC[pub.estado]+'18', color:EC[pub.estado], border:`1px solid ${EC[pub.estado]}33`, textTransform:'capitalize' }}>{pub.estado}</span>
-                      {pub.galeria_trabajos?.tipo_trabajo && <span style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize' }}>{pub.galeria_trabajos.tipo_trabajo}</span>}
-                    </div>
+          <>
+            {/* \u2500\u2500 Borradores generados por IA (zebrano-rrss-generador) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+            <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-xl p-6 mb-6">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-[#e5e2e1]">Borradores generados por IA</h3>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-[#8d9386] mt-1">
+                    A partir de proyectos reales entregados con imagen
+                  </p>
+                </div>
+                <button
+                  onClick={generarBorradorIA}
+                  disabled={generandoIA}
+                  className="bg-[#4a6b36] text-[#c3eaa8] px-4 py-2 rounded font-mono text-xs uppercase tracking-wide hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generandoIA ? 'Generando...' : 'Generar ahora'}
+                </button>
+              </div>
 
-                    {editando?.id === pub.id ? (
-                      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                        <textarea rows={3} style={{ resize:'vertical', fontSize:12 }} value={editando.caption_instagram||''} onChange={e => setEditando(p=>({...p,caption_instagram:e.target.value}))} placeholder="Caption Instagram" />
-                        <textarea rows={2} style={{ resize:'vertical', fontSize:12 }} value={editando.hashtags||''} onChange={e => setEditando(p=>({...p,hashtags:e.target.value}))} placeholder="Hashtags (uno por línea)" />
-                        <input type="datetime-local" style={{ fontSize:12 }} value={editando.programado_para?new Date(editando.programado_para).toISOString().slice(0,16):''} onChange={e => setEditando(p=>({...p,programado_para:e.target.value?new Date(e.target.value).toISOString():null}))} />
-                        <div style={{ display:'flex', gap:6 }}>
-                          <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setEditando(null)}>Cancelar</button>
+              {msgGenerarIA && (
+                <div className={`text-xs font-mono px-3 py-2 rounded mb-3 ${msgGenerarIA.ok ? 'bg-[#acd292]/10 text-[#acd292] border border-[#acd292]/30' : 'bg-[#e3b341]/10 text-[#e3b341] border border-[#e3b341]/30'}`}>
+                  {msgGenerarIA.texto}
+                </div>
+              )}
+
+              <p className="text-[11px] text-[#8d9386] leading-relaxed mb-4">
+                Publicarlas en Instagram o Facebook todavía requiere conectar esas cuentas — hoy este panel solo arma el borrador (texto + imagen real del proyecto) para revisar y aprobar.
+              </p>
+
+              {borradoresIA.length === 0 ? (
+                <div className="text-center py-8 text-[#43483e] text-sm border border-dashed border-[#2d2d2d] rounded-lg">
+                  Sin borradores generados por IA todavía. Probá "Generar ahora".
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {borradoresIA.map(pub => (
+                    <div key={pub.id} className="bg-[#161616] border border-[#2d2d2d] rounded-lg overflow-hidden flex flex-col">
+                      {pub.imagen_url && (
+                        <div className="h-36 overflow-hidden bg-[#0e0e0e]">
+                          <img src={pub.imagen_url} alt="" className="w-full h-full object-cover" />
                         </div>
+                      )}
+                      <div className="p-3 flex flex-col gap-2">
+                        <p className="text-xs text-[#e5e2e1] leading-relaxed line-clamp-4">{pub.caption_instagram || pub.contenido}</p>
+                        {pub.caption_historia && (
+                          <p className="text-[10px] text-[#8d9386] italic">"{pub.caption_historia}"</p>
+                        )}
+                        {Array.isArray(pub.hashtags) && pub.hashtags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {pub.hashtags.slice(0, 6).map(h => (
+                              <span key={h} className="text-[9px] font-mono text-[#acd292] bg-[#acd292]/10 px-1.5 py-0.5 rounded">#{ht}</span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        <p style={{ fontSize:12, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
-                          {pub.caption_instagram || pub.caption_facebook || 'Sin caption'}
-                        </p>
-                        {pub.programado_para && <div style={{ fontSize:11, color:'#a78bfa' }}>📅 {new Date(pub.programado_para).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>}
-                      </>
-                    )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                    {editando?.id !== pub.id && (
-                      <div style={{ display:'flex', gap:6, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--z-border)', flexWrap:'wrap' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
-                        {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
-                        {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(74,107,54,0.1)',color:'#4A6B36',border:'1px solid rgba(74,107,54,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
-                        {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}
+            {filtradas.length === 0 ? (
+              <div style={{ textAlign:'center', padding:64, border:'1px dashed var(--z-border)', borderRadius:'var(--z-radius-xl)', color:'var(--z-text-muted)' }}>
+                <div style={{ fontSize:40, marginBottom:12 }}>📸</div>
+                <p style={{ marginBottom:16 }}>No hay publicaciones. Importá fotos para empezar.</p>
+                <button className="btn btn-primary" onClick={() => navigate('/rrss/importar')}>Importar fotos</button>
+              </div>
+            ) : (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:14 }}>
+                {filtradas.map(pub => (
+                  <div key={pub.id} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+                    {(pub.galeria_trabajos?.thumbnail_url) && (
+                      <div style={{ height:180, overflow:'hidden' }}>
+                        <img src={pub.galeria_trabajos.thumbnail_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      </div>
+                    )}
+                    <div style={{ padding:'14px 16px', flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <span className="badge" style={{ background:EC[pub.estado]+'18', color:EC[pub.estado], border:`1px solid ${EC[pub.estado]}33`, textTransform:'capitalize' }}>{pub.estado}</span>
+                        {pub.galeria_trabajos?.tipo_trabajo && <span style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize' }}>{pub.galeria_trabajos.tipo_trabajo}</span>}
+                      </div>
+
+                      {editando?.id === pub.id ? (
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          <textarea rows={3} style={{ resize:'vertical', fontSize:12 }} value={editando.caption_instagram||''} onChange={e => setEditando(p=>({...p,caption_instagram:e.target.value}))} placeholder="Caption Instagram" />
+                          <textarea rows={2} style={{ resize:'vertical', fontSize:12 }} value={editando.hashtags||''} onChange={e => setEditando(p=>({...p,hashtags:e.target.value}))} placeholder="Hashtags (uno por línea)" />
+                          <input type="datetime-local" style={{ fontSize:12 }} value={editando.programado_para?new Date(editando.programado_para).toISOString().slice(0,16):''} onChange={e => setEditando(p=>({...p,programado_para:e.target.value?new Date(e.target.value).toISOString():null}))} />
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setEditando(null)}>Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p style={{ fontSize:12, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                            {pub.caption_instagram || pub.caption_facebook || 'Sin caption'}
+                          </p>
+                          {pub.programado_para && <div style={{ fontSize:11, color:'#a78bfa' }}>📅 {new Date(pub.programado_para).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>}
+                        </>
+                      )}
+
+                      {editando?.id !== pub.id && (
+                        <div style={{ display:'flex', gap:6, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--z-border)', flexWrap:'wrap' }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
+                          {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
+                          {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(74,107,54,0.1)',color:'#4A6B36',border:'1px solid rgba(74,107,54,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
+                          {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}
                       </div>
                     )}
                   </div>

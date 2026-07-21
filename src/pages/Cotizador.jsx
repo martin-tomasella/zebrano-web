@@ -29,6 +29,9 @@ export default function Cotizador() {
   const [loadingHist, setLoadingHist] = useState(false)
   const [sesionId, setSesionId]   = useState(null)
   const [sesiones, setSesiones]   = useState([])
+  const [diseno, setDiseno]       = useState(null)
+  const [resumen, setResumen]     = useState(null)
+  const [aprobando, setAprobando] = useState(false)
   const endRef = useRef(null)
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
@@ -72,10 +75,60 @@ export default function Cotizador() {
     setLoadingHist(false)
   }
 
+  async function cargarEstadoCotizacion(id) {
+    const [{ data: d }, { data: r }] = await Promise.all([
+      supabase.from('cotizacion_diseno').select('*').eq('sesion_id', id).maybeSingle(),
+      supabase.from('cotizacion_resumen').select('*').eq('sesion_id', id).maybeSingle(),
+    ])
+    setDiseno(d || null)
+    setResumen(r || null)
+  }
+
   function seleccionarSesion(id) {
     if (id === sesionId) return
     setSesionId(id)
     loadMensajes(id)
+    cargarEstadoCotizacion(id)
+  }
+
+  async function aprobarDiseno() {
+    if (!sesionId || aprobando) return
+    setAprobando(true)
+    try {
+      const res = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano-cotizador`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sesion_id: sesionId, aprobar_svg: true }),
+      })
+      const data = await res.json()
+      if (!data.ok) { alert('No se pudo aprobar el diseño: ' + (data.error || 'error desconocido')); return }
+      setMessages(m => [...m, { role: 'assistant', text: data.respuesta || 'Diseño aprobado.' }])
+      await cargarEstadoCotizacion(sesionId)
+    } catch (e) {
+      alert('Error de conexión al aprobar el diseño.')
+    } finally {
+      setAprobando(false)
+    }
+  }
+
+  async function aprobarCotizacionFinal() {
+    if (!sesionId || aprobando) return
+    if (!window.confirm('¿Aprobar esta cotización y crear el proyecto / orden de trabajo?')) return
+    setAprobando(true)
+    try {
+      const res = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano-cotizador`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sesion_id: sesionId, aprobar_cotizacion: true }),
+      })
+      const data = await res.json()
+      if (!data.ok) { alert('No se pudo aprobar la cotización: ' + (data.error || 'error desconocido')); return }
+      setMessages(m => [...m, { role: 'assistant', text: data.respuesta || 'Cotización aprobada.' }])
+      await loadSesiones()
+      await cargarEstadoCotizacion(sesionId)
+    } catch (e) {
+      alert('Error de conexión al aprobar la cotización.')
+    } finally {
+      setAprobando(false)
+    }
   }
 
   async function send() {
@@ -96,8 +149,10 @@ export default function Cotizador() {
       if (newSesionId && newSesionId !== sesionId) {
         setSesionId(newSesionId)
         loadSesiones()
+        cargarEstadoCotizacion(newSesionId)
       } else if (newSesionId === sesionId) {
         loadSesiones()
+        cargarEstadoCotizacion(newSesionId)
       }
       setMessages(m => [...m, { role:'assistant', text: reply }])
     } catch (e) {
@@ -108,6 +163,8 @@ export default function Cotizador() {
 
   function nuevaSesion() {
     setSesionId(null)
+    setDiseno(null)
+    setResumen(null)
     setMessages([{ role:'assistant', text:'Nueva sesión iniciada. ¿Qué necesita cotizar el cliente?' }])
   }
 
@@ -178,6 +235,30 @@ export default function Cotizador() {
                   {i < ETAPAS.length-1 && <div style={{ flex:1, height:1, background: i < etapa ? 'var(--z-primary)' : 'var(--z-border)', maxWidth:40 }} />}
                 </React.Fragment>
               ))}
+            </div>
+          )}
+
+          {sesionId && (diseno?.svg_tecnico || resumen?.precio_sugerido > 0) && (
+            <div style={{ padding:'12px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+              {diseno?.svg_tecnico && (
+                <a href={diseno.svg_tecnico} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver plano técnico</a>
+              )}
+              {diseno?.render_fotorrealista_url && (
+                <a href={diseno.render_fotorrealista_url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver render</a>
+              )}
+              {diseno?.svg_tecnico && !diseno?.svg_aprobado && (
+                <button className="btn btn-primary btn-sm" onClick={aprobarDiseno} disabled={aprobando}>
+                  {aprobando ? 'Procesando...' : 'Aprobar diseño y generar render'}
+                </button>
+              )}
+              {resumen?.precio_sugerido > 0 && sesionActiva?.estado !== 'aprobada' && (
+                <button className="btn btn-primary btn-sm" onClick={aprobarCotizacionFinal} disabled={aprobando}>
+                  {aprobando ? 'Procesando...' : `Aprobar cotización ($${Math.round(resumen.precio_sugerido).toLocaleString('es-AR')}) → crear proyecto`}
+                </button>
+              )}
+              {sesionActiva?.estado === 'aprobada' && (
+                <span className="badge badge-success" style={{ fontSize:11 }}>✓ Cotización aprobada — proyecto creado</span>
+              )}
             </div>
           )}
 

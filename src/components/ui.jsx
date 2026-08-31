@@ -1,3 +1,4 @@
+
 import React from 'react'
 
 const BADGE_MAP = {
@@ -32,7 +33,11 @@ const BADGE_MAP = {
   otro:             { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)', label:'Otro' },
 
   // — Roles —
-  admin:            { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'Admin' },
+  admin:              { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'Admin' },
+  gestion:            { bg:'rgba(96,165,250,0.15)',  color:'#60a5fa', border:'rgba(96,165,250,0.3)',  label:'Gestión' },
+  carpintero_oficial: { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Carpintero Oficial' },
+  carpintero:         { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Carpintero' },
+  ayudante:           { bg:'rgba(248,178,217,0.15)', color:'#f8b2d9', border:'rgba(248,178,217,0.3)', label:'Ayudante' },
   taller:           { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Taller' },
   ventas:           { bg:'rgba(176,208,156,0.15)', color:'#b0d09c', border:'rgba(176,208,156,0.3)', label:'Ventas' },
   rrhh:             { bg:'rgba(248,178,217,0.15)', color:'#f8b2d9', border:'rgba(248,178,217,0.3)', label:'RRHH' },

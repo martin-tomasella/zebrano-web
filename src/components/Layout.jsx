@@ -4,61 +4,59 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import AgentBitacora from './AgentBitacora'
+import { tieneAcceso } from '../lib/permisos'
 
 // ─── Nav items con menú completo ──────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
     label: null,
     items: [
-      { path: '/', icon: 'grid', label: 'Dashboard' },
+      { path: '/', icon: 'grid', label: 'Dashboard', moduloKey: 'dashboard' },
     ]
   },
   {
     label: 'Ventas',
     items: [
-      { path: '/prospectos', icon: 'funnel', label: 'Prospectos' },
-      { path: '/clientes',   icon: 'users',  label: 'Clientes' },
-      { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI' },
-      { path: '/proyectos',  icon: 'layers', label: 'Proyectos' },
-      { path: '/metricas',   icon: 'chart',  label: 'Tiempos de ciclo' },
+      { path: '/prospectos', icon: 'funnel', label: 'Prospectos', moduloKey: 'prospectos' },
+      { path: '/clientes',   icon: 'users',  label: 'Clientes', moduloKey: 'clientes' },
+      { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', moduloKey: 'cotizador' },
+      { path: '/proyectos',  icon: 'layers', label: 'Proyectos', moduloKey: 'proyectos' },
+      { path: '/metricas',   icon: 'chart',  label: 'Tiempos de ciclo', moduloKey: 'metricas' },
     ]
   },
   {
     label: 'Producción',
     items: [
-      { path: '/produccion',    icon: 'gear',  label: 'Producción' },
-      { path: '/horas-trabajo', icon: 'clock', label: 'Horas de trabajo' },
+      { path: '/produccion',    icon: 'gear',  label: 'Producción', moduloKey: 'produccion' },
+      { path: '/horas-trabajo', icon: 'clock', label: 'Horas de trabajo', moduloKey: 'horas_trabajo' },
     ]
   },
   {
     label: 'Insumos',
     items: [
-      { path: '/proveedores', icon: 'truck', label: 'Proveedores' },
-      { path: '/materiales',  icon: 'box',   label: 'Materiales' },
+      { path: '/proveedores', icon: 'truck', label: 'Proveedores', moduloKey: 'proveedores' },
+      { path: '/materiales',  icon: 'box',   label: 'Materiales', moduloKey: 'materiales' },
     ]
   },
   {
     label: 'Administración',
     items: [
-      { path: '/finanzas',   icon: 'wallet', label: 'Finanzas' },
-      { path: '/usuarios',   icon: 'user',   label: 'Usuarios', adminOnly: true },
-      { path: '/landing',    icon: 'globe',  label: 'Landing pública' },
+      { path: '/finanzas',   icon: 'wallet', label: 'Finanzas', moduloKey: 'finanzas' },
+      { path: '/usuarios',   icon: 'user',   label: 'Usuarios', moduloKey: 'usuarios' },
+      { path: '/landing',    icon: 'globe',  label: 'Landing pública', moduloKey: 'landing' },
     ]
   },
   {
     label: 'Marketing',
     items: [
-      { path: '/tiktok',        icon: 'tiktok', label: 'TikTok' },
-      { path: '/rrss',          icon: 'rrss',   label: 'Instagram / FB' },
-      { path: '/rrss/importar', icon: 'upload', label: 'Importar fotos' },
+      { path: '/tiktok',        icon: 'tiktok', label: 'TikTok', moduloKey: 'tiktok' },
+      { path: '/rrss',          icon: 'rrss',   label: 'Instagram / FB', moduloKey: 'rrss' },
+      { path: '/rrss/importar', icon: 'upload', label: 'Importar fotos', moduloKey: 'rrss_importar' },
     ]
   },
 ]
 
-// ─── Iconos (Material Symbols Outlined — icon font, no SVG a mano) ────────────
-// Mapeo name → símbolo Material. Se mantiene la misma API (name/size/color) que
-// usaban los ~18 iconos hand-drawn anteriores, así ningún <Icon name="..."/>
-// existente en el resto de la app necesita tocarse.
+// ─── Iconos (Material Symbols Outlined — icon font, no SVG a mano) ──────────
 const ICON_MAP = {
   grid: 'dashboard',
   funnel: 'filter_alt',
@@ -112,7 +110,7 @@ function Avatar({ name = '', size = 32 }) {
   )
 }
 
-// ─── Layout principal ─────────────────────────────────────────────────────────
+// ─── Layout principal ───────────────────────────────────────────────────────
 export function Layout({ children }) {
   const { profile, signOut } = useAuth()
   const navigate  = useNavigate()
@@ -159,55 +157,58 @@ export function Layout({ children }) {
 
         {/* Nav items */}
         <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 10px' }}>
-          {NAV_SECTIONS.map((section, si) => (
-            <div key={si} style={{ marginBottom: 4 }}>
-              {section.label && (
-                <div style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 9.5, fontWeight: 500, color: 'var(--z-text-3)',
-                  textTransform: 'uppercase', letterSpacing: '0.1em',
-                  padding: '14px 10px 6px',
-                }}>
-                  {section.label}
-                </div>
-              )}
-              {section.items.map((item) => {
-                if (item.adminOnly && profile?.rol !== 'admin') return null
-                const active = isActive(item.path)
-                return (
-                  <div
-                    key={item.path}
-                    onClick={() => navigate(item.path)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 11,
-                      height: 38, padding: '0 10px', margin: '1px 0',
-                      borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                      background: active ? 'var(--z-active-bg)' : 'transparent',
-                      color: active ? 'var(--z-primary)' : 'var(--z-text-2)',
-                      fontSize: 13.5, fontWeight: active ? 700 : 500,
-                      transition: 'var(--z-transition)',
-                      position: 'relative',
-                    }}
-                    onMouseEnter={e => {
-                      if (!active) {
-                        e.currentTarget.style.background = 'var(--z-card-hover)'
-                        e.currentTarget.style.color = 'var(--z-text)'
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (!active) {
-                        e.currentTarget.style.background = 'transparent'
-                        e.currentTarget.style.color = 'var(--z-text-2)'
-                      }
-                    }}
-                  >
-                    <Icon name={item.icon} size={17} color="currentColor" />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+          {NAV_SECTIONS.map((section, si) => {
+            const itemsVisibles = section.items.filter(item => tieneAcceso(profile?.rol, item.moduloKey))
+            if (itemsVisibles.length === 0) return null
+            return (
+              <div key={si} style={{ marginBottom: 4 }}>
+                {section.label && (
+                  <div style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 9.5, fontWeight: 500, color: 'var(--z-text-3)',
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    padding: '14px 10px 6px',
+                  }}>
+                    {section.label}
                   </div>
-                )
-              })}
-            </div>
-          ))}
+                )}
+                {itemsVisibles.map((item) => {
+                  const active = isActive(item.path)
+                  return (
+                    <div
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 11,
+                        height: 38, padding: '0 10px', margin: '1px 0',
+                        borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                        background: active ? 'var(--z-active-bg)' : 'transparent',
+                        color: active ? 'var(--z-primary)' : 'var(--z-text-2)',
+                        fontSize: 13.5, fontWeight: active ? 700 : 500,
+                        transition: 'var(--z-transition)',
+                        position: 'relative',
+                      }}
+                      onMouseEnter={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = 'var(--z-card-hover)'
+                          e.currentTarget.style.color = 'var(--z-text)'
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--z-text-2)'
+                        }
+                      }}
+                    >
+                      <Icon name={item.icon} size={17} color="currentColor" />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </nav>
 
         {/* Footer del sidebar */}
@@ -245,7 +246,7 @@ export function Layout({ children }) {
         {children}
       </main>
 
-      {/* ── Bitácora de Zebrano (panel global) ──────────────────────────────── */}
+      {/* ── Bitácora de Zebrano (panel global) ── */}
       <AgentBitacora collapsed={bitacoraColapsada} onToggle={() => setBitacoraColapsada(c => !c)} />
     </div>
   )

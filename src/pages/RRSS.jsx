@@ -45,7 +45,8 @@ export default function RRSS() {
 
   const guardar = async () => {
     if (!editando) return;
-    await supabase.from('roble_publicaciones').update({ caption_instagram: editando.caption_instagram, caption_facebook: editando.caption_facebook, hashtags: editando.hashtags?.split('\n').map(h=>h.replace('#','').trim()).filter(Boolean), programado_para: editando.programado_para || null }).eq('id', editando.id);
+    await supabase.from('roble_publicaciones').update({ caption_instagram: editando.caption_instagram, caption_facebook: editando.caption_facebook, hashtags: editando.hashtags?.split('
+').map(h=>h.replace('#','').trim()).filter(Boolean), programado_para: editando.programado_para || null }).eq('id', editando.id);
     setEditando(null); cargar();
   };
 
@@ -77,9 +78,6 @@ export default function RRSS() {
     cargar();
   }
 
-  // Genera un nuevo borrador (IG/FB + TikTok) a partir de un proyecto real entregado, llamando
-  // directamente al edge function zebrano-rrss-generador. No publica nada — solo crea el
-  // borrador en roble_publicaciones/tiktok_publicaciones para revisar acá.
   async function generarBorradorIA() {
     setGenerandoIA(true);
     setMsgGenerarIA(null);
@@ -140,7 +138,6 @@ export default function RRSS() {
           <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
         ) : tab === 'publicaciones' ? (
           <>
-            {/* \u2500\u2500 Borradores generados por IA (zebrano-rrss-generador) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
             <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-xl p-6 mb-6">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
                 <div>
@@ -189,7 +186,7 @@ export default function RRSS() {
                         {Array.isArray(pub.hashtags) && pub.hashtags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {pub.hashtags.slice(0, 6).map(h => (
-                              <span key={h} className="text-[9px] font-mono text-[#acd292] bg-[#acd292]/10 px-1.5 py-0.5 rounded">#{ht}</span>
+                              <span key={h} className="text-[9px] font-mono text-[#acd292] bg-[#acd292]/10 px-1.5 py-0.5 rounded">#{h}</span>
                             ))}
                           </div>
                         )}
@@ -242,7 +239,8 @@ export default function RRSS() {
 
                       {editando?.id !== pub.id && (
                         <div style={{ display:'flex', gap:6, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--z-border)', flexWrap:'wrap' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('
+')})}>✏️ Editar</button>
                           {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
                           {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(74,107,54,0.1)',color:'#4A6B36',border:'1px solid rgba(74,107,54,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
                           {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}
@@ -252,7 +250,8 @@ export default function RRSS() {
                 </div>
               ))}
             </div>
-          )
+          )}
+          </>
         ) : (
           <>
             <div style={{ fontSize:11.5, color:'var(--z-text-muted)', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:10, padding:'10px 14px', marginBottom:16 }}>

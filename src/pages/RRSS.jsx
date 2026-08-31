@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent } from '../components/Layout';
@@ -45,8 +44,7 @@ export default function RRSS() {
 
   const guardar = async () => {
     if (!editando) return;
-    await supabase.from('roble_publicaciones').update({ caption_instagram: editando.caption_instagram, caption_facebook: editando.caption_facebook, hashtags: editando.hashtags?.split('
-').map(h=>h.replace('#','').trim()).filter(Boolean), programado_para: editando.programado_para || null }).eq('id', editando.id);
+    await supabase.from('roble_publicaciones').update({ caption_instagram: editando.caption_instagram, caption_facebook: editando.caption_facebook, hashtags: editando.hashtags?.split('\n').map(h=>h.replace('#','').trim()).filter(Boolean), programado_para: editando.programado_para || null }).eq('id', editando.id);
     setEditando(null); cargar();
   };
 
@@ -239,8 +237,7 @@ export default function RRSS() {
 
                       {editando?.id !== pub.id && (
                         <div style={{ display:'flex', gap:6, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--z-border)', flexWrap:'wrap' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('
-')})}>✏️ Editar</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
                           {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
                           {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(74,107,54,0.1)',color:'#4A6B36',border:'1px solid rgba(74,107,54,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
                           {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}

@@ -83,7 +83,7 @@ export default function Usuarios() {
     <Layout>
       <Topbar
         title="Usuarios"
-        subtitle={`${empleados.length} empleados registrados · ${empleados.filter(e=>e.activo).length} con acceso activo`}
+        subtitle={`${empleados.length} empleados registrados \u00b7 ${empleados.filter(e=>e.activo).length} con acceso activo`}
         actions={
           esAdmin &&
           <Btn onClick={() => { setModal(true); setError('') }}>+ Nuevo usuario</Btn>
@@ -126,7 +126,7 @@ export default function Usuarios() {
                     </select>
                   ) : <Badge value={r.rol} />
                 )},
-                { key:'costo', label:'Costo/hora', render: r => r.costo_hora_ars ? `$${Number(r.costo_hora_ars).toLocaleString('es-AR')}/h` : '—' },
+                { key:'costo', label:'Costo/hora', render: r => r.costo_hora_ars ? `$${Number(r.costo_hora_ars).toLocaleString('es-AR')}/h` : '\u2014' },
                 { key:'estado', label:'Estado', render: r => (
                   <span style={{
                     fontSize:10, fontFamily:'var(--font-mono)', padding:'3px 9px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em',
@@ -137,7 +137,7 @@ export default function Usuarios() {
                 )},
                 { key:'acceso', label:'Acceso web', render: r => (
                   <span style={{ fontSize:12, color: r.auth_user_id ? '#acd292' : 'var(--z-text-3)' }}>
-                    {r.auth_user_id ? '✓ Con acceso' : '— Sin acceso web'}
+                    {r.auth_user_id ? '\u2713 Con acceso' : '\u2014 Sin acceso web'}
                   </span>
                 )},
                 { key:'acciones', label:'', render: r => (
@@ -166,9 +166,9 @@ export default function Usuarios() {
               <button onClick={() => setModal(false)} style={{ background:'none', border:'none', color:'var(--z-text-3)', cursor:'pointer', fontSize:18 }}>&times;</button>
             </div>
             <form onSubmit={crearUsuario}>
-              <Input label="Nombre completo" value={form.nombre} onChange={e => setForm({...form,nombre:e.target.value})} placeholder="Ej: Carlos Pérez" required />
+              <Input label="Nombre completo" value={form.nombre} onChange={e => setForm({...form,nombre:e.target.value})} placeholder="Ej: Carlos P\u00e9rez" required />
               <Input label="Email" type="email" value={form.email} onChange={e => setForm({...form,email:e.target.value})} placeholder="carlos@zebrano.com" required />
-              <Input label="Contraseña" type="password" value={form.password} onChange={e => setForm({...form,password:e.target.value})} placeholder="Mínimo 6 caracteres" required />
+              <Input label="Contrase\u00f1a" type="password" value={form.password} onChange={e => setForm({...form,password:e.target.value})} placeholder="M\u00ednimo 6 caracteres" required />
               <Input label="Costo/hora (ARS)" type="number" value={form.costo_hora_ars} onChange={e => setForm({...form,costo_hora_ars:e.target.value})} placeholder="Ej: 2400" />
               <div style={{ marginBottom:16 }}>
                 <label style={{ display:'block', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Rol</label>

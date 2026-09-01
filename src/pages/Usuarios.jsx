@@ -28,19 +28,27 @@ export default function Usuarios() {
     e.preventDefault()
     setSaving(true); setError('')
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email, password: form.password,
-        options: { data: { nombre: form.nombre } }
+      // Alta via Edge Function con service_role (auth.admin.createUser +
+      // email_confirm:true) en vez de supabase.auth.signUp() desde el
+      // cliente -- asi el usuario nuevo queda con el email confirmado de
+      // entrada y no requiere el parche manual por SQL de antes.
+      const resp = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/crear-usuario-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          nombre: form.nombre,
+          email: form.email,
+          password: form.password,
+          rol: form.rol,
+          costo_hora_ars: form.costo_hora_ars,
+        }),
       })
-      if (authError) throw authError
-      const userId = authData.user?.id
-      if (!userId) throw new Error('No se pudo obtener el ID del usuario')
-      const { error: empError } = await supabase.from('empleados').insert({
-        nombre: form.nombre, email: form.email, rol: form.rol,
-        costo_hora_ars: Number(form.costo_hora_ars) || 0,
-        auth_user_id: userId, activo: true,
-      })
-      if (empError) throw empError
+      const data = await resp.json().catch(() => ({}))
+      if (!resp.ok || !data.ok) throw new Error(data.error || 'Error al crear usuario')
       setModal(false)
       setForm({ nombre:'', email:'', password:'', rol:'gestion', costo_hora_ars:'' })
       load()
@@ -63,7 +71,7 @@ export default function Usuarios() {
       <Layout>
         <Topbar title="Usuarios" />
         <PageContent>
-          <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>No tenés permisos para ver esta sección.</div>
+          <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>No ten&eacute;s permisos para ver esta secci&oacute;n.</div>
         </PageContent>
       </Layout>
     )
@@ -155,7 +163,7 @@ export default function Usuarios() {
           <Card style={{ width:440, padding:'28px 32px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
               <h2 style={{ fontFamily:'var(--font-display)', margin:0, fontSize:18, color:'var(--z-text)' }}>Nuevo usuario</h2>
-              <button onClick={() => setModal(false)} style={{ background:'none', border:'none', color:'var(--z-text-3)', cursor:'pointer', fontSize:18 }}>✕</button>
+              <button onClick={() => setModal(false)} style={{ background:'none', border:'none', color:'var(--z-text-3)', cursor:'pointer', fontSize:18 }}>&times;</button>
             </div>
             <form onSubmit={crearUsuario}>
               <Input label="Nombre completo" value={form.nombre} onChange={e => setForm({...form,nombre:e.target.value})} placeholder="Ej: Carlos Pérez" required />
@@ -185,7 +193,7 @@ export default function Usuarios() {
   )
 }
 
-// ─── Matriz visual de Roles y Permisos ─────────────────────────────────────
+// --- Matriz visual de Roles y Permisos ---
 function MatrizPermisos() {
   const roles = Object.keys(ROLES)
 
@@ -204,7 +212,7 @@ function MatrizPermisos() {
         ))}
       </div>
 
-      {/* Matriz por categoría */}
+      {/* Matriz por categoria */}
       {CATEGORIAS_ORDEN.map(categoria => {
         const modulosCategoria = MODULOS.filter(m => m.categoria === categoria)
         if (modulosCategoria.length === 0) return null
@@ -215,7 +223,7 @@ function MatrizPermisos() {
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                 <thead>
                   <tr>
-                    <th style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'left', fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.1em', borderBottom:'1px solid var(--z-border)' }}>Módulo</th>
+                    <th style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'left', fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.1em', borderBottom:'1px solid var(--z-border)' }}>M&oacute;dulo</th>
                     {roles.map(rol => (
                       <th key={rol} style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:ROLES[rol].color, textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'1px solid var(--z-border)', whiteSpace:'nowrap' }}>{ROLES[rol].label}</th>
                     ))}
@@ -230,8 +238,8 @@ function MatrizPermisos() {
                         return (
                           <td key={rol} style={{ padding:'9px 14px', textAlign:'center', borderBottom: i < modulosCategoria.length-1 ? '1px solid var(--z-border)' : 'none' }}>
                             {permitido
-                              ? <span style={{ color:'#acd292', fontSize:14 }}>✓</span>
-                              : <span style={{ color:'var(--z-text-3)', opacity:0.4, fontSize:14 }}>—</span>
+                              ? <span style={{ color:'#acd292', fontSize:14 }}>&check;</span>
+                              : <span style={{ color:'var(--z-text-3)', opacity:0.4, fontSize:14 }}>&mdash;</span>
                             }
                           </td>
                         )
@@ -246,7 +254,7 @@ function MatrizPermisos() {
       })}
 
       <p style={{ fontSize:11, color:'var(--z-text-3)', marginTop:8, lineHeight:1.6 }}>
-        Esta matriz controla tanto lo que cada rol ve en el menú lateral como el acceso directo por URL — un usuario sin permiso sobre un módulo es redirigido automáticamente si intenta entrar a esa ruta.
+        Esta matriz controla tanto lo que cada rol ve en el men&uacute; lateral como el acceso directo por URL &mdash; un usuario sin permiso sobre un m&oacute;dulo es redirigido autom&aacute;ticamente si intenta entrar a esa ruta.
       </p>
     </div>
   )

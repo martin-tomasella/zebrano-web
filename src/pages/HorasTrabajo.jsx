@@ -11,7 +11,7 @@ export default function HorasTrabajo() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ ot_id:'', empleado_id:'', tipo:'fabricacion', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+  const [form, setForm] = useState({ ot_id:'', empleado_id:'', etapa:'armado', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
 
   useEffect(() => { load() }, [])
 
@@ -35,14 +35,15 @@ export default function HorasTrabajo() {
     const { error } = await supabase.from('horas_trabajo_ot').insert({
       ot_id: form.ot_id,
       empleado_id: form.empleado_id,
-      tipo: form.tipo,
+      tipo: form.etapa === 'instalacion' ? 'instalacion' : 'fabricacion',
+      etapa: form.etapa,
       fecha: form.fecha,
       horas: Number(form.horas),
       notas: form.notas || null,
     })
     setSaving(false)
     if (error) { alert('No se pudo cargar las horas: ' + error.message); return }
-    setForm({ ot_id:'', empleado_id:'', tipo:'fabricacion', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+    setForm({ ot_id:'', empleado_id:'', etapa:'armado', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
     setShowForm(false)
     load()
   }
@@ -95,10 +96,14 @@ export default function HorasTrabajo() {
                     </select>
                   </div>
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Tipo</label>
-                    <select value={form.tipo} onChange={e => setForm({...form, tipo:e.target.value})}>
-                      <option value="fabricacion">Fabricación</option>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Etapa</label>
+                    <select value={form.etapa} onChange={e => setForm({...form, etapa:e.target.value})}>
+                      <option value="corte">Corte</option>
+                      <option value="canteado">Canteado / pegado de cantos</option>
+                      <option value="armado">Armado</option>
+                      <option value="terminacion">Laqueado / lustre</option>
                       <option value="instalacion">Instalación</option>
+                      <option value="otro">Otro</option>
                     </select>
                   </div>
                 </div>
@@ -134,7 +139,7 @@ export default function HorasTrabajo() {
                 { key:'fecha', label:'Fecha' },
                 { key:'empleado', label:'Empleado', render:r => r.empleados?.nombre || '—' },
                 { key:'ot', label:'OT', render:r => r.ordenes_trabajo?.numero_ot || '—' },
-                { key:'tipo', label:'Tipo', render:r => r.tipo === 'instalacion' ? 'Instalación' : 'Fabricación' },
+                { key:'etapa', label:'Etapa', render:r => ({corte:'Corte',canteado:'Canteado',armado:'Armado',terminacion:'Laqueado / lustre',instalacion:'Instalación',otro:'Otro'})[r.etapa] || (r.tipo === 'instalacion' ? 'Instalación' : 'Fabricación') },
                 { key:'horas', label:'Horas' },
                 { key:'notas', label:'Notas', render:r => r.notas || '—' },
               ]}

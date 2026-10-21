@@ -51,6 +51,7 @@ export const MODULOS = [
   { key:'produccion',      label:'Produccion',        path:'/produccion',      categoria:'Produccion' },
   { key:'horas_trabajo',   label:'Horas de trabajo',  path:'/horas-trabajo',   categoria:'Produccion' },
 
+  { key:'compras',      label:'Compras',             path:'/compras',       categoria:'Insumos' },
   { key:'proveedores',  label:'Proveedores',         path:'/proveedores',   categoria:'Insumos' },
   { key:'materiales',   label:'Materiales',          path:'/materiales',    categoria:'Insumos' },
 

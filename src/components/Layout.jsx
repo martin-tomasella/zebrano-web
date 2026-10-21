@@ -22,6 +22,7 @@ const NAV_SECTIONS = [
     { path: '/horas-trabajo', icon: 'clock', label: 'Horas de trabajo', moduloKey: 'horas_trabajo' },
   ]},
   { label: 'Insumos', items: [
+    { path: '/compras',     icon: 'receipt_long', label: 'Compras', moduloKey: 'compras' },
     { path: '/proveedores', icon: 'truck', label: 'Proveedores', moduloKey: 'proveedores' },
     { path: '/materiales',  icon: 'box',   label: 'Materiales', moduloKey: 'materiales' },
   ]},

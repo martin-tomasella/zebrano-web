@@ -22,6 +22,7 @@ import CajaChica        from './pages/CajaChica'
 import Finanzas         from './pages/Finanzas'
 import Proveedores      from './pages/Proveedores'
 import Materiales       from './pages/Materiales'
+import Compras          from './pages/Compras'
 import HorasTrabajo     from './pages/HorasTrabajo'
 import Metricas         from './pages/Metricas'
 
@@ -67,6 +68,7 @@ function AppRoutes() {
       <Route path="/caja-chica"       element={<PrivateRoute><CajaChica /></PrivateRoute>} />
       <Route path="/finanzas"         element={<PrivateRoute><Finanzas /></PrivateRoute>} />
       <Route path="/proveedores"      element={<PrivateRoute><Proveedores /></PrivateRoute>} />
+      <Route path="/compras"          element={<PrivateRoute><Compras /></PrivateRoute>} />
       <Route path="/materiales"       element={<PrivateRoute><Materiales /></PrivateRoute>} />
       <Route path="/horas-trabajo"    element={<PrivateRoute><HorasTrabajo /></PrivateRoute>} />
       <Route path="/metricas"         element={<PrivateRoute><Metricas /></PrivateRoute>} />

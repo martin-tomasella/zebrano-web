@@ -46,6 +46,7 @@ export const MODULOS = [
   { key:'clientes',     label:'Clientes',            path:'/clientes',      categoria:'Ventas' },
   { key:'cotizador',    label:'Cotizador AI',        path:'/cotizador',     categoria:'Ventas' },
   { key:'cotizador_modular', label:'Cotizar por módulos', path:'/cotizar-modulos', categoria:'Ventas' },
+  { key:'mercado',      label:'Mercado',             path:'/mercado',       categoria:'Ventas' },
   { key:'proyectos',    label:'Proyectos',           path:'/proyectos',     categoria:'Ventas' },
   { key:'metricas',     label:'Tiempos de ciclo',    path:'/metricas',      categoria:'Ventas' },
 

@@ -24,6 +24,7 @@ import Proveedores      from './pages/Proveedores'
 import Materiales       from './pages/Materiales'
 import Compras          from './pages/Compras'
 import CotizadorModular from './pages/CotizadorModular'
+import Mercado          from './pages/Mercado'
 import HorasTrabajo     from './pages/HorasTrabajo'
 import Metricas         from './pages/Metricas'
 
@@ -70,6 +71,7 @@ function AppRoutes() {
       <Route path="/finanzas"         element={<PrivateRoute><Finanzas /></PrivateRoute>} />
       <Route path="/proveedores"      element={<PrivateRoute><Proveedores /></PrivateRoute>} />
       <Route path="/cotizar-modulos"  element={<PrivateRoute><CotizadorModular /></PrivateRoute>} />
+      <Route path="/mercado"          element={<PrivateRoute><Mercado /></PrivateRoute>} />
       <Route path="/compras"          element={<PrivateRoute><Compras /></PrivateRoute>} />
       <Route path="/materiales"       element={<PrivateRoute><Materiales /></PrivateRoute>} />
       <Route path="/horas-trabajo"    element={<PrivateRoute><HorasTrabajo /></PrivateRoute>} />

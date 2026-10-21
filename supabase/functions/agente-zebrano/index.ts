@@ -38,7 +38,9 @@ async function proponer(p: any, key: string) {
   try {
     const { meta, ...envio } = p;
     const r = await alfred("propuesta", { ...envio, descripcion: `${p.descripcion || ""}${meta ? ` · Meta: ${meta}` : ""}` }, key);
-    await sb.from("agente_propuestas").update({ estado: "enviada", alfred_id: r?.id ? String(r.id) : null, enviada_at: new Date().toISOString(), error: null }).eq("origen", p.origen);
+    const aid = r?.id ?? r?.propuesta_id ?? r?.propuesta?.id ?? r?.data?.id;
+    await log("alfred_propuesta_resp", { origen: p.origen, r });
+    await sb.from("agente_propuestas").update({ estado: "enviada", alfred_id: aid != null ? String(aid) : null, enviada_at: new Date().toISOString(), error: null }).eq("origen", p.origen);
     return { enviada: true };
   } catch (e) {
     await sb.from("agente_propuestas").update({ estado: "error_envio", error: (e as Error).message }).eq("origen", p.origen);
@@ -145,7 +147,9 @@ Deno.serve(async (req) => {
     if (path === "/alfred/ejecutar" && req.method === "POST") {
       const { propuesta_id, accion, texto_final } = body;
       const ref = String(propuesta_id || "");
-      const { data: p } = await sb.from("agente_propuestas").select("*").or(`alfred_id.eq.${ref},origen.eq.${ref}`).maybeSingle();
+      let { data: p } = await sb.from("agente_propuestas").select("*").or(`alfred_id.eq.${ref},origen.eq.${ref}`).maybeSingle();
+      if (!p && (body.origen || accion?.origen)) ({ data: p } = await sb.from("agente_propuestas").select("*").eq("origen", body.origen || accion.origen).maybeSingle());
+      await log("ejecutar_req", body);
       if (p?.origen?.includes(":prueba:") || ref.includes(":prueba:")) {
         if (p) await sb.from("agente_propuestas").update({ estado: "ejecutada", texto_final, resultado: "prueba recibida", ejecutada_at: new Date().toISOString() }).eq("id", p.id);
         return json({ ok: true, resultado: "prueba recibida" });
@@ -238,6 +242,7 @@ Deno.serve(async (req) => {
     }
 
     if (path === "/prueba" && req.method === "POST") {
+      if (body.reset) await sb.from("agente_propuestas").delete().eq("origen", "zebrano:prueba:1");
       return json(await proponer({ origen: "zebrano:prueba:1", tipo: "idea", titulo: "Prueba de conexión del agente Zebrano", descripcion: "Aprobala para cerrar la prueba de punta a punta.", prioridad: "baja", meta: "Conexión con Alfred", accion: {} }, key));
     }
     return json({ error: "Ruta no encontrada", rutas: ["/alfred/estado", "/alfred/consulta", "/alfred/encargo", "/alfred/ejecutar", "/ciclo"] }, 404);

@@ -15,6 +15,7 @@ const NAV_SECTIONS = [
     { path: '/clientes',   icon: 'users',  label: 'Clientes', moduloKey: 'clientes' },
     { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', moduloKey: 'cotizador' },
     { path: '/cotizar-modulos', icon: 'straighten', label: 'Cotizar por módulos', moduloKey: 'cotizador_modular' },
+    { path: '/mercado',    icon: 'storefront', label: 'Mercado', moduloKey: 'mercado' },
     { path: '/proyectos',  icon: 'layers', label: 'Proyectos', moduloKey: 'proyectos' },
     { path: '/metricas',   icon: 'chart',  label: 'Tiempos de ciclo', moduloKey: 'metricas' },
   ]},

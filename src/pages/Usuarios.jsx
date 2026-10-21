@@ -94,7 +94,7 @@ export default function Usuarios() {
         <div style={{ display:'flex', gap:4, marginBottom:20, background:'var(--z-bg-2)', padding:4, borderRadius:'var(--radius-md)', width:'fit-content' }}>
           {[['usuarios','Usuarios'],['permisos','Roles y permisos']].map(([k,l]) => (
             <button key={k} onClick={() => setTab(k)} style={{
-              padding:'7px 16px', fontSize:12, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.05em',
+              padding:'7px 16px', fontSize:12, fontFamily:'var(--font-mono)',
               borderRadius:'var(--radius-sm)', border:'none', cursor:'pointer',
               background: tab===k ? 'var(--z-primary)' : 'transparent',
               color: tab===k ? 'var(--z-on-primary)' : 'var(--z-text-3)',
@@ -129,14 +129,14 @@ export default function Usuarios() {
                 { key:'costo', label:'Costo/hora', render: r => r.costo_hora_ars ? `$${Number(r.costo_hora_ars).toLocaleString('es-AR')}/h` : '\u2014' },
                 { key:'estado', label:'Estado', render: r => (
                   <span style={{
-                    fontSize:10, fontFamily:'var(--font-mono)', padding:'3px 9px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em',
-                    background: r.activo ? 'rgba(172,210,146,0.15)' : 'rgba(255,180,171,0.15)',
-                    color: r.activo ? '#acd292' : '#ffb4ab',
-                    border: `1px solid ${r.activo ? 'rgba(172,210,146,0.3)' : 'rgba(255,180,171,0.3)'}`,
+                    fontSize:11.5, fontFamily:'var(--font-mono)', padding:'3px 9px', borderRadius:99,
+                    background: r.activo ? 'rgb(var(--z-primary-c) / 0.15)' : 'rgb(var(--z-danger-c) / 0.15)',
+                    color: r.activo ? '#0D7665' : '#C43428',
+                    border: `1px solid ${r.activo ? 'rgb(var(--z-primary-c) / 0.3)' : 'rgb(var(--z-danger-c) / 0.3)'}`,
                   }}>{r.activo ? 'Activo' : 'Inactivo'}</span>
                 )},
                 { key:'acceso', label:'Acceso web', render: r => (
-                  <span style={{ fontSize:12, color: r.auth_user_id ? '#acd292' : 'var(--z-text-3)' }}>
+                  <span style={{ fontSize:12, color: r.auth_user_id ? '#0D7665' : 'var(--z-text-3)' }}>
                     {r.auth_user_id ? '\u2713 Con acceso' : '\u2014 Sin acceso web'}
                   </span>
                 )},
@@ -171,7 +171,7 @@ export default function Usuarios() {
               <Input label="Contrase\u00f1a" type="password" value={form.password} onChange={e => setForm({...form,password:e.target.value})} placeholder="M\u00ednimo 6 caracteres" required />
               <Input label="Costo/hora (ARS)" type="number" value={form.costo_hora_ars} onChange={e => setForm({...form,costo_hora_ars:e.target.value})} placeholder="Ej: 2400" />
               <div style={{ marginBottom:16 }}>
-                <label style={{ display:'block', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Rol</label>
+                <label style={{ display:'block', fontFamily:'var(--font-mono)', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Rol</label>
                 <select value={form.rol} onChange={e => setForm({...form,rol:e.target.value})} style={{
                   width:'100%', padding:'8px 12px', borderRadius:'var(--radius-sm)', border:'1px solid var(--z-border)',
                   background:'var(--z-bg-2)', color:'var(--z-text)', fontSize:13, outline:'none', fontFamily:'var(--font-mono)',
@@ -180,7 +180,7 @@ export default function Usuarios() {
                 </select>
                 <p style={{ fontSize:11, color:'var(--z-text-3)', marginTop:6, lineHeight:1.5 }}>{ROLES[form.rol]?.descripcion}</p>
               </div>
-              {error && <div style={{ background:'rgba(255,180,171,0.1)', color:'#ffb4ab', padding:'8px 12px', borderRadius:'var(--radius-sm)', fontSize:13, marginBottom:14, border:'1px solid rgba(255,180,171,0.25)' }}>{error}</div>}
+              {error && <div style={{ background:'rgb(var(--z-danger-c) / 0.1)', color:'#C43428', padding:'8px 12px', borderRadius:'var(--radius-sm)', fontSize:13, marginBottom:14, border:'1px solid rgb(var(--z-danger-c) / 0.25)' }}>{error}</div>}
               <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
                 <Btn variant="ghost" onClick={() => setModal(false)}>Cancelar</Btn>
                 <Btn disabled={saving}>{saving ? 'Creando...' : 'Crear usuario'}</Btn>
@@ -223,9 +223,9 @@ function MatrizPermisos() {
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                 <thead>
                   <tr>
-                    <th style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'left', fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.1em', borderBottom:'1px solid var(--z-border)' }}>M&oacute;dulo</th>
+                    <th style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'left', fontFamily:'var(--font-mono)', fontSize:11.5, fontWeight:500, color:'var(--z-hint)', borderBottom:'1px solid var(--z-border)' }}>M&oacute;dulo</th>
                     {roles.map(rol => (
-                      <th key={rol} style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:ROLES[rol].color, textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'1px solid var(--z-border)', whiteSpace:'nowrap' }}>{ROLES[rol].label}</th>
+                      <th key={rol} style={{ background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:11.5, fontWeight:500, color:ROLES[rol].color, borderBottom:'1px solid var(--z-border)', whiteSpace:'nowrap' }}>{ROLES[rol].label}</th>
                     ))}
                   </tr>
                 </thead>
@@ -238,7 +238,7 @@ function MatrizPermisos() {
                         return (
                           <td key={rol} style={{ padding:'9px 14px', textAlign:'center', borderBottom: i < modulosCategoria.length-1 ? '1px solid var(--z-border)' : 'none' }}>
                             {permitido
-                              ? <span style={{ color:'#acd292', fontSize:14 }}>&check;</span>
+                              ? <span style={{ color:'#0D7665', fontSize:14 }}>&check;</span>
                               : <span style={{ color:'var(--z-text-3)', opacity:0.4, fontSize:14 }}>&mdash;</span>
                             }
                           </td>

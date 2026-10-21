@@ -69,9 +69,9 @@ export default function CajaChica() {
   const totalMes   = registros.filter(r => r.estado === 'aprobado' && r.fecha?.slice(0,7) === new Date().toISOString().slice(0,7)).reduce((s,r) => s + Number(r.monto||0), 0)
 
   const badgeEstado = (estado) => {
-    const map = { pendiente:{bg:'rgba(176,123,48,0.15)',color:'#C99A55'}, aprobado:{bg:'rgba(74,107,54,0.15)',color:'#7AAE5A'}, rechazado:{bg:'rgba(160,64,42,0.15)',color:'#A0402A'} }
+    const map = { pendiente:{bg:'rgb(var(--z-gold-c) / 0.15)',color:'#B07418'}, aprobado:{bg:'rgb(var(--z-primary-c) / 0.15)',color:'#1A854A'}, rechazado:{bg:'rgb(var(--z-danger-c) / 0.15)',color:'#C43428'} }
     const s = map[estado] || map.pendiente
-    return <span style={{ padding:'2px 9px', borderRadius:99, fontSize:10, background:s.bg, color:s.color, textTransform:'capitalize' }}>{estado}</span>
+    return <span style={{ padding:'2px 9px', borderRadius:99, fontSize:11.5, background:s.bg, color:s.color, textTransform:'capitalize' }}>{estado}</span>
   }
 
   return (
@@ -97,7 +97,7 @@ export default function CajaChica() {
                   <Input label="Monto (ARS)" type="number" value={form.monto} onChange={e => setForm({...form, monto:e.target.value})} placeholder="0" required />
                 </div>
                 <div style={{ marginBottom:14 }}>
-                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Categoría</label>
+                  <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Categoría</label>
                   <select value={form.categoria} onChange={e => setForm({...form, categoria:e.target.value})}>
                     {CATEGORIAS.map(c => <option key={c} value={c}>{CAT_LABEL[c]}</option>)}
                   </select>

@@ -31,7 +31,7 @@ function PrivateRoute({ children }) {
 
   if (loading) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--z-bg)' }}>
-      <div style={{ width:24, height:24, border:'2px solid #E1F5EE', borderTop:'2px solid #1D9E75', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+      <div style={{ width:24, height:24, border:'2px solid var(--z-border)', borderTop:'2px solid var(--z-primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )

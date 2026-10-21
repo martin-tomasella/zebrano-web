@@ -3,10 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Layout, Icon } from '../components/Layout';
+import { Avatar, Badge } from '../components/ui';
 
 const ESTADOS = ['nuevo','contactado','calificado','cotizado','negociacion','ganado','perdido','dormido'];
 const CANALES_MSG = ['whatsapp','instagram_dm','facebook_dm','tiktok_dm','email','telefono','presencial'];
-const EC = { nuevo:'#60a5fa',contactado:'#a78bfa',calificado:'#fbbf24',cotizado:'#fb923c',negociacion:'#f472b6',ganado:'#4ade80',perdido:'#f87171',dormido:'#6b7280' };
+const EC = { nuevo:'#2563D6',contactado:'#6D4AD6',calificado:'#B4700E',cotizado:'#C4561C',negociacion:'#C0367A',ganado:'#1A854A',perdido:'#C43428',dormido:'#687482' };
 
 export default function ProspectoDetalle() {
   const { id } = useParams();
@@ -94,66 +95,70 @@ export default function ProspectoDetalle() {
   return (
     <Layout>
       <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
-        {/* Header */}
-        <div style={{height:56,padding:'0 20px',borderBottom:'1px solid var(--z-border)',display:'flex',alignItems:'center',gap:14,background:'rgba(10,7,16,0.8)',backdropFilter:'blur(12px)',flexShrink:0}}>
-          <button onClick={()=>navigate('/prospectos')} style={{background:'rgba(74,107,54,0.08)',border:'1px solid var(--z-border)',color:'var(--z-text-2)',padding:'5px 12px',borderRadius:8,cursor:'pointer',fontSize:12}}>← Volver</button>
-          <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:600,color:'var(--z-text)'}}>{prospecto.nombre||'Sin nombre'} {prospecto.apellido||''}</div>
-            {prospecto.handle_rrss && <div style={{fontSize:11,color:'#4A6B36'}}>{prospecto.handle_rrss}</div>}
+        {/* Encabezado del registro + camino de etapas */}
+        <div className="flex-shrink-0 bg-z-surface border-b border-z-line px-6 pt-4 pb-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={()=>navigate('/prospectos')} className="btn btn-quiet btn-sm btn-icon" aria-label="Volver a prospectos" title="Volver"><Icon name="arrow_back" size={18} /></button>
+            <Avatar name={`${prospecto.nombre||''} ${prospecto.apellido||''}`} size={40} />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[20px] leading-[26px] truncate">{prospecto.nombre||'Sin nombre'} {prospecto.apellido||''}</h1>
+              <div className="text-[13px] text-z-ink-3 truncate">{[prospecto.handle_rrss, prospecto.telefono, prospecto.canal_origen && `Vino por ${prospecto.canal_origen}`].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</div>
+            </div>
+            {prospecto.estado==='ganado' && (
+              prospecto.convertido_a_cliente
+                ? <Badge tone="success">Ya es cliente</Badge>
+                : <button onClick={convertirACliente} disabled={convirtiendo} className="btn btn-primary btn-sm">{convirtiendo?'Convirtiendo…':'Convertir en cliente'}</button>
+            )}
           </div>
-          {/* Selector de estado */}
-          <div style={{display:'flex',gap:3,flexWrap:'wrap',justifyContent:'flex-end'}}>
-            {ESTADOS.map(e=>(
-              <button key={e} onClick={()=>cambiarEstado(e)} style={{padding:'3px 10px',fontSize:10,background:prospecto.estado===e?EC[e]+'22':'transparent',color:prospecto.estado===e?EC[e]:'var(--z-text-muted)',border:`1px solid ${prospecto.estado===e?EC[e]+'55':'var(--z-border)'}`,borderRadius:20,cursor:'pointer',textTransform:'capitalize',transition:'var(--z-transition)'}}>
-                {e}
-              </button>
-            ))}
+          <div className="z-path mt-4" role="group" aria-label="Etapa del prospecto">
+            {ESTADOS.filter(e => e !== 'dormido').map((e, i, arr) => {
+              const actual = arr.indexOf(prospecto.estado);
+              const st = e === prospecto.estado ? 'is-current' : (actual > -1 && i < actual && prospecto.estado !== 'perdido') ? 'is-done' : '';
+              return (
+                <button key={e} onClick={()=>cambiarEstado(e)} aria-pressed={e === prospecto.estado} className={`z-path-step ${st} ${e === 'perdido' ? 'is-lost' : ''}`}>
+                  {st === 'is-done' && <Icon name="check" size={15} />}
+                  {e === 'negociacion' ? 'Negociación' : e[0].toUpperCase() + e.slice(1)}
+                </button>
+              );
+            })}
+            <button onClick={()=>cambiarEstado('dormido')} aria-pressed={prospecto.estado === 'dormido'} className={`z-path-step is-side ${prospecto.estado === 'dormido' ? 'is-current' : ''}`}>Dormido</button>
           </div>
-          {prospecto.estado==='ganado' && (
-            prospecto.convertido_a_cliente ? (
-              <span style={{fontSize:10,color:'var(--z-success)',padding:'3px 10px',border:'1px solid var(--z-success)',borderRadius:20,whiteSpace:'nowrap'}}>✓ Cliente</span>
-            ) : (
-              <button onClick={convertirACliente} disabled={convirtiendo} className="btn btn-primary btn-sm" style={{fontSize:10,whiteSpace:'nowrap'}}>
-                {convirtiendo?'Convirtiendo...':'Convertir a cliente'}
-              </button>
-            )
-          )}
         </div>
 
         <div style={{flex:1,display:'flex',overflow:'hidden'}}>
           {/* Sidebar datos */}
-          <div style={{width:260,minWidth:260,borderRight:'1px solid var(--z-border)',padding:16,overflowY:'auto',background:'var(--z-sidebar-bg)'}}>
-            <div style={{fontSize:10,color:'var(--z-text-muted)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,fontWeight:600}}>Datos de contacto</div>
+          <div style={{width:260,minWidth:260,borderRight:'1px solid var(--z-border)',padding:16,overflowY:'auto',background:'var(--z-subtle)'}}>
+            <div style={{fontSize:11.5,color:'var(--z-text-muted)',marginBottom:10,fontWeight:600}}>Datos de contacto</div>
             {[['nombre','Nombre'],['apellido','Apellido'],['telefono','Teléfono'],['email','Email'],['handle_rrss','@handle']].map(([k,l])=>(
               <div key={k} style={{marginBottom:10}}>
-                <label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</label>
+                <label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>{l}</label>
                 <input defaultValue={prospecto[k]||''} onBlur={e=>guardarCampo(k,e.target.value)} style={{fontSize:12}} />
               </div>
             ))}
             <div style={{height:1,background:'var(--z-border)',margin:'12px 0'}} />
-            <div style={{fontSize:10,color:'var(--z-text-muted)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,fontWeight:600}}>Proyecto</div>
+            <div style={{fontSize:11.5,color:'var(--z-text-muted)',marginBottom:10,fontWeight:600}}>Proyecto</div>
             <div style={{marginBottom:8}}>
-              <label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}}>Tipo trabajo</label>
+              <label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Tipo trabajo</label>
               <select value={prospecto.tipo_trabajo||''} onChange={e=>guardarCampo('tipo_trabajo',e.target.value)} style={{fontSize:12}}>
                 <option value="">Sin definir</option>
                 {['placard','cocina','mesa','escritorio','biblioteca','vestidor','baño','living','oficina','otro'].map(t=><option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div style={{marginBottom:8}}>
-              <label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}}>Presupuesto estimado $</label>
+              <label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Presupuesto estimado $</label>
               <input type="number" defaultValue={prospecto.presupuesto_estimado||''} onBlur={e=>guardarCampo('presupuesto_estimado',parseFloat(e.target.value)||null)} style={{fontSize:12}} />
             </div>
             <div style={{marginBottom:8}}>
-              <label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}}>Próximo seguimiento</label>
+              <label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Próximo seguimiento</label>
               <input type="datetime-local" defaultValue={prospecto.proximo_seguimiento?new Date(prospecto.proximo_seguimiento).toISOString().slice(0,16):''} onBlur={e=>guardarCampo('proximo_seguimiento',e.target.value?new Date(e.target.value).toISOString():null)} style={{fontSize:12}} />
             </div>
             <div>
-              <label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}}>Notas</label>
+              <label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Notas</label>
               <textarea rows={3} defaultValue={prospecto.notas||''} onBlur={e=>guardarCampo('notas',e.target.value)} style={{resize:'vertical',fontSize:12}} />
             </div>
             {(historial.length>0||pagos.length>0) && (
-              <div style={{marginTop:14,padding:12,background:'rgba(74,107,54,0.06)',border:'1px solid var(--z-border)',borderRadius:'var(--z-radius)'}}>
-                <div style={{fontSize:10,color:'var(--z-text-muted)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8,fontWeight:600}}>Resumen financiero</div>
+              <div style={{marginTop:14,padding:12,background:'rgb(var(--z-primary-c) / 0.06)',border:'1px solid var(--z-border)',borderRadius:'var(--z-radius)'}}>
+                <div style={{fontSize:11.5,color:'var(--z-text-muted)',marginBottom:8,fontWeight:600}}>Resumen financiero</div>
                 <div style={{fontSize:12,color:'var(--z-text-2)',marginBottom:3}}>Compras: <span style={{color:'var(--z-text)'}}>{historial.length}</span></div>
                 <div style={{fontSize:12,color:'var(--z-text-2)',marginBottom:3}}>Cotizado: <span style={{color:'var(--z-warning)'}}>${historial.reduce((s,h)=>s+(h.monto_cotizado||0),0).toLocaleString('es-AR')}</span></div>
                 <div style={{fontSize:12,color:'var(--z-text-2)'}}>Cobrado: <span style={{color:'var(--z-success)'}}>${totalPagado.toLocaleString('es-AR')}</span></div>
@@ -164,9 +169,9 @@ export default function ProspectoDetalle() {
           {/* Panel principal */}
           <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
             {/* Tabs */}
-            <div style={{padding:'8px 16px',borderBottom:'1px solid var(--z-border)',display:'flex',gap:4,background:'var(--z-sidebar-bg)',flexShrink:0}}>
+            <div style={{padding:'8px 16px',borderBottom:'1px solid var(--z-border)',display:'flex',gap:4,background:'var(--z-subtle)',flexShrink:0}}>
               {[['conversacion','💬 Conversación'],['historial','📋 Compras'],['pagos','💰 Pagos']].map(([t,l])=>(
-                <button key={t} onClick={()=>setTab(t)} style={{padding:'6px 14px',fontSize:12,background:tab===t?'rgba(74,107,54,0.15)':'transparent',color:tab===t?'var(--z-text)':'var(--z-text-3)',border:`1px solid ${tab===t?'rgba(74,107,54,0.3)':'transparent'}`,borderRadius:8,cursor:'pointer',transition:'var(--z-transition)'}}>
+                <button key={t} onClick={()=>setTab(t)} style={{padding:'6px 14px',fontSize:12,background:tab===t?'rgb(var(--z-primary-c) / 0.15)':'transparent',color:tab===t?'var(--z-text)':'var(--z-text-3)',border:`1px solid ${tab===t?'rgb(var(--z-primary-c) / 0.3)':'transparent'}`,borderRadius:8,cursor:'pointer',transition:'var(--z-transition)'}}>
                   {l}
                 </button>
               ))}
@@ -179,17 +184,17 @@ export default function ProspectoDetalle() {
                   {conversaciones.length===0 && <div style={{textAlign:'center',padding:40,color:'var(--z-text-muted)'}}>Sin mensajes aún</div>}
                   {conversaciones.map(c=>(
                     <div key={c.id} style={{display:'flex',flexDirection:'column',alignItems:c.direccion==='saliente'?'flex-end':'flex-start'}}>
-                      <div style={{fontSize:10,color:'var(--z-text-muted)',marginBottom:3}}>
+                      <div style={{fontSize:11.5,color:'var(--z-text-muted)',marginBottom:3}}>
                         {c.direccion==='saliente'?'Equipo':prospecto.nombre||'Cliente'} · {c.canal} · {new Date(c.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
                       </div>
-                      <div style={{maxWidth:'70%',padding:'8px 12px',borderRadius:c.direccion==='saliente'?'12px 12px 4px 12px':'12px 12px 12px 4px',background:c.direccion==='saliente'?'rgba(74,107,54,0.2)':'var(--z-card)',border:'1px solid var(--z-border)',fontSize:13,color:'var(--z-text)',lineHeight:1.5}}>
+                      <div style={{maxWidth:'70%',padding:'8px 12px',borderRadius:c.direccion==='saliente'?'12px 12px 4px 12px':'12px 12px 12px 4px',background:c.direccion==='saliente'?'rgb(var(--z-primary-c) / 0.2)':'var(--z-card)',border:'1px solid var(--z-border)',fontSize:13,color:'var(--z-text)',lineHeight:1.5}}>
                         {c.contenido}
                       </div>
                     </div>
                   ))}
                   <div ref={msgRef} />
                 </div>
-                <div style={{padding:'10px 16px',borderTop:'1px solid var(--z-border)',background:'var(--z-sidebar-bg)',flexShrink:0}}>
+                <div style={{padding:'10px 16px',borderTop:'1px solid var(--z-border)',background:'var(--z-subtle)',flexShrink:0}}>
                   <div style={{display:'flex',gap:6,marginBottom:6}}>
                     <select value={msgCanal} onChange={e=>setMsgCanal(e.target.value)} style={{flex:'none',width:'auto',fontSize:12}}>
                       {CANALES_MSG.map(c=><option key={c} value={c}>{c}</option>)}
@@ -288,13 +293,13 @@ function ModalCompra({ prospecto_id, onClose, onSave }) {
           <button onClick={onClose} style={{background:'none',border:'none',color:'var(--z-text-3)',cursor:'pointer',fontSize:18}}>✕</button>
         </div>
         <div style={{display:'grid',gap:10}}>
-          <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Descripción *</label><input value={form.descripcion} onChange={e=>setForm(f=>({...f,descripcion:e.target.value}))} placeholder="Ej: Placard 3 puertas" /></div>
+          <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Descripción *</label><input value={form.descripcion} onChange={e=>setForm(f=>({...f,descripcion:e.target.value}))} placeholder="Ej: Placard 3 puertas" /></div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Cotizado $</label><input type="number" value={form.monto_cotizado} onChange={e=>setForm(f=>({...f,monto_cotizado:e.target.value}))} /></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Final $</label><input type="number" value={form.monto_final} onChange={e=>setForm(f=>({...f,monto_final:e.target.value}))} /></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Forma pago</label><select value={form.forma_pago} onChange={e=>setForm(f=>({...f,forma_pago:e.target.value}))}>{['efectivo','transferencia','cheque','cuotas','mixto'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Condición</label><select value={form.condicion_pago} onChange={e=>setForm(f=>({...f,condicion_pago:e.target.value}))}>{['50-50','30-70','40-60','contado','a_entregar'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Entrega estimada</label><input type="date" value={form.fecha_entrega_estimada} onChange={e=>setForm(f=>({...f,fecha_entrega_estimada:e.target.value}))} /></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Cotizado $</label><input type="number" value={form.monto_cotizado} onChange={e=>setForm(f=>({...f,monto_cotizado:e.target.value}))} /></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Final $</label><input type="number" value={form.monto_final} onChange={e=>setForm(f=>({...f,monto_final:e.target.value}))} /></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Forma pago</label><select value={form.forma_pago} onChange={e=>setForm(f=>({...f,forma_pago:e.target.value}))}>{['efectivo','transferencia','cheque','cuotas','mixto'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Condición</label><select value={form.condicion_pago} onChange={e=>setForm(f=>({...f,condicion_pago:e.target.value}))}>{['50-50','30-70','40-60','contado','a_entregar'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Entrega estimada</label><input type="date" value={form.fecha_entrega_estimada} onChange={e=>setForm(f=>({...f,fecha_entrega_estimada:e.target.value}))} /></div>
           </div>
         </div>
         <div style={{display:'flex',gap:10,marginTop:20,justifyContent:'flex-end'}}>
@@ -325,12 +330,12 @@ function ModalPago({ compras, cliente_id, onClose, onSave }) {
           <button onClick={onClose} style={{background:'none',border:'none',color:'var(--z-text-3)',cursor:'pointer',fontSize:18}}>✕</button>
         </div>
         <div style={{display:'grid',gap:10}}>
-          <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Compra</label><select value={form.historial_compra_id} onChange={e=>setForm(f=>({...f,historial_compra_id:e.target.value}))}>{compras.map(c=><option key={c.id} value={c.id}>{c.descripcion}</option>)}</select></div>
+          <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Compra</label><select value={form.historial_compra_id} onChange={e=>setForm(f=>({...f,historial_compra_id:e.target.value}))}>{compras.map(c=><option key={c.id} value={c.id}>{c.descripcion}</option>)}</select></div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Concepto</label><select value={form.concepto} onChange={e=>setForm(f=>({...f,concepto:e.target.value}))}>{['anticipo','cuota_1','cuota_2','saldo','pago_total','otro'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Monto $ *</label><input type="number" value={form.monto} onChange={e=>setForm(f=>({...f,monto:e.target.value}))} /></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Forma pago</label><select value={form.forma_pago} onChange={e=>setForm(f=>({...f,forma_pago:e.target.value}))}>{['efectivo','transferencia','cheque','mercadopago'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
-            <div><label style={{fontSize:10,color:'var(--z-text-3)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Fecha recibido</label><input type="date" value={form.fecha_recibido} onChange={e=>setForm(f=>({...f,fecha_recibido:e.target.value}))} /></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Concepto</label><select value={form.concepto} onChange={e=>setForm(f=>({...f,concepto:e.target.value}))}>{['anticipo','cuota_1','cuota_2','saldo','pago_total','otro'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Monto $ *</label><input type="number" value={form.monto} onChange={e=>setForm(f=>({...f,monto:e.target.value}))} /></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Forma pago</label><select value={form.forma_pago} onChange={e=>setForm(f=>({...f,forma_pago:e.target.value}))}>{['efectivo','transferencia','cheque','mercadopago'].map(x=><option key={x} value={x}>{x}</option>)}</select></div>
+            <div><label style={{fontSize:11.5,color:'var(--z-text-3)',display:'block',marginBottom:3,}}>Fecha recibido</label><input type="date" value={form.fecha_recibido} onChange={e=>setForm(f=>({...f,fecha_recibido:e.target.value}))} /></div>
           </div>
         </div>
         <div style={{display:'flex',gap:10,marginTop:20,justifyContent:'flex-end'}}>

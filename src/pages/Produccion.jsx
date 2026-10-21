@@ -13,17 +13,17 @@ function diasRestantes(fecha) {
 }
 
 function colorDias(dias) {
-  if (dias === null) return '#43483e'
-  if (dias < 0)  return '#ffb4ab'
-  if (dias <= 5) return '#e3b341'
-  return '#acd292'
+  if (dias === null) return '#96A1AD'
+  if (dias < 0)  return '#C43428'
+  if (dias <= 5) return '#B4700E'
+  return '#0D7665'
 }
 
 // ─── Badge de estado "En fabricación" (mismo lenguaje visual que Proyectos.jsx) ──
 function EstadoBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium uppercase tracking-wide bg-[#acd292]/[0.15] text-[#acd292] border border-[#acd292]/30">
-      <span className="w-1 h-1 rounded-full flex-shrink-0 bg-[#acd292]" />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[11.5px] font-medium bg-z-primary/[0.15] text-z-primary border border-z-primary/30">
+      <span className="w-1 h-1 rounded-full flex-shrink-0 bg-z-primary" />
       En fabricación
     </span>
   )
@@ -33,13 +33,13 @@ function EstadoBadge() {
 function RiskChip({ dias }) {
   if (dias === null) return null
   const conf = dias < 0
-    ? { color: '#ffb4ab', bg: 'rgba(255,180,171,0.15)', border: 'rgba(255,180,171,0.3)', label: `${Math.abs(dias)}D RETRASO` }
+    ? { color: '#C43428', bg: 'rgb(var(--z-danger-c) / 0.15)', border: 'rgb(var(--z-danger-c) / 0.3)', label: `${Math.abs(dias)} días de retraso` }
     : dias <= 5
-    ? { color: '#e3b341', bg: 'rgba(227,179,65,0.15)',  border: 'rgba(227,179,65,0.3)',  label: dias === 0 ? 'ENTREGA HOY' : `${dias}D · EN RIESGO` }
-    : { color: '#acd292', bg: 'rgba(172,210,146,0.15)', border: 'rgba(172,210,146,0.3)', label: 'A TIEMPO' }
+    ? { color: '#B4700E', bg: 'rgb(var(--z-warning-c) / 0.15)',  border: 'rgb(var(--z-warning-c) / 0.3)',  label: dias === 0 ? 'Entrega hoy' : `En riesgo · ${dias} días` }
+    : { color: '#0D7665', bg: 'rgb(var(--z-primary-c) / 0.15)', border: 'rgb(var(--z-primary-c) / 0.3)', label: 'A tiempo' }
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium uppercase tracking-wide"
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[11.5px] font-medium "
       style={{ background:conf.bg, color:conf.color, border:`1px solid ${conf.border}` }}
     >
       <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background:conf.color }} />
@@ -122,33 +122,33 @@ export default function Produccion() {
 
         {/* ── Alerta crítica: proyectos con retraso (derivado de fecha_entrega_estimada) ── */}
         {!loading && conRetraso > 0 && masCritico && (
-          <div className="flex items-center gap-3.5 px-[18px] py-3.5 mb-5 bg-[#ffb4ab]/10 border border-[#ffb4ab]/30 rounded-lg">
-            <div className="w-[34px] h-[34px] rounded flex-shrink-0 bg-[#ffb4ab] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px] text-[#690005]">warning</span>
+          <div className="flex items-center gap-3.5 px-[18px] py-3.5 mb-5 bg-z-danger/10 border border-z-danger/30 rounded-lg">
+            <div className="w-[34px] h-[34px] rounded flex-shrink-0 bg-z-danger flex items-center justify-center">
+              <span className="material-symbols-outlined text-[18px] text-z-on-primary">warning</span>
             </div>
             <div className="flex-1 min-w-0">
-              <span className="font-mono text-[10px] font-bold text-[#ffb4ab] uppercase tracking-[0.12em]">Alerta crítica</span>
-              <p className="mt-[3px] text-[13px] text-[#e5e2e1] leading-relaxed">
+              <span className="font-mono text-[11.5px] font-bold text-z-danger">Alerta crítica</span>
+              <p className="mt-[3px] text-[13px] text-z-ink leading-relaxed">
                 {conRetraso} proyecto{conRetraso !== 1 ? 's' : ''} con retraso en producción. El más urgente:{' '}
-                <strong className="text-[#ffb4ab]">{masCritico.clientes?.nombre || 'Sin nombre'}</strong>
+                <strong className="text-z-danger">{masCritico.clientes?.nombre || 'Sin nombre'}</strong>
                 {' '}— {Math.abs(diasRestantes(masCritico.fecha_entrega_estimada))}d de retraso sobre la entrega estimada ({fechaFmt(masCritico.fecha_entrega_estimada)}).
               </p>
             </div>
             <button
               onClick={() => setSeleccionado(masCritico)}
-              className="flex-shrink-0 bg-transparent border border-[#ffb4ab]/35 text-[#ffb4ab] px-3 py-1.5 rounded font-mono text-[11px] uppercase tracking-wide hover:bg-[#ffb4ab]/10 transition-colors"
+              className="flex-shrink-0 bg-transparent border border-z-danger/35 text-z-danger px-3 py-1.5 rounded font-mono text-[11px] hover:bg-z-danger/10 transition-colors"
             >
               Ver detalle
             </button>
           </div>
         )}
 
-        <div className="flex gap-6 mb-5 border-b border-[#2d2d2d]">
+        <div className="flex gap-6 mb-5 border-b border-z-line">
           {[['lista','Lista'],['gantt','Gantt'],['calendario','Calendario']].map(([v,l]) => (
             <button
               key={v}
               onClick={() => setTab(v)}
-              className={`pb-2.5 px-0.5 -mb-px text-[13px] font-medium border-b-2 transition-colors ${tab === v ? 'text-[#acd292] border-[#acd292]' : 'text-[#8d9386] border-transparent hover:text-[#e5e2e1]'}`}
+              className={`pb-2.5 px-0.5 -mb-px text-[13px] font-medium border-b-2 transition-colors ${tab === v ? 'text-z-primary border-z-primary' : 'text-z-ink-3 border-transparent hover:text-z-ink'}`}
             >
               {l}
             </button>
@@ -156,27 +156,27 @@ export default function Produccion() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-[#43483e]">Cargando...</div>
+          <div className="text-center py-12 text-z-ink-4">Cargando...</div>
         ) : proyectos.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-[#2d2d2d] rounded-xl text-[#43483e]">
+          <div className="text-center py-16 border border-dashed border-z-line rounded-xl text-z-ink-4">
             <div className="text-4xl mb-3">🔨</div>
             <p>No hay trabajos en producción actualmente</p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3 mb-5">
-              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
-                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">En taller</div>
-                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{proyectos.length}</div>
+              <div className="bg-z-surface border border-z-line rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[11.5px] text-z-ink-3 mb-[5px]">En taller</div>
+                <div className="font-mono text-2xl font-bold text-z-ink leading-none">{proyectos.length}</div>
               </div>
-              <div className="bg-[#acd292] rounded-lg px-[18px] py-[14px]">
-                <div className="font-mono text-[9px] text-[#193708]/65 uppercase tracking-widest mb-[5px]">Valor en producción</div>
-                <div className="font-mono text-2xl font-bold text-[#193708] leading-none">{fmt(valorEnTaller)}</div>
+              <div className="bg-z-primary rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[11.5px] text-z-on-primary/65 mb-[5px]">Valor en producción</div>
+                <div className="font-mono text-2xl font-bold text-z-on-primary leading-none">{fmt(valorEnTaller)}</div>
               </div>
-              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
-                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Con retraso</div>
-                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{conRetraso}</div>
-                <div className="font-mono text-[9px] text-[#43483e] mt-1 tracking-wide">{conRetraso > 0 ? 'requieren atención' : 'todo en fecha'}</div>
+              <div className="bg-z-surface border border-z-line rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[11.5px] text-z-ink-3 mb-[5px]">Con retraso</div>
+                <div className="font-mono text-2xl font-bold text-z-ink leading-none">{conRetraso}</div>
+                <div className="font-mono text-[11.5px] text-z-ink-4 mt-1 ">{conRetraso > 0 ? 'requieren atención' : 'todo en fecha'}</div>
               </div>
             </div>
 
@@ -188,17 +188,17 @@ export default function Produccion() {
                     <div
                       key={p.id}
                       onClick={() => setSeleccionado(p)}
-                      className="bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#2d2d2d] rounded p-3.5 cursor-pointer hover:border-[#acd292] hover:-translate-y-0.5 transition-all duration-200"
+                      className="bg-z-subtle/80 backdrop-blur-sm border border-z-line rounded p-3.5 cursor-pointer hover:border-z-primary hover:-translate-y-0.5 transition-all duration-200"
                     >
                       <div className="flex justify-between items-start mb-2.5">
                         <div>
-                          <div className="font-semibold text-[14.5px] text-[#e5e2e1]">{p.clientes?.nombre || 'Sin nombre'}</div>
-                          <div className="text-[12.5px] text-[#c3c8ba] capitalize mt-0.5">{p.tipo_trabajo || p.descripcion || '—'}</div>
+                          <div className="font-semibold text-[14.5px] text-z-ink">{p.clientes?.nombre || 'Sin nombre'}</div>
+                          <div className="text-[12.5px] text-z-ink-2 capitalize mt-0.5">{p.tipo_trabajo || p.descripcion || '—'}</div>
                         </div>
                         <EstadoBadge />
                       </div>
                       <div className="flex justify-between items-center mt-3">
-                        <span className="font-mono text-xs text-[#acd292]">{fmt(p.valor_final || p.valor_estimado)}</span>
+                        <span className="font-mono text-xs text-z-primary">{fmt(p.valor_final || p.valor_estimado)}</span>
                         <RiskChip dias={dias} />
                       </div>
                     </div>
@@ -211,20 +211,20 @@ export default function Produccion() {
             {tab === 'calendario' && <CalendarioView proyectos={proyectos} mes={mesCalendario} setMes={setMesCalendario} onSeleccionar={setSeleccionado} />}
 
             {/* ── Footer stat strip: activas / a tiempo / con retraso (derivado, sin datos nuevos) ── */}
-            <div className="mt-6 px-[22px] py-[14px] flex items-center gap-8 flex-wrap bg-[#0e0e0e] border border-[#2d2d2d] rounded-lg">
+            <div className="mt-6 px-[22px] py-[14px] flex items-center gap-8 flex-wrap bg-z-inset border border-z-line rounded-lg">
               <div className="flex flex-col gap-[3px]">
-                <span className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.12em]">Órdenes activas</span>
-                <span className="font-mono text-xl font-bold text-[#e5e2e1]">{proyectos.length}</span>
+                <span className="font-mono text-[11.5px] text-z-ink-3">Órdenes activas</span>
+                <span className="font-mono text-xl font-bold text-z-ink">{proyectos.length}</span>
               </div>
-              <div className="w-px h-7 bg-[#2d2d2d]" />
+              <div className="w-px h-7 bg-z-line" />
               <div className="flex flex-col gap-[3px]">
-                <span className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.12em]">Tasa a tiempo</span>
-                <span className="font-mono text-xl font-bold" style={{ color: pctATiempo >= 80 ? '#acd292' : pctATiempo >= 50 ? '#e3b341' : '#ffb4ab' }}>{pctATiempo}%</span>
+                <span className="font-mono text-[11.5px] text-z-ink-3">Tasa a tiempo</span>
+                <span className="font-mono text-xl font-bold" style={{ color: pctATiempo >= 80 ? '#0D7665' : pctATiempo >= 50 ? '#B4700E' : '#C43428' }}>{pctATiempo}%</span>
               </div>
-              <div className="w-px h-7 bg-[#2d2d2d]" />
+              <div className="w-px h-7 bg-z-line" />
               <div className="flex flex-col gap-[3px]">
-                <span className="font-mono text-[9px] text-[#8d9386] uppercase tracking-[0.12em]">Con retraso</span>
-                <span className="font-mono text-xl font-bold" style={{ color: conRetraso > 0 ? '#ffb4ab' : '#e5e2e1' }}>{conRetraso}</span>
+                <span className="font-mono text-[11.5px] text-z-ink-3">Con retraso</span>
+                <span className="font-mono text-xl font-bold" style={{ color: conRetraso > 0 ? '#C43428' : 'var(--z-text)' }}>{conRetraso}</span>
               </div>
             </div>
           </>
@@ -234,37 +234,37 @@ export default function Produccion() {
       {seleccionado && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={() => setSeleccionado(null)}>
           <div
-            className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-xl p-7 w-[440px]"
+            className="bg-z-surface border border-z-line rounded-xl p-7 w-[440px]"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-start mb-1.5">
               <div>
-                <h2 className="text-lg font-semibold text-[#e5e2e1] m-0">{seleccionado.clientes?.nombre || 'Sin nombre'}</h2>
-                <div className="text-xs text-[#8d9386] capitalize mt-0.5">{seleccionado.tipo_trabajo || seleccionado.descripcion || '—'}</div>
+                <h2 className="text-lg font-semibold text-z-ink m-0">{seleccionado.clientes?.nombre || 'Sin nombre'}</h2>
+                <div className="text-xs text-z-ink-3 capitalize mt-0.5">{seleccionado.tipo_trabajo || seleccionado.descripcion || '—'}</div>
               </div>
-              <button onClick={() => setSeleccionado(null)} className="bg-transparent border-none text-[#8d9386] hover:text-[#e5e2e1] cursor-pointer text-lg leading-none transition-colors">✕</button>
+              <button onClick={() => setSeleccionado(null)} className="bg-transparent border-none text-z-ink-3 hover:text-z-ink cursor-pointer text-lg leading-none transition-colors">✕</button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 my-3.5 mb-4">
-              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
-                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Valor</div>
-                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{fmt(seleccionado.valor_final || seleccionado.valor_estimado)}</div>
+              <div className="bg-z-surface border border-z-line rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[11.5px] text-z-ink-3 mb-[5px]">Valor</div>
+                <div className="font-mono text-2xl font-bold text-z-ink leading-none">{fmt(seleccionado.valor_final || seleccionado.valor_estimado)}</div>
               </div>
-              <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-lg px-[18px] py-[14px]">
-                <div className="font-mono text-[9px] text-[#8d9386] uppercase tracking-widest mb-[5px]">Entrega estimada</div>
-                <div className="font-mono text-2xl font-bold text-[#e5e2e1] leading-none">{fechaFmt(seleccionado.fecha_entrega_estimada)}</div>
+              <div className="bg-z-surface border border-z-line rounded-lg px-[18px] py-[14px]">
+                <div className="font-mono text-[11.5px] text-z-ink-3 mb-[5px]">Entrega estimada</div>
+                <div className="font-mono text-2xl font-bold text-z-ink leading-none">{fechaFmt(seleccionado.fecha_entrega_estimada)}</div>
               </div>
             </div>
 
             {(seleccionado.clientes?.telefono || seleccionado.clientes?.email) && (
-              <div className="text-xs text-[#c3c8ba] mb-4 flex gap-3.5">
+              <div className="text-xs text-z-ink-2 mb-4 flex gap-3.5">
                 {seleccionado.clientes?.telefono && <span>📞 {seleccionado.clientes.telefono}</span>}
                 {seleccionado.clientes?.email && <span>✉️ {seleccionado.clientes.email}</span>}
               </div>
             )}
 
             {seleccionado.fecha_inicio_fabricacion && (
-              <div className="text-[12.5px] text-[#c3c8ba] mb-[18px]">
+              <div className="text-[12.5px] text-z-ink-2 mb-[18px]">
                 En fabricación desde {fechaFmt(seleccionado.fecha_inicio_fabricacion)}
               </div>
             )}
@@ -273,7 +273,7 @@ export default function Produccion() {
               <button
                 onClick={() => marcarEntregado(seleccionado)}
                 disabled={guardando}
-                className="bg-[#acd292] text-[#193708] px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="bg-z-primary text-z-on-primary px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 {guardando ? 'Guardando...' : 'Marcar entregado'}
               </button>
@@ -305,7 +305,7 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
 
   return (
     <div>
-      <div className="flex justify-between px-1 mb-2 font-mono text-[11px] text-[#43483e]">
+      <div className="flex justify-between px-1 mb-2 font-mono text-[11px] text-z-ink-4">
         <span>{inicio.toLocaleDateString('es-AR')}</span>
         <span>8 semanas →</span>
         <span>{fin.toLocaleDateString('es-AR')}</span>
@@ -324,34 +324,34 @@ function GanttView({ proyectos, otPorProyecto, onSeleccionar }) {
           const tramos = ot?.tramos_instalacion
           return (
             <div key={p.id} className="flex items-center gap-3 cursor-pointer" onClick={() => onSeleccionar(p)}>
-              <div className="w-[150px] flex-shrink-0 text-[12.5px] text-[#e5e2e1] overflow-hidden text-ellipsis whitespace-nowrap">
+              <div className="w-[150px] flex-shrink-0 text-[12.5px] text-z-ink overflow-hidden text-ellipsis whitespace-nowrap">
                 {p.clientes?.nombre || 'Sin nombre'}
               </div>
               <div
-                className="flex-1 relative h-[22px] bg-[#0e0e0e] rounded border border-[#2d2d2d]"
-                style={{ backgroundImage:'repeating-linear-gradient(to right, #2d2d2d 0, #2d2d2d 1px, transparent 1px, transparent 12.5%)' }}
+                className="flex-1 relative h-[22px] bg-z-inset rounded border border-z-line"
+                style={{ backgroundImage:'repeating-linear-gradient(to right, rgb(var(--z-line-c)) 0, rgb(var(--z-line-c)) 1px, transparent 1px, transparent 12.5%)' }}
               >
-                <div className="absolute -top-0.5 -bottom-0.5 w-px bg-[#acd292] shadow-[0_0_6px_rgba(172,210,146,0.5)]" style={{ left:`${xHoy}%` }} />
+                <div className="absolute -top-0.5 -bottom-0.5 w-px bg-z-primary shadow-[0_0_6px_rgb(var(--z-primary-c) / 0.5)]" style={{ left:`${xHoy}%` }} />
                 <div
                   title={`Fabricación: ${hf || '—'}h`}
-                  className="absolute top-0.5 bottom-0.5 bg-[#acd292] rounded"
+                  className="absolute top-0.5 bottom-0.5 bg-z-primary rounded"
                   style={{ left:`${x1}%`, width:`${Math.max(1,xSplit-x1)}%` }}
                 />
                 <div
                   title={`Instalación: ${hi || '—'}h${tramos ? ` en ${tramos.length} tramos` : ''}`}
-                  className="absolute top-0.5 bottom-0.5 bg-[#f8b2d9] rounded"
+                  className="absolute top-0.5 bottom-0.5 bg-z-ai rounded"
                   style={{ left:`${xSplit}%`, width:`${Math.max(1,x2-xSplit)}%` }}
                 />
               </div>
-              <div className="w-[70px] flex-shrink-0 font-mono text-[11px] text-[#43483e] text-right">{fechaFmt(hasta)}</div>
+              <div className="w-[70px] flex-shrink-0 font-mono text-[11px] text-z-ink-4 text-right">{fechaFmt(hasta)}</div>
             </div>
           )
         })}
       </div>
-      <div className="flex gap-4 mt-4 text-[11px] text-[#43483e]">
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#acd292]" />Fabricación</span>
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#f8b2d9]" />Instalación</span>
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-0.5 h-2.5 bg-[#acd292]" />Hoy</span>
+      <div className="flex gap-4 mt-4 text-[11px] text-z-ink-4">
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-z-primary" />Fabricación</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-z-ai" />Instalación</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-0.5 h-2.5 bg-z-primary" />Hoy</span>
         <span>Sin horas cargadas todavía: la barra usa una proporción por defecto (80/20).</span>
       </div>
     </div>
@@ -385,13 +385,13 @@ function CalendarioView({ proyectos, mes, setMes, onSeleccionar }) {
   return (
     <div>
       <div className="flex items-center justify-center gap-4 mb-3.5">
-        <button onClick={() => cambiarMes(-1)} className="bg-transparent border border-[#2d2d2d] rounded text-[#c3c8ba] cursor-pointer px-2.5 py-1 hover:border-[#acd292] hover:text-[#e5e2e1] transition-colors">‹</button>
-        <div className="text-sm font-semibold text-[#e5e2e1] min-w-[160px] text-center">{MESES[mesIdx]} {anio}</div>
-        <button onClick={() => cambiarMes(1)} className="bg-transparent border border-[#2d2d2d] rounded text-[#c3c8ba] cursor-pointer px-2.5 py-1 hover:border-[#acd292] hover:text-[#e5e2e1] transition-colors">›</button>
+        <button onClick={() => cambiarMes(-1)} className="bg-transparent border border-z-line rounded text-z-ink-2 cursor-pointer px-2.5 py-1 hover:border-z-primary hover:text-z-ink transition-colors">‹</button>
+        <div className="text-sm font-semibold text-z-ink min-w-[160px] text-center">{MESES[mesIdx]} {anio}</div>
+        <button onClick={() => cambiarMes(1)} className="bg-transparent border border-z-line rounded text-z-ink-2 cursor-pointer px-2.5 py-1 hover:border-z-primary hover:text-z-ink transition-colors">›</button>
       </div>
       <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
-          <div key={d} className="font-mono text-[10px] text-[#43483e] text-center uppercase tracking-wide">{d}</div>
+          <div key={d} className="font-mono text-[11.5px] text-z-ink-4 text-center ">{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1.5">
@@ -403,19 +403,19 @@ function CalendarioView({ proyectos, mes, setMes, onSeleccionar }) {
           return (
             <div
               key={i}
-              className={`min-h-[74px] rounded-lg border p-1.5 ${hoy ? 'border-[#acd292]' : 'border-[#2d2d2d]'} ${entregas.length > 0 ? 'bg-[#acd292]/[0.14]' : 'bg-[#1c1b1b]'}`}
+              className={`min-h-[74px] rounded-lg border p-1.5 ${hoy ? 'border-z-primary' : 'border-z-line'} ${entregas.length > 0 ? 'bg-z-primary/[0.14]' : 'bg-z-surface'}`}
             >
-              <div className={`font-mono text-[11px] mb-1 ${hoy ? 'text-[#c7eeac]' : 'text-[#43483e]'}`}>{d.getDate()}</div>
+              <div className={`font-mono text-[11px] mb-1 ${hoy ? 'text-z-primary' : 'text-z-ink-4'}`}>{d.getDate()}</div>
               {entregas.slice(0,2).map(p => (
                 <div
                   key={p.id}
                   onClick={() => onSeleccionar(p)}
-                  className="text-[10px] text-[#e5e2e1] bg-[#1c1b1b] rounded px-[5px] py-0.5 mb-0.5 cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="text-[11.5px] text-z-ink bg-z-surface rounded px-[5px] py-0.5 mb-0.5 cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap"
                 >
                   {p.clientes?.nombre || 'Sin nombre'}
                 </div>
               ))}
-              {entregas.length > 2 && <div className="text-[9px] text-[#43483e]">+{entregas.length-2} más</div>}
+              {entregas.length > 2 && <div className="text-[11.5px] text-z-ink-4">+{entregas.length-2} más</div>}
             </div>
           )
         })}

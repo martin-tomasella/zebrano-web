@@ -107,7 +107,7 @@ export default function Materiales() {
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                   <Input label="Precio unitario" type="number" value={formMat.precio_unitario} onChange={e => setFormMat({...formMat, precio_unitario:e.target.value})} />
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Proveedor</label>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Proveedor</label>
                     <select value={formMat.proveedor_id} onChange={e => setFormMat({...formMat, proveedor_id:e.target.value})}>
                       <option value="">Sin asignar</option>
                       {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -132,7 +132,7 @@ export default function Materiales() {
                   <Input label="Precio unitario" type="number" value={formHer.precio_unitario} onChange={e => setFormHer({...formHer, precio_unitario:e.target.value})} />
                   <Input label="Stock actual" type="number" value={formHer.stock_actual} onChange={e => setFormHer({...formHer, stock_actual:e.target.value})} />
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Proveedor</label>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Proveedor</label>
                     <select value={formHer.proveedor_id} onChange={e => setFormHer({...formHer, proveedor_id:e.target.value})}>
                       <option value="">Sin asignar</option>
                       {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}

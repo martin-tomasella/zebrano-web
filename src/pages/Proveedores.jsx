@@ -130,7 +130,7 @@ export default function Proveedores() {
             <Card style={{ marginBottom:20 }}>
               <form onSubmit={crearCompra}>
                 <div style={{ marginBottom:14 }}>
-                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Proveedor</label>
+                  <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Proveedor</label>
                   <select value={formCompra.proveedor_id} onChange={e => setFormCompra({...formCompra, proveedor_id:e.target.value})} required>
                     <option value="">Elegir proveedor...</option>
                     {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -138,14 +138,14 @@ export default function Proveedores() {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:16 }}>
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Tipo</label>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Tipo</label>
                     <select value={formCompra.insumo_tipo} onChange={e => setFormCompra({...formCompra, insumo_tipo:e.target.value, insumo_id:''})}>
                       <option value="material">Material</option>
                       <option value="herraje">Herraje</option>
                     </select>
                   </div>
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Insumo</label>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Insumo</label>
                     <select value={formCompra.insumo_id} onChange={e => setFormCompra({...formCompra, insumo_id:e.target.value})} required>
                       <option value="">Elegir...</option>
                       {(formCompra.insumo_tipo === 'material' ? materiales : herrajes).map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
@@ -178,7 +178,7 @@ export default function Proveedores() {
                   return (
                     <div key={p.id} onClick={() => setSeleccionadoId(p.id)} style={{
                       padding:'11px 14px', cursor:'pointer', borderLeft: activo ? '3px solid var(--z-primary)' : '3px solid transparent',
-                      background: activo ? 'var(--z-primary-glow)' : 'transparent', borderBottom:'1px solid rgba(74,107,54,0.07)',
+                      background: activo ? 'var(--z-primary-glow)' : 'transparent', borderBottom:'1px solid rgb(var(--z-primary-c) / 0.07)',
                     }}
                     onMouseEnter={e => { if (!activo) e.currentTarget.style.background = 'var(--z-card-hover)' }}
                     onMouseLeave={e => { if (!activo) e.currentTarget.style.background = 'transparent' }}>
@@ -209,7 +209,7 @@ export default function Proveedores() {
                     {seleccionado.email && <span>✉️ {seleccionado.email}</span>}
                   </div>
 
-                  <div style={{ fontSize:9, fontWeight:400, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:10 }}>
+                  <div style={{ fontSize:11.5, fontWeight:400, color:'var(--z-hint)', marginBottom:10 }}>
                     Historial de compras ({comprasSeleccionado.length})
                   </div>
                   {comprasSeleccionado.length === 0 ? (

@@ -1,148 +1,153 @@
-
 import React from 'react'
 
+// Tonos semánticos → canal de color del design system
+const T = { neutral:'ink-3', primary:'primary', success:'success', warning:'warning', orange:'orange', gold:'gold', danger:'danger', info:'info', ai:'ai' }
+
+// Estados del negocio → tono + etiqueta legible
 const BADGE_MAP = {
-  // — Estados de OT / proyectos.estado (flujo actual: prospecto → cotizado → sena_pagada → en_fabricacion → entregado / cancelado) —
-  prospecto:        { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)', label:'Prospecto' },
-  cotizado:         { bg:'rgba(227,179,65,0.15)',   color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Cotizado' },
-  sena_pagada:      { bg:'rgba(176,208,156,0.15)',  color:'#b0d09c', border:'rgba(176,208,156,0.3)', label:'Seña pagada' },
-  en_fabricacion:   { bg:'rgba(172,210,146,0.15)',  color:'#acd292', border:'rgba(172,210,146,0.3)', label:'En fabricación' },
-  entregado:        { bg:'rgba(111,174,90,0.18)',   color:'#6fae5a', border:'rgba(111,174,90,0.32)', label:'Entregado' },
-  cancelado:        { bg:'rgba(255,180,171,0.15)',  color:'#ffb4ab', border:'rgba(255,180,171,0.3)', label:'Cancelado' },
-
-  // — Estados legacy (oportunidades.estado_funnel u otros flujos que aún los usan) —
-  en_produccion:    { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'En producción' },
-  propuesta_enviada:{ bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)', label:'Propuesta enviada' },
-  cotizando:        { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Cotizando' },
-  aprobado:         { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'Aprobado' },
-  borrador:         { bg:'rgba(111,117,104,0.15)', color:'#6f7568', border:'rgba(111,117,104,0.3)', label:'Borrador' },
-
-  // — Funnel de prospectos/oportunidades —
-  lead:             { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)', label:'Lead' },
-  contactado:       { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Contactado' },
-  ganado:           { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'Ganado' },
-  perdido:          { bg:'rgba(255,180,171,0.15)', color:'#ffb4ab', border:'rgba(255,180,171,0.3)', label:'Perdido' },
-  caliente:         { bg:'rgba(248,178,217,0.15)', color:'#f8b2d9', border:'rgba(248,178,217,0.3)', label:'Caliente' },
-  tibio:            { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Tibio' },
-  frio:             { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)', label:'Frío' },
-
-  // — Origen / canal —
-  instagram:        { bg:'rgba(248,178,217,0.15)', color:'#f8b2d9', border:'rgba(248,178,217,0.3)', label:'Instagram' },
-  referido:         { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'Referido' },
-  whatsapp:         { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'WhatsApp' },
-  otro:             { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)', label:'Otro' },
-
-  // — Roles —
-  admin:              { bg:'rgba(172,210,146,0.15)', color:'#acd292', border:'rgba(172,210,146,0.3)', label:'Admin' },
-  gestion:            { bg:'rgba(96,165,250,0.15)',  color:'#60a5fa', border:'rgba(96,165,250,0.3)',  label:'Gestión' },
-  carpintero_oficial: { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Carpintero Oficial' },
-  carpintero:         { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Carpintero' },
-  ayudante:           { bg:'rgba(248,178,217,0.15)', color:'#f8b2d9', border:'rgba(248,178,217,0.3)', label:'Ayudante' },
-  taller:           { bg:'rgba(227,179,65,0.15)',  color:'#e3b341', border:'rgba(227,179,65,0.3)',  label:'Taller' },
-  ventas:           { bg:'rgba(176,208,156,0.15)', color:'#b0d09c', border:'rgba(176,208,156,0.3)', label:'Ventas' },
-  rrhh:             { bg:'rgba(248,178,217,0.15)', color:'#f8b2d9', border:'rgba(248,178,217,0.3)', label:'RRHH' },
+  // proyectos.estado: prospecto → cotizado → sena_pagada → en_fabricacion → entregado / cancelado
+  prospecto:        ['neutral', 'Prospecto'],
+  cotizado:         ['orange',  'Cotizado'],
+  sena_pagada:      ['gold',    'Seña pagada'],
+  'seña pagada':    ['gold',    'Seña pagada'],
+  en_fabricacion:   ['info',    'En fabricación'],
+  entregado:        ['success', 'Entregado'],
+  cancelado:        ['danger',  'Cancelado'],
+  // legacy
+  en_produccion:    ['info',    'En producción'],
+  propuesta_enviada:['neutral', 'Propuesta enviada'],
+  cotizando:        ['warning', 'Cotizando'],
+  aprobado:         ['primary', 'Aprobado'],
+  borrador:         ['neutral', 'Borrador'],
+  // funnel prospectos
+  nuevo:            ['info',    'Nuevo'],
+  lead:             ['neutral', 'Lead'],
+  contactado:       ['ai',      'Contactado'],
+  calificado:       ['warning', 'Calificado'],
+  negociacion:      ['gold',    'Negociación'],
+  ganado:           ['success', 'Ganado'],
+  perdido:          ['danger',  'Perdido'],
+  dormido:          ['neutral', 'Dormido'],
+  caliente:         ['danger',  'Caliente'],
+  tibio:            ['warning', 'Tibio'],
+  frio:             ['info',    'Frío'],
+  // canal
+  instagram:        ['ai',      'Instagram'],
+  tiktok:           ['neutral', 'TikTok'],
+  facebook:         ['info',    'Facebook'],
+  web:              ['info',    'Web'],
+  referido:         ['success', 'Referido'],
+  whatsapp:         ['success', 'WhatsApp'],
+  otro:             ['neutral', 'Otro'],
+  // roles
+  admin:              ['primary', 'Admin'],
+  gestion:            ['info',    'Gestión'],
+  carpintero_oficial: ['gold',    'Carpintero oficial'],
+  carpintero:         ['gold',    'Carpintero'],
+  ayudante:           ['ai',      'Ayudante'],
+  taller:             ['gold',    'Taller'],
+  ventas:             ['success', 'Ventas'],
+  rrhh:               ['ai',      'RRHH'],
 }
 
-export function Badge({ value }) {
-  const s = BADGE_MAP[value] || { bg:'rgba(141,147,134,0.15)', color:'#8d9386', border:'rgba(141,147,134,0.3)' }
+export const toneOf = value => BADGE_MAP[value]?.[0] || 'neutral'
+export const labelOf = value => BADGE_MAP[value]?.[1] || (value ? String(value).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : '—')
+export const toneColor = (tone, a) => a == null ? `rgb(var(--z-${T[tone] || T.neutral}-c))` : `rgb(var(--z-${T[tone] || T.neutral}-c) / ${a})`
+
+export function Badge({ value, tone, children }) {
+  const t = tone || toneOf(value)
   return (
     <span style={{
-      display:'inline-flex', alignItems:'center', gap:5,
-      padding:'2px 9px', borderRadius:99, fontSize:10,
-      fontFamily:'var(--font-mono)', fontWeight:500, letterSpacing:'0.05em',
-      textTransform:'uppercase',
-      background:s.bg, color:s.color, border:`1px solid ${s.border}`,
+      display:'inline-flex', alignItems:'center', gap:6, height:22,
+      padding:'0 9px 0 8px', borderRadius:99, fontSize:12, fontWeight:600, lineHeight:1,
+      whiteSpace:'nowrap', background:toneColor(t, 0.11), color:toneColor(t),
     }}>
-      <span style={{ width:4, height:4, borderRadius:'50%', background:s.color, display:'inline-block', flexShrink:0 }}/>
-      {s.label || value}
+      <span style={{ width:6, height:6, borderRadius:'50%', background:'currentColor', flexShrink:0 }}/>
+      {children || labelOf(value)}
     </span>
   )
 }
 
-export function Avatar({ name, size = 30 }) {
-  const initials = (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
+// Color estable por nombre: el mismo cliente siempre tiene el mismo avatar
+const AV_TONES = ['primary','info','ai','gold','orange','success']
+export function Avatar({ name, size = 30, square }) {
+  const n = (name || '?').trim()
+  const initials = n.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0,2)
+  const tone = AV_TONES[[...n].reduce((s, c) => s + c.charCodeAt(0), 0) % AV_TONES.length]
   return (
-    <div style={{
-      width:size, height:size, borderRadius:'50%',
-      background:'rgba(172,210,146,0.15)',
-      border:'1px solid rgba(172,210,146,0.3)',
-      color:'var(--z-primary)', display:'flex', alignItems:'center',
-      justifyContent:'center', fontSize:size*0.35,
-      fontWeight:500, flexShrink:0, fontFamily:'var(--font-body)',
+    <div aria-hidden style={{
+      width:size, height:size, borderRadius: square ? 'var(--radius-sm)' : '50%',
+      background:toneColor(tone, 0.14), color:toneColor(tone),
+      display:'flex', alignItems:'center', justifyContent:'center',
+      fontSize:Math.round(size*0.38), fontWeight:650, flexShrink:0,
     }}>
       {initials}
     </div>
   )
 }
 
-export function Card({ children, style, padding = '16px 20px' }) {
+export function Card({ children, style, padding = '18px 20px', onClick }) {
   return (
-    <div style={{
+    <div onClick={onClick} className={onClick ? 'card-interactive' : undefined} style={{
       background:'var(--z-card)', borderRadius:'var(--radius-lg)',
-      border:'1px solid var(--z-border)', padding,
-      transition:'var(--z-transition)',
-      ...style
+      border:'1px solid var(--z-border)', padding, boxShadow:'var(--z-shadow-sm)',
+      transition:'var(--z-transition)', ...style,
     }}>
       {children}
     </div>
   )
 }
 
-export function KpiCard({ label, value, detail, accent }) {
+export function KpiCard({ label, value, detail, accent, icon, tone = 'primary', onClick }) {
   return (
-    <div style={{
-      background: accent ? 'var(--z-primary)' : 'var(--z-card)',
-      borderRadius:'var(--radius-lg)', padding:'14px 18px',
-      border: accent ? 'none' : '1px solid var(--z-border)',
-    }}>
-      <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color: accent ? 'rgba(25,55,8,0.65)' : 'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5 }}>{label}</div>
-      <div style={{ fontFamily:'var(--font-mono)', fontSize:24, fontWeight:700, color: accent ? 'var(--z-on-primary)' : 'var(--z-text)', lineHeight:1 }}>{value}</div>
-      {detail && <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color: accent ? 'rgba(25,55,8,0.5)' : 'var(--z-ghost)', marginTop:4, letterSpacing:'0.04em' }}>{detail}</div>}
-    </div>
+    <Card padding="16px 18px" onClick={onClick} style={accent ? { borderColor:toneColor(tone, 0.35), background:`linear-gradient(180deg, ${toneColor(tone, 0.06)}, var(--z-card))` } : undefined}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+        {icon && <span className="material-symbols-outlined" style={{ fontSize:18, color:toneColor(tone) }}>{icon}</span>}
+        <span style={{ fontSize:13, fontWeight:500, color:'var(--z-text-3)' }}>{label}</span>
+      </div>
+      <div style={{ fontSize:26, fontWeight:650, color:'var(--z-text)', lineHeight:1, letterSpacing:'-0.02em', fontStretch:'92%' }}>{value}</div>
+      {detail && <div style={{ fontSize:12.5, color:'var(--z-text-3)', marginTop:8 }}>{detail}</div>}
+    </Card>
   )
 }
 
 export function SectionTitle({ children, action }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
-      <div style={{ fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:'var(--z-hint)', textTransform:'uppercase', letterSpacing:'0.14em', whiteSpace:'nowrap' }}>{children}</div>
-      <div style={{ flex:1, height:1, background:'var(--z-border)' }}/>
+    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+      <h3 style={{ fontSize:15, fontWeight:600, color:'var(--z-text)', whiteSpace:'nowrap' }}>{children}</h3>
+      <div style={{ flex:1 }}/>
       {action}
+    </div>
+  )
+}
+
+export function EmptyState({ icon = 'inbox', title, children, action }) {
+  return (
+    <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--z-text-3)' }}>
+      <div style={{ width:44, height:44, borderRadius:12, margin:'0 auto 12px', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--z-inset)' }}>
+        <span className="material-symbols-outlined" style={{ fontSize:22, color:'var(--z-text-3)' }}>{icon}</span>
+      </div>
+      {title && <div style={{ fontSize:14, fontWeight:600, color:'var(--z-text)', marginBottom:4 }}>{title}</div>}
+      {children && <div style={{ fontSize:13, maxWidth:320, margin:'0 auto' }}>{children}</div>}
+      {action && <div style={{ marginTop:14 }}>{action}</div>}
     </div>
   )
 }
 
 export function Table({ cols, rows, empty = 'Sin datos' }) {
   return (
-    <div style={{ border:'1px solid var(--z-border)', borderRadius:'var(--radius-md)', overflow:'hidden' }}>
-      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+    <div style={{ border:'1px solid var(--z-border)', borderRadius:'var(--radius-lg)', overflow:'auto', background:'var(--z-card)', boxShadow:'var(--z-shadow-sm)' }}>
+      <table style={{ width:'100%' }}>
         <thead>
-          <tr>
-            {cols.map(c => (
-              <th key={c.key || c.label} style={{
-                background:'var(--z-bg-2)', padding:'8px 14px', textAlign:'left',
-                fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, color:'var(--z-hint)',
-                textTransform:'uppercase', letterSpacing:'0.1em',
-                borderBottom:'1px solid var(--z-border)',
-              }}>{c.label}</th>
-            ))}
-          </tr>
+          <tr>{cols.map(c => <th key={c.key || c.label}>{c.label}</th>)}</tr>
         </thead>
         <tbody>
           {rows.length === 0
-            ? <tr><td colSpan={cols.length} style={{ textAlign:'center', padding:36, color:'var(--z-ghost)', fontSize:12 }}>{empty}</td></tr>
+            ? <tr><td colSpan={cols.length}><EmptyState title={empty} /></td></tr>
             : rows.map((row, i) => (
-              <tr key={i}
-                onClick={row._onClick}
-                style={{ cursor: row._onClick ? 'pointer' : 'default', background: i % 2 === 1 ? 'var(--z-zebra)' : 'transparent' }}
-                onMouseEnter={e => e.currentTarget.style.background='rgba(172,210,146,0.06)'}
-                onMouseLeave={e => e.currentTarget.style.background = i % 2 === 1 ? 'var(--z-zebra)' : 'transparent'}>
+              <tr key={i} onClick={row._onClick} style={{ cursor: row._onClick ? 'pointer' : 'default' }}>
                 {cols.map(c => (
-                  <td key={c.key || c.label} style={{
-                    padding:'9px 14px',
-                    borderBottom: i < rows.length-1 ? '1px solid var(--z-border)' : 'none',
-                    verticalAlign:'middle', color:'var(--z-text-2)',
-                  }}>
+                  <td key={c.key || c.label} style={{ verticalAlign:'middle', color:'var(--z-text-2)' }}>
                     {c.render ? c.render(row) : row[c.key]}
                   </td>
                 ))}
@@ -155,58 +160,32 @@ export function Table({ cols, rows, empty = 'Sin datos' }) {
   )
 }
 
-export function Spinner() {
+export function Spinner({ size = 20, pad = 60 }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:60 }}>
+    <div role="status" aria-label="Cargando" style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:pad }}>
       <div style={{
-        width:20, height:20,
-        border:'1px solid var(--z-border)',
-        borderTop:'1px solid var(--z-primary)',
-        borderRadius:'50%',
-        animation:'zspin 0.8s linear infinite',
+        width:size, height:size, border:'2px solid var(--z-border)', borderTopColor:'var(--z-primary)',
+        borderRadius:'50%', animation:'spin 0.7s linear infinite',
       }}/>
-      <style>{`@keyframes zspin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }
 
-export function Btn({ children, onClick, variant='primary', small, disabled, style }) {
-  const base = {
-    border:'none', borderRadius:'var(--radius-sm)',
-    fontWeight:500, letterSpacing:'0.03em',
-    padding: small ? '5px 14px' : '8px 18px',
-    fontSize: small ? 11 : 12.5,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.4 : 1,
-    transition:'opacity 0.15s, background 0.15s, filter 0.15s',
-    fontFamily:'var(--font-body)',
-    ...style,
-  }
-  const variants = {
-    primary: { background:'var(--z-primary)', color:'var(--z-on-primary)' },
-    ghost:   { background:'transparent', color:'var(--z-text-2)', border:'1px solid var(--z-border)', fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.06em' },
-    danger:  { background:'var(--z-error)', color:'var(--z-on-error)' },
-  }
-  return <button style={{ ...base, ...variants[variant] }} onClick={onClick} disabled={disabled}>{children}</button>
+export function Btn({ children, onClick, variant='primary', small, disabled, style, icon, type = 'button' }) {
+  const cls = { primary:'btn-primary', ghost:'btn-ghost', secondary:'btn-secondary', quiet:'btn-quiet', danger:'btn-danger' }[variant] || 'btn-primary'
+  return (
+    <button type={type} className={`btn ${cls}${small ? ' btn-sm' : ''}`} style={style} onClick={onClick} disabled={disabled}>
+      {icon && <span className="material-symbols-outlined">{icon}</span>}
+      {children}
+    </button>
+  )
 }
 
 export function Input({ label, type='text', value, onChange, placeholder, required }) {
   return (
     <div style={{ marginBottom:14 }}>
-      {label && <label style={{ display:'block', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>{label}</label>}
-      <input
-        type={type} value={value} onChange={onChange}
-        placeholder={placeholder} required={required}
-        style={{
-          width:'100%', padding:'8px 12px',
-          borderRadius:'var(--radius-sm)',
-          border:'1px solid var(--z-border)',
-          background:'var(--z-bg-2)', color:'var(--z-text)',
-          fontSize:13, outline:'none', fontFamily:'var(--font-mono)',
-        }}
-        onFocus={e => e.target.style.borderColor='var(--z-primary)'}
-        onBlur={e  => e.target.style.borderColor='var(--z-border)'}
-      />
+      {label && <label style={{ display:'block', fontSize:13, fontWeight:500, color:'var(--z-text-2)', marginBottom:6 }}>{label}</label>}
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder} required={required} />
     </div>
   )
 }

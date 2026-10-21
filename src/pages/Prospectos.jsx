@@ -1,28 +1,46 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
+import { Avatar, Badge, EmptyState, toneColor, toneOf } from '../components/ui';
 
 const ESTADOS = [
-  { id: 'nuevo',       label: 'Nuevos',       color: '#60a5fa' },
-  { id: 'contactado',  label: 'Contactados',  color: '#a78bfa' },
-  { id: 'calificado',  label: 'Calificados',  color: '#fbbf24' },
-  { id: 'cotizado',    label: 'Cotizados',    color: '#fb923c' },
-  { id: 'negociacion', label: 'Negociación',  color: '#f472b6' },
-  { id: 'ganado',      label: 'Ganados',      color: '#4ade80' },
-  { id: 'perdido',     label: 'Perdidos',     color: '#f87171' },
+  { id: 'nuevo',       label: 'Nuevos' },
+  { id: 'contactado',  label: 'Contactados' },
+  { id: 'calificado',  label: 'Calificados' },
+  { id: 'cotizado',    label: 'Cotizados' },
+  { id: 'negociacion', label: 'Negociación' },
+  { id: 'ganado',      label: 'Ganados' },
+  { id: 'perdido',     label: 'Perdidos' },
 ];
-const CANALES = { instagram:'📸', facebook:'👍', tiktok:'🎵', whatsapp:'💬', web:'🌐', referido:'🤝', otro:'📱' };
-const EC = { nuevo:'#60a5fa', contactado:'#a78bfa', calificado:'#fbbf24', cotizado:'#fb923c', negociacion:'#f472b6', ganado:'#4ade80', perdido:'#f87171', dormido:'#6b7280' };
+const CANALES = {
+  instagram: { label: 'Instagram', icon: 'photo_camera' },
+  facebook:  { label: 'Facebook',  icon: 'thumb_up' },
+  tiktok:    { label: 'TikTok',    icon: 'music_note' },
+  whatsapp:  { label: 'WhatsApp',  icon: 'chat' },
+  web:       { label: 'Web',       icon: 'language' },
+  referido:  { label: 'Referido',  icon: 'handshake' },
+  otro:      { label: 'Otro',      icon: 'more_horiz' },
+};
+const TIPOS = ['placard','cocina','mesa','escritorio','biblioteca','vestidor','baño','living','oficina','otro'];
+
+const money = n => n ? '$' + Math.round(n).toLocaleString('es-AR') : '—';
+const fecha = d => new Date(d).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+const vencido = p => p.proximo_seguimiento && new Date(p.proximo_seguimiento) < new Date();
+const nombreDe = p => `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre';
 
 export default function Prospectos() {
-  const [vista, setVista] = useState('pipeline');
+  const [vista, setVista] = useState(() => { try { return localStorage.getItem('z-prospectos-vista') || 'tablero'; } catch { return 'tablero'; } });
   const [prospectos, setProspectos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [canal, setCanal] = useState(null);
+  const [soloVencidos, setSoloVencidos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [showNuevo, setShowNuevo] = useState(false);
+  const [arrastrado, setArrastrado] = useState(null);
+  const [destino, setDestino] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [orden, setOrden] = useState({ key: 'created_at', dir: -1 });
   const navigate = useNavigate();
 
   const cargar = useCallback(async () => {
@@ -33,108 +51,172 @@ export default function Prospectos() {
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { try { localStorage.setItem('z-prospectos-vista', vista); } catch {} }, [vista]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }, [toast]);
 
-  const filtrados = prospectos.filter(p => {
-    if (filtroEstado !== 'todos' && p.estado !== filtroEstado) return false;
+  const filtrados = useMemo(() => prospectos.filter(p => {
+    if (canal && p.canal_origen !== canal) return false;
+    if (soloVencidos && !vencido(p)) return false;
     if (busqueda) {
       const q = busqueda.toLowerCase();
-      return (p.nombre||'').toLowerCase().includes(q) || (p.telefono||'').includes(q) || (p.handle_rrss||'').toLowerCase().includes(q);
+      return nombreDe(p).toLowerCase().includes(q) || (p.telefono || '').includes(q) || (p.handle_rrss || '').toLowerCase().includes(q) || (p.tipo_trabajo || '').toLowerCase().includes(q);
     }
     return true;
-  });
+  }), [prospectos, canal, soloVencidos, busqueda]);
 
-  const porEstado = (estado) => filtrados.filter(p => p.estado === estado);
-  const totalGanado = prospectos.filter(p => p.estado === 'ganado').reduce((s, p) => s + (p.presupuesto_estimado || 0), 0);
+  const porEstado = estado => filtrados.filter(p => p.estado === estado);
+  const abiertos = prospectos.filter(p => !['ganado', 'perdido'].includes(p.estado));
+  const totalAbierto = abiertos.reduce((s, p) => s + Number(p.presupuesto_estimado || 0), 0);
+  const canalesPresentes = Object.keys(CANALES).filter(c => prospectos.some(p => p.canal_origen === c));
+  const nVencidos = prospectos.filter(vencido).length;
+
+  // Mover de etapa con arrastrar y soltar: optimista, se revierte si Supabase falla
+  async function mover(p, estado) {
+    if (!p || p.estado === estado) return;
+    const antes = p.estado;
+    setProspectos(list => list.map(x => x.id === p.id ? { ...x, estado } : x));
+    const { error } = await supabase.from('prospectos').update({ estado }).eq('id', p.id);
+    if (error) {
+      setProspectos(list => list.map(x => x.id === p.id ? { ...x, estado: antes } : x));
+      setToast({ tone: 'danger', text: `No se pudo mover a ${nombreDe(p)}: ${error.message}` });
+      return;
+    }
+    setToast({ tone: 'success', text: `${nombreDe(p)} pasó a ${ESTADOS.find(e => e.id === estado)?.label.toLowerCase()}`, undo: () => mover({ ...p, estado }, antes) });
+  }
+
+  const filas = useMemo(() => {
+    const get = {
+      nombre: p => nombreDe(p).toLowerCase(), canal: p => p.canal_origen || '', tipo: p => p.tipo_trabajo || '',
+      presupuesto: p => Number(p.presupuesto_estimado || 0), estado: p => ESTADOS.findIndex(e => e.id === p.estado),
+      seguimiento: p => p.proximo_seguimiento || '9999', created_at: p => p.created_at || '',
+    }[orden.key];
+    return [...filtrados].sort((a, b) => (get(a) > get(b) ? 1 : get(a) < get(b) ? -1 : 0) * orden.dir);
+  }, [filtrados, orden]);
 
   return (
     <Layout>
       <Topbar
         title="Prospectos"
-        subtitle={`${prospectos.length} activos${totalGanado > 0 ? ` · $${totalGanado.toLocaleString('es-AR')} ganados` : ''}`}
-        actions={
-          <>
-            <div style={{ display:'flex', gap:2, background:'rgba(74,107,54,0.08)', borderRadius:8, padding:3 }}>
-              {['pipeline','lista'].map(v => (
-                <button key={v} onClick={() => setVista(v)} style={{ padding:'5px 12px', fontSize:11, background: vista===v ? 'rgba(74,107,54,0.2)' : 'transparent', color: vista===v ? 'var(--z-text)' : 'var(--z-text-3)', border:'none', borderRadius:6, cursor:'pointer', textTransform:'capitalize' }}>{v}</button>
-              ))}
-            </div>
-            <input placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
-              style={{ width:180, padding:'6px 12px', fontSize:12, background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:8, color:'var(--z-text)', outline:'none' }} />
-            <button className="btn btn-primary btn-sm" onClick={() => setShowNuevo(true)}>+ Nuevo</button>
-          </>
-        }
+        subtitle={loading ? 'Cargando…' : `${abiertos.length} abiertos por ${money(totalAbierto)} · ${prospectos.length} en total`}
+        actions={<>
+          <div className="z-seg" role="group" aria-label="Vista">
+            <button aria-pressed={vista === 'tablero'} onClick={() => setVista('tablero')}><Icon name="view_kanban" size={16} />Tablero</button>
+            <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')}><Icon name="table_rows" size={16} />Lista</button>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowNuevo(true)}><Icon name="person_add" size={18} />Nuevo prospecto</button>
+        </>}
       />
 
-      {/* Filtros de estado */}
-      <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', gap:6, overflowX:'auto', flexShrink:0, background:'var(--z-sidebar-bg)' }}>
-        {['todos', ...ESTADOS.map(e => e.id)].map(e => (
-          <button key={e} onClick={() => setFiltroEstado(e)} style={{
-            padding:'4px 12px', fontSize:11, borderRadius:20, cursor:'pointer', whiteSpace:'nowrap',
-            background: filtroEstado===e ? 'rgba(74,107,54,0.2)' : 'transparent',
-            color: filtroEstado===e ? 'var(--z-text)' : 'var(--z-text-3)',
-            border: `1px solid ${filtroEstado===e ? 'rgba(74,107,54,0.4)' : 'var(--z-border)'}`,
-          }}>
-            {e === 'todos' ? 'Todos' : ESTADOS.find(x => x.id === e)?.label} {e !== 'todos' && `(${porEstado(e).length})`}
-          </button>
-        ))}
-      </div>
+      <PageContent>
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="relative w-full sm:w-[280px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-z-ink-3 flex"><Icon name="search" size={18} /></span>
+            <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar por nombre, teléfono o @usuario" aria-label="Buscar prospectos" style={{ paddingLeft: 36 }} />
+          </div>
+          <button className="z-chip" aria-pressed={!canal} onClick={() => setCanal(null)}>Todos los canales</button>
+          {canalesPresentes.map(c => (
+            <button key={c} className="z-chip" aria-pressed={canal === c} onClick={() => setCanal(x => x === c ? null : c)}>
+              <Icon name={CANALES[c].icon} size={15} />{CANALES[c].label}
+              <span className="z-chip-count">{prospectos.filter(p => p.canal_origen === c).length}</span>
+            </button>
+          ))}
+          {nVencidos > 0 && (
+            <button className="z-chip" aria-pressed={soloVencidos} onClick={() => setSoloVencidos(v => !v)}>
+              <Icon name="schedule" size={15} />Seguimiento vencido<span className="z-chip-count">{nVencidos}</span>
+            </button>
+          )}
+        </div>
 
-      <PageContent pad={vista === 'pipeline' ? '16px 24px' : 24}>
         {loading ? (
-          <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
-        ) : vista === 'pipeline' ? (
-          <div style={{ display:'flex', gap:14, overflowX:'auto', paddingBottom:8 }}>
-            {ESTADOS.filter(e => e.id !== 'perdido').map(est => (
-              <div key={est.id} style={{ minWidth:230, flex:'0 0 230px' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, padding:'6px 10px', background:'var(--z-card)', borderRadius:8, border:'1px solid var(--z-border)' }}>
-                  <span style={{ fontSize:11, color:est.color, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em' }}>{est.label}</span>
-                  <span style={{ fontSize:11, color:'var(--z-text-3)', background:'rgba(74,107,54,0.1)', padding:'2px 8px', borderRadius:10 }}>{porEstado(est.id).length}</span>
-                </div>
-                {porEstado(est.id).map(p => (
-                  <div key={p.id} onClick={() => navigate(`/prospectos/${p.id}`)}
-                    style={{ background:'var(--z-card)', border:`1px solid var(--z-border)`, borderLeft:`3px solid ${EC[p.estado]||'#3A5030'}`, borderRadius:10, padding:'12px 14px', marginBottom:8, cursor:'pointer', transition:'var(--z-transition)' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = EC[p.estado]+'66'; e.currentTarget.style.boxShadow = `0 4px 16px ${EC[p.estado]}22`; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--z-border)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                      <span style={{ fontSize:13, color:'var(--z-text)', fontWeight:500 }}>{p.nombre||'Sin nombre'} {p.apellido||''}</span>
-                      <span style={{ fontSize:14 }}>{CANALES[p.canal_origen]||'📱'}</span>
+          <div className="flex gap-3 overflow-hidden">{[0, 1, 2, 3, 4].map(i => <div key={i} className="z-skeleton h-[260px] min-w-[268px]" />)}</div>
+        ) : prospectos.length === 0 ? (
+          <div className="surface"><EmptyState icon="person_search" title="Todavía no hay prospectos"
+            action={<button className="btn btn-primary btn-sm" onClick={() => setShowNuevo(true)}>Cargar el primero</button>}>
+            Cargá las consultas que entran por Instagram, WhatsApp o referidos para seguirlas hasta la venta.</EmptyState></div>
+        ) : vista === 'tablero' ? (
+          <div className="flex gap-3 overflow-x-auto pb-3 items-start" style={{ minHeight: 'calc(100vh - 260px)' }}>
+            {ESTADOS.map(est => {
+              const cards = porEstado(est.id);
+              const total = cards.reduce((s, p) => s + Number(p.presupuesto_estimado || 0), 0);
+              const sobre = destino === est.id && arrastrado && arrastrado.estado !== est.id;
+              const tone = toneOf(est.id);
+              return (
+                <section key={est.id} aria-label={est.label}
+                  onDragOver={e => { if (arrastrado) { e.preventDefault(); setDestino(est.id); } }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDestino(d => d === est.id ? null : d); }}
+                  onDrop={e => { e.preventDefault(); mover(arrastrado, est.id); setArrastrado(null); setDestino(null); }}
+                  className={`w-[268px] min-w-[268px] rounded-xl p-2 flex flex-col transition-colors ${sobre ? 'bg-z-primary/10 ring-2 ring-z-primary/40' : 'bg-z-inset/60'}`}>
+                  <header className="px-2 pt-1 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ background: toneColor(tone) }} />
+                      <h3 className="text-[13.5px] font-semibold text-z-ink">{est.label}</h3>
+                      <span className="text-[12.5px] text-z-ink-3">{cards.length}</span>
                     </div>
-                    {p.handle_rrss && <div style={{ fontSize:11, color:'#4A6B36', marginBottom:4 }}>{p.handle_rrss}</div>}
-                    {p.tipo_trabajo && <div style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize' }}>{p.tipo_trabajo}</div>}
-                    {p.presupuesto_estimado && <div style={{ fontSize:12, color:'var(--z-success)', marginTop:4 }}>${p.presupuesto_estimado.toLocaleString('es-AR')}</div>}
-                    {p.proximo_seguimiento && (
-                      <div style={{ fontSize:10, color: new Date(p.proximo_seguimiento)<new Date() ? 'var(--z-error)' : 'var(--z-warning)', marginTop:6 }}>
-                        🕐 {new Date(p.proximo_seguimiento).toLocaleDateString('es-AR')}
+                    <div className="text-[12.5px] text-z-ink-3 mt-0.5 pl-4">{total ? money(total) : 'Sin presupuesto cargado'}</div>
+                  </header>
+                  <div className="flex flex-col gap-2">
+                    {cards.map(p => (
+                      <article key={p.id} draggable
+                        onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setArrastrado(p); }}
+                        onDragEnd={() => { setArrastrado(null); setDestino(null); }}
+                        onClick={() => navigate(`/prospectos/${p.id}`)}
+                        onKeyDown={e => e.key === 'Enter' && navigate(`/prospectos/${p.id}`)} tabIndex={0}
+                        className={`bg-z-surface rounded-lg p-3 border border-z-line shadow-z-sm cursor-grab active:cursor-grabbing hover:border-z-line-2 hover:shadow-z transition-all ${arrastrado?.id === p.id ? 'opacity-40' : ''}`}>
+                        <div className="flex items-start gap-2.5">
+                          <Avatar name={nombreDe(p)} size={28} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13.5px] font-semibold text-z-ink truncate">{nombreDe(p)}</div>
+                            <div className="text-[12.5px] text-z-ink-3 truncate">{p.handle_rrss || (p.tipo_trabajo && p.tipo_trabajo[0].toUpperCase() + p.tipo_trabajo.slice(1)) || p.telefono || 'Sin datos de contacto'}</div>
+                          </div>
+                          <span className="text-z-ink-3 flex" title={CANALES[p.canal_origen]?.label || 'Otro'}><Icon name={CANALES[p.canal_origen]?.icon || 'more_horiz'} size={16} /></span>
+                        </div>
+                        <div className="flex items-center justify-between mt-3 text-[12.5px]">
+                          <span className="font-semibold text-z-ink">{money(p.presupuesto_estimado)}</span>
+                          {p.proximo_seguimiento && (
+                            <span className={`inline-flex items-center gap-1 ${vencido(p) ? 'text-z-danger font-semibold' : 'text-z-ink-3'}`}>
+                              <Icon name={vencido(p) ? 'notification_important' : 'event'} size={14} />{fecha(p.proximo_seguimiento)}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                    {cards.length === 0 && (
+                      <div className={`text-[12.5px] text-center py-6 rounded-lg border border-dashed ${sobre ? 'border-z-primary text-z-primary' : 'border-z-line-2 text-z-ink-3'}`}>
+                        {arrastrado ? 'Soltá acá' : 'Sin prospectos'}
                       </div>
                     )}
                   </div>
-                ))}
-                {porEstado(est.id).length === 0 && <div style={{ fontSize:11, color:'var(--z-text-muted)', textAlign:'center', padding:16 }}>Sin prospectos</div>}
-              </div>
-            ))}
+                </section>
+              );
+            })}
           </div>
         ) : (
-          <div style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden' }}>
-            {filtrados.length === 0 ? (
-              <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Sin prospectos</div>
-            ) : (
+          <div className="surface overflow-auto">
+            {filas.length === 0 ? <EmptyState icon="filter_alt_off" title="Ningún prospecto coincide">Probá con otra búsqueda o quitá los filtros.</EmptyState> : (
               <table>
                 <thead>
                   <tr>
-                    {['Nombre','Canal','Tipo','Presupuesto','Estado','Seguimiento'].map(h => <th key={h}>{h}</th>)}
+                    {[['nombre', 'Nombre'], ['canal', 'Canal'], ['tipo', 'Trabajo'], ['presupuesto', 'Presupuesto', true], ['estado', 'Etapa'], ['seguimiento', 'Seguimiento'], ['created_at', 'Alta']].map(([k, l, right]) => (
+                      <th key={k} style={{ padding: 0, textAlign: right ? 'right' : 'left' }} aria-sort={orden.key === k ? (orden.dir > 0 ? 'ascending' : 'descending') : 'none'}>
+                        <button onClick={() => setOrden(o => ({ key: k, dir: o.key === k ? -o.dir : 1 }))}
+                          className={`w-full h-[38px] px-[14px] inline-flex items-center gap-1 font-semibold hover:text-z-ink ${right ? 'justify-end' : ''} ${orden.key === k ? 'text-z-ink' : ''}`}>
+                          {l}<Icon name={orden.key === k ? (orden.dir > 0 ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'} size={14} color={orden.key === k ? 'currentColor' : 'var(--z-text-muted)'} />
+                        </button>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtrados.map(p => (
-                    <tr key={p.id} onClick={() => navigate(`/prospectos/${p.id}`)} style={{ cursor:'pointer' }}>
-                      <td style={{ fontWeight:500 }}>{p.nombre||'—'} {p.apellido||''}</td>
-                      <td>{CANALES[p.canal_origen]||'📱'} <span style={{ fontSize:11, color:'var(--z-text-3)' }}>{p.canal_origen||'—'}</span></td>
-                      <td style={{ textTransform:'capitalize', color:'var(--z-text-2)' }}>{p.tipo_trabajo||'—'}</td>
-                      <td style={{ color:'var(--z-success)' }}>{p.presupuesto_estimado ? `$${p.presupuesto_estimado.toLocaleString('es-AR')}` : '—'}</td>
-                      <td><span className="badge" style={{ background:EC[p.estado]+'18', color:EC[p.estado], border:`1px solid ${EC[p.estado]}33`, textTransform:'capitalize' }}>{p.estado}</span></td>
-                      <td style={{ fontSize:11, color: p.proximo_seguimiento && new Date(p.proximo_seguimiento)<new Date() ? 'var(--z-error)' : 'var(--z-warning)' }}>
-                        {p.proximo_seguimiento ? new Date(p.proximo_seguimiento).toLocaleDateString('es-AR') : '—'}
-                      </td>
+                  {filas.map(p => (
+                    <tr key={p.id} onClick={() => navigate(`/prospectos/${p.id}`)} style={{ cursor: 'pointer' }}>
+                      <td><div className="flex items-center gap-3"><Avatar name={nombreDe(p)} size={30} /><div><div className="font-semibold">{nombreDe(p)}</div><div className="text-[12.5px] text-z-ink-3">{p.telefono || p.email || p.handle_rrss || '—'}</div></div></div></td>
+                      <td><span className="inline-flex items-center gap-1.5 text-z-ink-2"><Icon name={CANALES[p.canal_origen]?.icon || 'more_horiz'} size={16} />{CANALES[p.canal_origen]?.label || 'Otro'}</span></td>
+                      <td className="capitalize text-z-ink-2">{p.tipo_trabajo || '—'}</td>
+                      <td className="text-right font-semibold">{money(p.presupuesto_estimado)}</td>
+                      <td><Badge value={p.estado} /></td>
+                      <td className={vencido(p) ? 'text-z-danger font-semibold' : 'text-z-ink-2'}>{p.proximo_seguimiento ? fecha(p.proximo_seguimiento) : '—'}</td>
+                      <td className="text-z-ink-3">{p.created_at ? fecha(p.created_at) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -144,60 +226,85 @@ export default function Prospectos() {
         )}
       </PageContent>
 
-      {showNuevo && <NuevoModal onClose={() => setShowNuevo(false)} onSave={() => { setShowNuevo(false); cargar(); }} />}
+      {toast && (
+        <div role="status" className="z-pop fixed bottom-5 left-1/2 -translate-x-1/2 z-[120] flex items-center gap-3 rounded-lg px-4 py-3 shadow-z-lg text-[13.5px]"
+          style={{ background: 'rgb(var(--z-ink-c))', color: 'rgb(var(--z-surface-c))' }}>
+          <Icon name={toast.tone === 'danger' ? 'error' : 'check_circle'} size={18} color={toast.tone === 'danger' ? 'rgb(var(--z-danger-c))' : 'rgb(var(--z-nav-accent-c))'} />
+          {toast.text}
+          {toast.undo && <button className="font-semibold underline underline-offset-2" onClick={() => { toast.undo(); setToast(null); }}>Deshacer</button>}
+        </div>
+      )}
+
+      {showNuevo && <NuevoDrawer onClose={() => setShowNuevo(false)} onSave={() => { setShowNuevo(false); setToast({ tone: 'success', text: 'Prospecto guardado' }); cargar(); }} />}
     </Layout>
   );
 }
 
-function NuevoModal({ onClose, onSave }) {
+function NuevoDrawer({ onClose, onSave }) {
   const [form, setForm] = useState({ nombre:'', apellido:'', telefono:'', email:'', canal_origen:'instagram', handle_rrss:'', tipo_trabajo:'', presupuesto_estimado:'', notas:'' });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const guardar = async () => {
-    setSaving(true);
-    const { error } = await supabase.from('prospectos').insert({ ...form, presupuesto_estimado: form.presupuesto_estimado ? parseFloat(form.presupuesto_estimado) : null, estado:'nuevo' });
+  useEffect(() => { const k = e => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
+
+  const guardar = async e => {
+    e.preventDefault();
+    if (!form.nombre.trim()) { setError('Poné al menos el nombre del prospecto.'); return; }
+    setSaving(true); setError('');
+    const { error } = await supabase.from('prospectos').insert({ ...form, presupuesto_estimado: form.presupuesto_estimado ? parseFloat(form.presupuesto_estimado) : null, estado: 'nuevo' });
     setSaving(false);
-    if (error) { alert('No se pudo guardar el prospecto: ' + error.message); return; }
+    if (error) { setError('No se pudo guardar el prospecto: ' + error.message); return; }
     onSave();
   };
 
+  const campo = (k, l, props = {}) => (
+    <div className="z-field"><label htmlFor={`np-${k}`}>{l}</label><input id={`np-${k}`} value={form[k]} onChange={set(k)} {...props} /></div>
+  );
+
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }} onClick={onClose}>
-      <div style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-xl)', padding:28, width:500, maxHeight:'85vh', overflowY:'auto' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-          <h2 style={{ margin:0, fontSize:18 }}>Nuevo prospecto</h2>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--z-text-3)', cursor:'pointer', fontSize:18 }}>✕</button>
+    <div className="z-drawer-wrap" onMouseDown={onClose}>
+      <form className="z-drawer" onMouseDown={e => e.stopPropagation()} onSubmit={guardar} role="dialog" aria-label="Nuevo prospecto">
+        <div className="z-drawer-head">
+          <h2 className="text-[17px] flex-1">Nuevo prospecto</h2>
+          <button type="button" className="btn btn-quiet btn-icon" onClick={onClose} aria-label="Cerrar"><Icon name="close" /></button>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-          {[['nombre','Nombre'],['apellido','Apellido'],['telefono','Teléfono'],['email','Email'],['handle_rrss','@usuario RRSS'],['presupuesto_estimado','Presupuesto $']].map(([k,l]) => (
-            <div key={k}>
-              <label style={{ fontSize:11, color:'var(--z-text-3)', display:'block', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>{l}</label>
-              <input value={form[k]} onChange={e => setForm(f => ({...f,[k]:e.target.value}))} />
+        <div className="z-drawer-body grid gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            {campo('nombre', 'Nombre', { autoFocus: true, required: true })}
+            {campo('apellido', 'Apellido')}
+            {campo('telefono', 'Teléfono', { type: 'tel', placeholder: '11 5555-5555' })}
+            {campo('email', 'Email', { type: 'email' })}
+          </div>
+          <div className="z-field">
+            <label>Canal de origen</label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(CANALES).map(([k, c]) => (
+                <button type="button" key={k} className="z-chip" aria-pressed={form.canal_origen === k} onClick={() => setForm(f => ({ ...f, canal_origen: k }))}>
+                  <Icon name={c.icon} size={15} />{c.label}
+                </button>
+              ))}
             </div>
-          ))}
-          <div>
-            <label style={{ fontSize:11, color:'var(--z-text-3)', display:'block', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Canal</label>
-            <select value={form.canal_origen} onChange={e => setForm(f => ({...f,canal_origen:e.target.value}))}>
-              {Object.entries(CANALES).map(([k,v]) => <option key={k} value={k}>{v} {k}</option>)}
-            </select>
           </div>
-          <div>
-            <label style={{ fontSize:11, color:'var(--z-text-3)', display:'block', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Tipo trabajo</label>
-            <select value={form.tipo_trabajo} onChange={e => setForm(f => ({...f,tipo_trabajo:e.target.value}))}>
-              <option value="">Sin definir</option>
-              {['placard','cocina','mesa','escritorio','biblioteca','vestidor','baño','living','oficina','otro'].map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            {campo('handle_rrss', 'Usuario en redes', { placeholder: '@usuario' })}
+            <div className="z-field">
+              <label htmlFor="np-tipo">Tipo de trabajo</label>
+              <select id="np-tipo" value={form.tipo_trabajo} onChange={set('tipo_trabajo')}>
+                <option value="">Sin definir</option>
+                {TIPOS.map(t => <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>)}
+              </select>
+            </div>
           </div>
+          {campo('presupuesto_estimado', 'Presupuesto estimado ($)', { type: 'number', min: 0, inputMode: 'numeric', placeholder: '0' })}
+          <div className="z-field"><label htmlFor="np-notas">Notas</label><textarea id="np-notas" rows={4} style={{ resize: 'vertical' }} value={form.notas} onChange={set('notas')} placeholder="Qué pidió, medidas, referencias…" /></div>
+          {error && <div role="alert" className="rounded-lg px-3 py-2.5 text-[13px] bg-z-danger/10 text-z-danger">{error}</div>}
         </div>
-        <div style={{ marginTop:12 }}>
-          <label style={{ fontSize:11, color:'var(--z-text-3)', display:'block', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Notas</label>
-          <textarea rows={3} style={{ resize:'vertical' }} value={form.notas} onChange={e => setForm(f => ({...f,notas:e.target.value}))} />
+        <div className="z-drawer-foot">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Guardando…' : 'Guardar prospecto'}</button>
         </div>
-        <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end' }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={guardar} disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</button>
-        </div>
-      </div>
+      </form>
     </div>
   );
 }

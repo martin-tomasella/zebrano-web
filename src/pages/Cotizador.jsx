@@ -179,8 +179,8 @@ export default function Cotizador() {
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         {/* Historial de sesiones */}
-        <div style={{ width:232, borderRight:'1px solid var(--z-border)', overflowY:'auto', padding:'16px 12px', background:'var(--z-sidebar-bg)', flexShrink:0 }}>
-          <div style={{ padding:'0 4px 10px', fontSize:11, color:'var(--z-text-3)', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>
+        <div style={{ width:232, borderRight:'1px solid var(--z-border)', overflowY:'auto', padding:'16px 12px', background:'var(--z-subtle)', flexShrink:0 }}>
+          <div style={{ padding:'0 4px 10px', fontSize:11, color:'var(--z-text-3)', fontWeight:600 }}>
             Sesiones recientes
           </div>
           {sesiones.length === 0 && (
@@ -192,7 +192,7 @@ export default function Cotizador() {
               <div key={s.id} onClick={() => seleccionarSesion(s.id)} style={{
                 padding:'10px 12px', marginBottom:4, borderRadius:'var(--radius-md)', cursor:'pointer',
                 background: activa ? 'var(--z-primary-glow)' : 'transparent',
-                border: activa ? '1px solid rgba(74,107,54,0.3)' : '1px solid transparent',
+                border: activa ? '1px solid rgb(var(--z-primary-c) / 0.3)' : '1px solid transparent',
                 transition:'var(--z-transition)',
               }}
               onMouseEnter={e => { if(!activa) e.currentTarget.style.background = 'var(--z-card-hover)' }}
@@ -206,7 +206,7 @@ export default function Cotizador() {
                 </div>
                 <div style={{ fontSize:11, color:'var(--z-text-muted)', marginTop:3, display:'flex', justifyContent:'space-between', gap:6 }}>
                   <span>{new Date(s.created_at).toLocaleDateString('es-AR')}</span>
-                  {s.estado==='aprobada' && <span className="badge badge-success" style={{ padding:'1px 7px', fontSize:10 }}>✓ Aprobada</span>}
+                  {s.estado==='aprobada' && <span className="badge badge-success" style={{ padding:'1px 7px', fontSize:11.5 }}>✓ Aprobada</span>}
                 </div>
               </div>
             )
@@ -223,9 +223,9 @@ export default function Cotizador() {
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <div style={{
                       width:18, height:18, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:10, fontWeight:600,
+                      fontSize:11.5, fontWeight:600,
                       background: i <= etapa ? 'var(--z-primary)' : 'var(--z-bg-2)',
-                      color: i <= etapa ? '#E8DFD0' : 'var(--z-text-muted)',
+                      color: i <= etapa ? 'var(--z-on-primary)' : 'var(--z-text-muted)',
                       border: i <= etapa ? 'none' : '1px solid var(--z-border)',
                     }}>{i+1}</div>
                     <span style={{ fontSize:12, color: i <= etapa ? 'var(--z-text)' : 'var(--z-text-muted)', fontWeight: i===etapa ? 600 : 400 }}>
@@ -271,16 +271,16 @@ export default function Cotizador() {
                 <div style={{
                   width:30, height:30, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:11, fontWeight:600,
-                  background: m.role==='user' ? 'rgba(176,123,48,0.16)' : 'var(--z-primary-glow)',
+                  background: m.role==='user' ? 'rgb(var(--z-gold-c) / 0.16)' : 'var(--z-primary-glow)',
                   color: m.role==='user' ? 'var(--z-secondary-light)' : 'var(--z-primary-light)',
-                  border: m.role==='user' ? '1px solid rgba(176,123,48,0.3)' : '1px solid rgba(74,107,54,0.3)',
+                  border: m.role==='user' ? '1px solid rgb(var(--z-gold-c) / 0.3)' : '1px solid rgb(var(--z-primary-c) / 0.3)',
                 }}>
                   {m.role==='user' ? 'MT' : 'ZB'}
                 </div>
                 <div style={{
                   maxWidth:'70%', padding:'11px 15px', fontSize:13.5, lineHeight:1.65,
                   background: m.role==='user' ? 'var(--z-primary)' : 'var(--z-card)',
-                  color: m.role==='user' ? '#F2EEE4' : (m.error ? 'var(--z-error)' : 'var(--z-text)'),
+                  color: m.role==='user' ? 'var(--z-on-primary)' : (m.error ? 'var(--z-error)' : 'var(--z-text)'),
                   border: m.role==='user' ? 'none' : '1px solid var(--z-border)',
                   borderRadius: m.role==='user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                   whiteSpace:'pre-wrap',
@@ -291,7 +291,7 @@ export default function Cotizador() {
             ))}
             {loading && (
               <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                <div style={{ width:30, height:30, borderRadius:'50%', background:'var(--z-primary-glow)', border:'1px solid rgba(74,107,54,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600, color:'var(--z-primary-light)' }}>ZB</div>
+                <div style={{ width:30, height:30, borderRadius:'50%', background:'var(--z-primary-glow)', border:'1px solid rgb(var(--z-primary-c) / 0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600, color:'var(--z-primary-light)' }}>ZB</div>
                 <div style={{ padding:'12px 16px', background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'4px 14px 14px 14px' }}>
                   <div style={{ display:'flex', gap:4 }}>
                     {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--z-text-muted)', animation:`zbBounce 1.2s ${i*0.2}s infinite` }} />)}

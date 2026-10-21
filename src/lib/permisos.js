@@ -10,27 +10,27 @@ export const ROLES = {
   admin: {
     label: 'Administrador',
     descripcion: 'Acceso total. Puede ver, crear, editar y eliminar en todos los modulos, incluyendo la gestion de usuarios y sus roles.',
-    color: '#8F2FFE',
+    color: '#6D4AD6',
   },
   gestion: {
     label: 'Gestion',
     descripcion: 'Acceso total al negocio (ventas, produccion, insumos, finanzas y usuarios) excepto el modulo de Marketing / Redes Sociales.',
-    color: '#60a5fa',
+    color: '#2563D6',
   },
   carpintero_oficial: {
     label: 'Carpintero Oficial',
     descripcion: 'Rol de taller. Pensado para acceso operativo a Produccion, Proyectos, Materiales y registro de Horas de trabajo.',
-    color: '#4ade80',
+    color: '#1A854A',
   },
   carpintero: {
     label: 'Carpintero',
     descripcion: 'Rol de taller. Pensado para acceso operativo a Produccion, Proyectos, Materiales y registro de Horas de trabajo.',
-    color: '#4ade80',
+    color: '#1A854A',
   },
   ayudante: {
     label: 'Ayudante',
     descripcion: 'Rol de taller con acceso mas acotado: Produccion y registro de Horas de trabajo.',
-    color: '#fbbf24',
+    color: '#B4700E',
   },
 };
 

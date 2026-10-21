@@ -5,7 +5,7 @@ import { Layout, Topbar, PageContent } from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
 
 const ESTADOS = ['borrador','aprobado','programado','publicado','descartado'];
-const EC = { borrador:'#fbbf24', aprobado:'#60a5fa', programado:'#a78bfa', publicado:'#4ade80', descartado:'#f87171' };
+const EC = { borrador:'#B4700E', aprobado:'#2563D6', programado:'#6D4AD6', publicado:'#1A854A', descartado:'#C43428' };
 const REDES = ['instagram','tiktok','facebook'];
 const RED_ICON = { instagram:'📸', tiktok:'🎵', facebook:'👍' };
 const TIPOS_INTERACCION = ['like','comentario','dm'];
@@ -115,16 +115,16 @@ export default function RRSS() {
         }
       />
 
-      <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', gap:8, background:'var(--z-sidebar-bg)', flexShrink:0 }}>
+      <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', gap:8, background:'var(--z-subtle)', flexShrink:0 }}>
         {[['publicaciones','Publicaciones'],['leads',`Leads (${leadsSinConvertir.length})`]].map(([v,l]) => (
-          <button key={v} onClick={() => setTab(v)} style={{ padding:'5px 14px', fontSize:12, borderRadius:8, cursor:'pointer', background: tab===v?'rgba(74,107,54,0.2)':'transparent', color: tab===v?'var(--z-text)':'var(--z-text-3)', border:'none' }}>{l}</button>
+          <button key={v} onClick={() => setTab(v)} style={{ padding:'5px 14px', fontSize:12, borderRadius:8, cursor:'pointer', background: tab===v?'rgb(var(--z-primary-c) / 0.2)':'transparent', color: tab===v?'var(--z-text)':'var(--z-text-3)', border:'none' }}>{l}</button>
         ))}
       </div>
 
       {tab === 'publicaciones' && (
-        <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', gap:6, background:'var(--z-sidebar-bg)', flexShrink:0 }}>
+        <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', gap:6, background:'var(--z-subtle)', flexShrink:0 }}>
           {['todos',...ESTADOS].map(e => (
-            <button key={e} onClick={() => setFiltro(e)} style={{ padding:'4px 12px', fontSize:11, borderRadius:20, cursor:'pointer', textTransform:'capitalize', background: filtro===e?'rgba(74,107,54,0.2)':'transparent', color: filtro===e?'var(--z-text)':'var(--z-text-3)', border:`1px solid ${filtro===e?'rgba(74,107,54,0.4)':'var(--z-border)'}` }}>
+            <button key={e} onClick={() => setFiltro(e)} style={{ padding:'4px 12px', fontSize:11, borderRadius:20, cursor:'pointer', textTransform:'capitalize', background: filtro===e?'rgb(var(--z-primary-c) / 0.2)':'transparent', color: filtro===e?'var(--z-text)':'var(--z-text-3)', border:`1px solid ${filtro===e?'rgb(var(--z-primary-c) / 0.4)':'var(--z-border)'}` }}>
               {e} {e!=='todos'&&`(${pubs.filter(p=>p.estado===e).length})`}
             </button>
           ))}
@@ -136,55 +136,55 @@ export default function RRSS() {
           <div style={{ textAlign:'center', padding:48, color:'var(--z-text-muted)' }}>Cargando...</div>
         ) : tab === 'publicaciones' ? (
           <>
-            <div className="bg-[#1c1b1b] border border-[#2d2d2d] rounded-xl p-6 mb-6">
+            <div className="bg-z-surface border border-z-line rounded-xl p-6 mb-6">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
                 <div>
-                  <h3 className="text-base font-semibold text-[#e5e2e1]">Borradores generados por IA</h3>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-[#8d9386] mt-1">
+                  <h3 className="text-base font-semibold text-z-ink">Borradores generados por IA</h3>
+                  <p className="font-mono text-[11.5px] text-z-ink-3 mt-1">
                     A partir de proyectos reales entregados con imagen
                   </p>
                 </div>
                 <button
                   onClick={generarBorradorIA}
                   disabled={generandoIA}
-                  className="bg-[#4a6b36] text-[#c3eaa8] px-4 py-2 rounded font-mono text-xs uppercase tracking-wide hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-z-primary text-z-on-primary px-4 py-2 rounded font-mono text-xs hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {generandoIA ? 'Generando...' : 'Generar ahora'}
                 </button>
               </div>
 
               {msgGenerarIA && (
-                <div className={`text-xs font-mono px-3 py-2 rounded mb-3 ${msgGenerarIA.ok ? 'bg-[#acd292]/10 text-[#acd292] border border-[#acd292]/30' : 'bg-[#e3b341]/10 text-[#e3b341] border border-[#e3b341]/30'}`}>
+                <div className={`text-xs font-mono px-3 py-2 rounded mb-3 ${msgGenerarIA.ok ? 'bg-z-primary/10 text-z-primary border border-z-primary/30' : 'bg-z-warning/10 text-z-warning border border-z-warning/30'}`}>
                   {msgGenerarIA.texto}
                 </div>
               )}
 
-              <p className="text-[11px] text-[#8d9386] leading-relaxed mb-4">
+              <p className="text-[11px] text-z-ink-3 leading-relaxed mb-4">
                 Publicarlas en Instagram o Facebook todavía requiere conectar esas cuentas — hoy este panel solo arma el borrador (texto + imagen real del proyecto) para revisar y aprobar.
               </p>
 
               {borradoresIA.length === 0 ? (
-                <div className="text-center py-8 text-[#43483e] text-sm border border-dashed border-[#2d2d2d] rounded-lg">
+                <div className="text-center py-8 text-z-ink-4 text-sm border border-dashed border-z-line rounded-lg">
                   Sin borradores generados por IA todavía. Probá "Generar ahora".
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {borradoresIA.map(pub => (
-                    <div key={pub.id} className="bg-[#161616] border border-[#2d2d2d] rounded-lg overflow-hidden flex flex-col">
+                    <div key={pub.id} className="bg-z-subtle border border-z-line rounded-lg overflow-hidden flex flex-col">
                       {pub.imagen_url && (
-                        <div className="h-36 overflow-hidden bg-[#0e0e0e]">
+                        <div className="h-36 overflow-hidden bg-z-inset">
                           <img src={pub.imagen_url} alt="" className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="p-3 flex flex-col gap-2">
-                        <p className="text-xs text-[#e5e2e1] leading-relaxed line-clamp-4">{pub.caption_instagram || pub.contenido}</p>
+                        <p className="text-xs text-z-ink leading-relaxed line-clamp-4">{pub.caption_instagram || pub.contenido}</p>
                         {pub.caption_historia && (
-                          <p className="text-[10px] text-[#8d9386] italic">"{pub.caption_historia}"</p>
+                          <p className="text-[11.5px] text-z-ink-3 italic">"{pub.caption_historia}"</p>
                         )}
                         {Array.isArray(pub.hashtags) && pub.hashtags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {pub.hashtags.slice(0, 6).map(h => (
-                              <span key={h} className="text-[9px] font-mono text-[#acd292] bg-[#acd292]/10 px-1.5 py-0.5 rounded">#{h}</span>
+                              <span key={h} className="text-[11.5px] font-mono text-z-primary bg-z-primary/10 px-1.5 py-0.5 rounded">#{h}</span>
                             ))}
                           </div>
                         )}
@@ -231,16 +231,16 @@ export default function RRSS() {
                           <p style={{ fontSize:12, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
                             {pub.caption_instagram || pub.caption_facebook || 'Sin caption'}
                           </p>
-                          {pub.programado_para && <div style={{ fontSize:11, color:'#a78bfa' }}>📅 {new Date(pub.programado_para).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>}
+                          {pub.programado_para && <div style={{ fontSize:11, color:'#6D4AD6' }}>📅 {new Date(pub.programado_para).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>}
                         </>
                       )}
 
                       {editando?.id !== pub.id && (
                         <div style={{ display:'flex', gap:6, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--z-border)', flexWrap:'wrap' }}>
                           <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
-                          {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
-                          {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgba(74,107,54,0.1)',color:'#4A6B36',border:'1px solid rgba(74,107,54,0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
-                          {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}
+                          {pub.estado === 'borrador' && <button className="btn btn-sm" style={{ background:'rgb(var(--z-info-c) / 0.1)',color:'#2563D6',border:'1px solid rgb(var(--z-info-c) / 0.2)' }} onClick={() => cambiarEstado(pub.id,'aprobado')}>✓ Aprobar</button>}
+                          {pub.estado === 'aprobado' && <button className="btn btn-sm" style={{ background:'rgb(var(--z-primary-c) / 0.1)',color:'#0D7665',border:'1px solid rgb(var(--z-primary-c) / 0.2)' }} onClick={() => cambiarEstado(pub.id,'programado')}>📅 Programar</button>}
+                          {pub.estado !== 'publicado' && pub.estado !== 'descartado' && <button className="btn btn-sm" style={{ background:'rgb(var(--z-danger-c) / 0.1)',color:'#C43428',border:'1px solid rgb(var(--z-danger-c) / 0.2)' }} onClick={() => cambiarEstado(pub.id,'descartado')}>✕</button>}
                       </div>
                     )}
                   </div>
@@ -260,13 +260,13 @@ export default function RRSS() {
                 <form onSubmit={registrarLead}>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:12 }}>
                     <div>
-                      <label style={{ display:'block', fontSize:10, color:'var(--z-text-3)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Red</label>
+                      <label style={{ display:'block', fontSize:11.5, color:'var(--z-text-3)', marginBottom:5, }}>Red</label>
                       <select value={formLead.red} onChange={e => setFormLead({...formLead, red:e.target.value})}>
                         {REDES.map(r => <option key={r} value={r}>{RED_ICON[r]} {r}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{ display:'block', fontSize:10, color:'var(--z-text-3)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Tipo de interacción</label>
+                      <label style={{ display:'block', fontSize:11.5, color:'var(--z-text-3)', marginBottom:5, }}>Tipo de interacción</label>
                       <select value={formLead.tipo_interaccion} onChange={e => setFormLead({...formLead, tipo_interaccion:e.target.value})}>
                         {TIPOS_INTERACCION.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>

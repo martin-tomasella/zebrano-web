@@ -80,7 +80,7 @@ export default function HorasTrabajo() {
             <Card style={{ marginBottom:20 }}>
               <form onSubmit={cargarHoras}>
                 <div style={{ marginBottom:14 }}>
-                  <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Orden de trabajo</label>
+                  <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Orden de trabajo</label>
                   <select value={form.ot_id} onChange={e => setForm({...form, ot_id:e.target.value})} required>
                     <option value="">Elegir OT...</option>
                     {ots.map(o => <option key={o.id} value={o.id}>{nombreOT(o)}</option>)}
@@ -88,14 +88,14 @@ export default function HorasTrabajo() {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Empleado</label>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Empleado</label>
                     <select value={form.empleado_id} onChange={e => setForm({...form, empleado_id:e.target.value})} required>
                       <option value="">Elegir empleado...</option>
                       {empleados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                     </select>
                   </div>
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:10, color:'var(--z-hint)', marginBottom:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>Tipo</label>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Tipo</label>
                     <select value={form.tipo} onChange={e => setForm({...form, tipo:e.target.value})}>
                       <option value="fabricacion">Fabricación</option>
                       <option value="instalacion">Instalación</option>

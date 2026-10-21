@@ -7,11 +7,11 @@ const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 const EC = {
-  borrador:   { bg:'rgba(251,191,36,0.1)',  text:'#fbbf24' },
-  programado: { bg:'rgba(96,165,250,0.1)',  text:'#60a5fa' },
-  publicando: { bg:'rgba(167,139,250,0.1)', text:'#a78bfa' },
-  publicado:  { bg:'rgba(74,222,128,0.1)',  text:'#4ade80' },
-  error:      { bg:'rgba(248,113,113,0.1)', text:'#f87171' },
+  borrador:   { bg:'rgb(var(--z-warning-c) / 0.1)',  text:'#B4700E' },
+  programado: { bg:'rgb(var(--z-info-c) / 0.1)',  text:'#2563D6' },
+  publicando: { bg:'rgb(var(--z-ai-c) / 0.1)', text:'#6D4AD6' },
+  publicado:  { bg:'rgb(var(--z-success-c) / 0.1)',  text:'#1A854A' },
+  error:      { bg:'rgb(var(--z-danger-c) / 0.1)', text:'#C43428' },
 };
 
 export default function TikTok() {
@@ -89,28 +89,28 @@ export default function TikTok() {
         subtitle="@zebrano.ma"
         actions={
           <>
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:20, background: conectado ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', border:`1px solid ${conectado ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'}` }}>
-              <div style={{ width:7, height:7, borderRadius:'50%', background: conectado ? '#4ade80' : '#f87171' }} />
-              <span style={{ fontSize:11, color: conectado ? '#4ade80' : '#f87171' }}>{conectado ? `Conectado` : 'No conectado'}</span>
+            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:20, background: conectado ? 'rgb(var(--z-success-c) / 0.08)' : 'rgb(var(--z-danger-c) / 0.08)', border:`1px solid ${conectado ? 'rgb(var(--z-success-c) / 0.2)' : 'rgb(var(--z-danger-c) / 0.2)'}` }}>
+              <div style={{ width:7, height:7, borderRadius:'50%', background: conectado ? '#1A854A' : '#C43428' }} />
+              <span style={{ fontSize:11, color: conectado ? '#1A854A' : '#C43428' }}>{conectado ? `Conectado` : 'No conectado'}</span>
             </div>
-            {!conectado && <button className="btn btn-sm" style={{ background:'#ef444422', color:'#ef4444', border:'1px solid #ef444433' }} onClick={conectar}>🎵 Conectar</button>}
+            {!conectado && <button className="btn btn-sm" style={{ background:'rgb(var(--z-danger-c) / 0.1)', color:'#C43428', border:'1px solid rgb(var(--z-danger-c) / 0.25)' }} onClick={conectar}>🎵 Conectar</button>}
             <button className="btn btn-primary btn-sm" disabled={procesando} onClick={generarBorradores}>✨ Generar borradores</button>
           </>
         }
       />
       <PageContent>
         {msg && (
-          <div style={{ padding:'10px 16px', borderRadius:8, marginBottom:16, fontSize:13, background: msg.tipo==='error'?'rgba(248,113,113,0.08)':msg.tipo==='info'?'rgba(96,165,250,0.08)':'rgba(74,222,128,0.08)', color: msg.tipo==='error'?'#f87171':msg.tipo==='info'?'#93c5fd':'#86efac', border:`1px solid ${msg.tipo==='error'?'rgba(248,113,113,0.2)':msg.tipo==='info'?'rgba(96,165,250,0.2)':'rgba(74,222,128,0.2)'}` }}>
+          <div style={{ padding:'10px 16px', borderRadius:8, marginBottom:16, fontSize:13, background: msg.tipo==='error'?'rgb(var(--z-danger-c) / 0.08)':msg.tipo==='info'?'rgb(var(--z-info-c) / 0.08)':'rgb(var(--z-success-c) / 0.08)', color: msg.tipo==='error'?'#C43428':msg.tipo==='info'?'#93c5fd':'#86efac', border:`1px solid ${msg.tipo==='error'?'rgb(var(--z-danger-c) / 0.2)':msg.tipo==='info'?'rgb(var(--z-info-c) / 0.2)':'rgb(var(--z-success-c) / 0.2)'}` }}>
             {msg.texto}
           </div>
         )}
 
         {/* Stats */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:24 }}>
-          {[['Total', pubs.length, '#4A6B36'], ['Borradores', borradores, '#fbbf24'], ['Programados', pubs.filter(p=>p.estado==='programado').length, '#60a5fa'], ['Publicados', publicados, '#4ade80']].map(([l,v,c]) => (
+          {[['Total', pubs.length, '#0D7665'], ['Borradores', borradores, '#B4700E'], ['Programados', pubs.filter(p=>p.estado==='programado').length, '#2563D6'], ['Publicados', publicados, '#1A854A']].map(([l,v,c]) => (
             <div key={l} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', padding:'16px', textAlign:'center' }}>
               <div style={{ fontSize:24, fontWeight:700, color:c }}>{v}</div>
-              <div style={{ fontSize:11, color:'var(--z-text-3)', marginTop:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>{l}</div>
+              <div style={{ fontSize:11, color:'var(--z-text-3)', marginTop:4, }}>{l}</div>
             </div>
           ))}
         </div>
@@ -128,7 +128,7 @@ export default function TikTok() {
             {pubs.map(pub => (
               <div key={pub.id} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', overflow:'hidden', display:'flex' }}>
                 {/* Thumbnail */}
-                <div style={{ width:80, minWidth:80, background:'rgba(74,107,54,0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:80, minWidth:80, background:'rgb(var(--z-primary-c) / 0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {pub.imagen_url || pub.galeria_trabajos?.thumbnail_url
                     ? <img src={pub.imagen_url||pub.galeria_trabajos?.thumbnail_url} alt="" style={{ width:'100%', height:80, objectFit:'cover' }} />
                     : <span style={{ fontSize:28 }}>🎵</span>}
@@ -152,11 +152,11 @@ export default function TikTok() {
                       <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6, flexWrap:'wrap' }}>
                         <span className="badge" style={{ background:EC[pub.estado]?.bg, color:EC[pub.estado]?.text }}>{pub.estado}</span>
                         {pub.galeria_trabajos?.tipo_trabajo && <span style={{ fontSize:11, color:'var(--z-text-3)', textTransform:'capitalize' }}>{pub.galeria_trabajos.tipo_trabajo}</span>}
-                        {pub.programado_at && <span style={{ fontSize:11, color:'#60a5fa', marginLeft:'auto' }}>📅 {new Date(pub.programado_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>}
+                        {pub.programado_at && <span style={{ fontSize:11, color:'#2563D6', marginLeft:'auto' }}>📅 {new Date(pub.programado_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>}
                       </div>
                       <div style={{ fontSize:13, color:'var(--z-text)', fontWeight:500, marginBottom:4 }}>{pub.titulo||'—'}</div>
                       <div style={{ fontSize:12, color:'var(--z-text-2)', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{pub.descripcion}</div>
-                      {pub.hashtags?.length > 0 && <div style={{ fontSize:11, color:'#4A6B36', marginTop:4 }}>#{pub.hashtags.slice(0,4).join(' #')}</div>}
+                      {pub.hashtags?.length > 0 && <div style={{ fontSize:11, color:'#0D7665', marginTop:4 }}>#{pub.hashtags.slice(0,4).join(' #')}</div>}
                     </>
                   )}
                 </div>
@@ -166,7 +166,7 @@ export default function TikTok() {
                   <div style={{ display:'flex', flexDirection:'column', gap:6, padding:'10px', borderLeft:'1px solid var(--z-border)', justifyContent:'center', minWidth:90 }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditando({...pub, hashtags_texto:(pub.hashtags||[]).join('\n')})}>✏️ Editar</button>
                     {(pub.estado === 'borrador' || pub.estado === 'programado') && (
-                      <button className="btn btn-sm" style={{ background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.2)' }} disabled={procesando||!conectado} onClick={() => publicar(pub.id)}>🎵 Publicar</button>
+                      <button className="btn btn-sm" style={{ background:'rgb(var(--z-danger-c) / 0.1)', color:'#C43428', border:'1px solid rgb(var(--z-danger-c) / 0.2)' }} disabled={procesando||!conectado} onClick={() => publicar(pub.id)}>🎵 Publicar</button>
                     )}
                   </div>
                 )}

@@ -8,11 +8,11 @@ const fmt  = n => n ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
 const fmtM = n => n ? '$' + (Math.round(n/1000)).toLocaleString('es-AR') + 'k' : '—'
 
 const ETAPAS = [
-  { key:'lead',             label:'Lead',             color:'#F1EFE8' },
-  { key:'contactado',       label:'Contactado',       color:'#FAEEDA' },
-  { key:'cotizando',        label:'Cotizando',        color:'#E6F1FB' },
-  { key:'propuesta_enviada',label:'Propuesta enviada',color:'#E1F5EE' },
-  { key:'ganado',           label:'Ganado',           color:'#EAF3DE' },
+  { key:'lead',             label:'Lead',             color:'#687482' },
+  { key:'contactado',       label:'Contactado',       color:'#B4700E' },
+  { key:'cotizando',        label:'Cotizando',        color:'#2563D6' },
+  { key:'propuesta_enviada',label:'Propuesta enviada',color:'#6D4AD6' },
+  { key:'ganado',           label:'Ganado',           color:'#1A854A' },
 ]
 
 export default function Ventas() {
@@ -104,15 +104,15 @@ export default function Ventas() {
               return (
                 <div key={etapa.key}>
                   <div style={{ marginBottom:8 }}>
-                    <div style={{ fontSize:11, fontWeight:500, color:'var(--z-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{etapa.label}</div>
+                    <div style={{ fontSize:11, fontWeight:500, color:'var(--z-muted)', }}>{etapa.label}</div>
                     <div style={{ fontSize:12, color:'var(--z-hint)', marginTop:2 }}>{fmtM(total)}</div>
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:8, minHeight:80 }}>
                     {items.map(o => (
                       <div key={o.id} onClick={() => abrir(o)} style={{
-                        background:'#fff', border:'0.5px solid var(--z-border)',
+                        background:'var(--z-card)', border:'1px solid var(--z-border)',
                         borderRadius:'var(--radius-md)', padding:'10px 12px', cursor:'pointer',
-                        borderLeft:`3px solid ${etapa.color === '#EAF3DE' ? '#3B6D11' : etapa.color === '#E1F5EE' ? '#1D9E75' : '#D3D1C7'}`,
+                        borderLeft:`3px solid ${etapa.color === '#1A854A' ? '#1A854A' : etapa.color === '#6D4AD6' ? '#0D7665' : '#C8CFD7'}`,
                       }}>
                         <div style={{ fontWeight:500, fontSize:13 }}>{o.nombre_prospecto || o.clientes?.nombre || '—'}</div>
                         <div style={{ fontSize:12, color:'var(--z-muted)', marginTop:2 }}>{o.tipo_trabajo} · {fmt(o.valor_estimado)}</div>
@@ -159,7 +159,7 @@ function DetalleOportunidad({ o, interacciones, nuevaNota, setNuevaNota, guardan
   const etapas = ['lead','contactado','cotizando','propuesta_enviada','ganado','perdido']
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }} onClick={onClose}>
-      <div style={{ background:'#fff', borderRadius:'var(--radius-lg)', padding:24, width:480, maxHeight:'85vh', overflowY:'auto' }} onClick={e => e.stopPropagation()}>
+      <div style={{ background:'var(--z-card)', borderRadius:'var(--radius-lg)', padding:24, width:480, maxHeight:'85vh', overflowY:'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16 }}>
           <div>
             <div style={{ fontSize:16, fontWeight:600 }}>{o.nombre_prospecto || o.clientes?.nombre || 'Sin nombre'}</div>
@@ -186,12 +186,12 @@ function DetalleOportunidad({ o, interacciones, nuevaNota, setNuevaNota, guardan
           </button>
         )}
 
-        <div style={{ fontSize:11, color:'var(--z-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Notas y seguimiento</div>
+        <div style={{ fontSize:11, color:'var(--z-muted)', marginBottom:8 }}>Notas y seguimiento</div>
         <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:10, maxHeight:180, overflowY:'auto' }}>
           {interacciones.length === 0 && <div style={{ fontSize:12, color:'var(--z-hint)' }}>Sin notas todavía.</div>}
           {interacciones.map(i => (
             <div key={i.id} style={{ fontSize:12, borderLeft:'2px solid var(--z-border)', paddingLeft:8 }}>
-              <div style={{ color:'var(--z-hint)', fontSize:10 }}>{new Date(i.created_at).toLocaleString('es-AR')} · {i.canal}</div>
+              <div style={{ color:'var(--z-hint)', fontSize:11.5 }}>{new Date(i.created_at).toLocaleString('es-AR')} · {i.canal}</div>
               <div>{i.contenido}</div>
             </div>
           ))}

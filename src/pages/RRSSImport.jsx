@@ -75,7 +75,7 @@ export default function RRSSImport() {
 
           {/* Zona drag & drop */}
           <div
-            style={{ border:`2px dashed ${drag ? 'var(--z-primary)' : 'var(--z-border)'}`, borderRadius:'var(--z-radius-xl)', padding:'48px 32px', textAlign:'center', cursor:'pointer', transition:'var(--z-transition)', marginBottom:20, background: drag ? 'rgba(74,107,54,0.04)' : 'transparent' }}
+            style={{ border:`2px dashed ${drag ? 'var(--z-primary)' : 'var(--z-border)'}`, borderRadius:'var(--z-radius-xl)', padding:'48px 32px', textAlign:'center', cursor:'pointer', transition:'var(--z-transition)', marginBottom:20, background: drag ? 'rgb(var(--z-primary-c) / 0.04)' : 'transparent' }}
             onDragOver={e => { e.preventDefault(); setDrag(true); }}
             onDragLeave={() => setDrag(false)}
             onDrop={onDrop}
@@ -102,7 +102,7 @@ export default function RRSSImport() {
                     <div key={i} style={{ position:'relative', borderRadius:8, overflow:'hidden', aspectRatio:'1', background:'var(--z-bg-2)', border:'1px solid var(--z-border)' }}>
                       <img src={url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                       {r && (
-                        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background: r.ok===false?'rgba(239,68,68,0.65)':r.apto_rrss?'rgba(74,222,128,0.55)':'rgba(0,0,0,0.65)', fontSize:18, fontWeight:'bold' }}>
+                        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background: r.ok===false?'rgb(var(--z-danger-c) / 0.65)':r.apto_rrss?'rgb(var(--z-success-c) / 0.55)':'rgba(0,0,0,0.65)', fontSize:18, fontWeight:'bold' }}>
                           {r.ok===false?'✗':r.apto_rrss?'✓':'—'}
                         </div>
                       )}
@@ -129,7 +129,7 @@ export default function RRSSImport() {
               {[['✓ Aptas',aptas,'var(--z-success)'],['— Descartadas',descartadas,'var(--z-warning)'],['✗ Errores',errores,'var(--z-error)']].map(([l,v,c])=>(
                 <div key={l} style={{ background:'var(--z-card)', border:'1px solid var(--z-border)', borderRadius:'var(--z-radius-lg)', padding:'14px 8px', textAlign:'center' }}>
                   <div style={{ fontSize:26, fontWeight:700, color:c }}>{v}</div>
-                  <div style={{ fontSize:10, color:'var(--z-text-3)', marginTop:3, textTransform:'uppercase', letterSpacing:'0.08em' }}>{l}</div>
+                  <div style={{ fontSize:11.5, color:'var(--z-text-3)', marginTop:3, }}>{l}</div>
                 </div>
               ))}
             </div>

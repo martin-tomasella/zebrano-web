@@ -22,7 +22,7 @@ const formatHora = d => d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'
 // sobre los datos ya cargados acá. zebrano-cotizador es una función aparte,
 // atada al flujo de diseño/cotización (NOGAL) — conectarla a preguntas de
 // operaciones generaría sesiones de cotización basura y respuestas sin sentido.
-export default function AgentBitacora({ collapsed, onToggle }) {
+export default function AgentBitacora({ collapsed, onToggle, onCount }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [estancados, setEstancados] = useState([]);
@@ -114,63 +114,49 @@ export default function AgentBitacora({ collapsed, onToggle }) {
   }
 
   const mostrarInsight = estancados.length > 0 && !estancadosDescartado;
+  useEffect(() => { onCount?.(mostrarInsight ? estancados.length : 0); }, [mostrarInsight, estancados.length, onCount]);
+  useEffect(() => {
+    if (collapsed) return;
+    const k = e => { if (e.key === 'Escape') onToggle(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [collapsed, onToggle]);
 
-  if (collapsed) {
-    return (
-      <div style={{
-        width: 44, minWidth: 44, height: '100vh', overflow: 'hidden',
-        borderLeft: '1px solid var(--z-border)', background: 'var(--z-sidebar-bg)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        paddingTop: 16, gap: 14, flexShrink: 0,
-      }}>
-        <button onClick={onToggle} title="Expandir Agent Zebrano" style={{
-          background: 'none', border: 'none', color: 'var(--z-text-3)', cursor: 'pointer', fontSize: 14, padding: 4,
-        }}>‹</button>
-        <div style={{ position: 'relative' }} title="Agent Zebrano">
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--z-secondary)' }}>smart_toy</span>
-          {mostrarInsight && (
-            <span style={{
-              position: 'absolute', top: -3, right: -5, width: 7, height: 7, borderRadius: '50%',
-              background: 'var(--z-warning)', border: '1px solid var(--z-sidebar-bg)',
-            }} />
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (collapsed) return null;
 
   return (
-    <div style={{
-      width: 320, minWidth: 320, height: '100vh', overflow: 'hidden',
-      borderLeft: '1px solid var(--z-border)', background: 'var(--z-card)',
-      display: 'flex', flexDirection: 'column', flexShrink: 0,
+    <aside className="z-pop" aria-label="Agent Zebrano" style={{
+      position: 'fixed', top: 64, right: 12, bottom: 12, width: 'min(380px, calc(100vw - 24px))', zIndex: 80,
+      overflow: 'hidden', border: '1px solid var(--z-border)', background: 'var(--z-card)',
+      borderRadius: 'var(--radius-xl)', boxShadow: 'var(--z-shadow-lg)',
+      display: 'flex', flexDirection: 'column',
     }}>
       {/* Header */}
       <div style={{
-        height: 64, padding: '0 16px', flexShrink: 0, borderBottom: '1px solid var(--z-border)',
+        height: 56, padding: '0 12px 0 16px', flexShrink: 0, borderBottom: '1px solid var(--z-border)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <div style={{
             width: 30, height: 30, borderRadius: 'var(--radius-sm)', flexShrink: 0,
-            background: 'rgba(248,178,217,0.15)', border: '1px solid rgba(248,178,217,0.3)',
+            background: 'rgb(var(--z-ai-c) / 0.15)', border: '1px solid rgb(var(--z-ai-c) / 0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--z-secondary)' }}>smart_toy</span>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 700, color: 'var(--z-secondary)', lineHeight: 1.1 }}>Agent Zebrano</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--z-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>AI Assistant</div>
+            <div style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 650, color: 'var(--z-text)', lineHeight: 1.1 }}>Agent Zebrano</div>
+            <div style={{ fontSize: 12, color: 'var(--z-text-3)' }}>Asistente de operación</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{
             width: 7, height: 7, borderRadius: '50%', background: 'var(--z-primary)',
-            boxShadow: '0 0 6px var(--z-primary)', flexShrink: 0, animation: 'zbitacora-pulse 2s ease infinite',
+            flexShrink: 0,
           }} />
-          <button onClick={onToggle} title="Colapsar" style={{
-            background: 'none', border: 'none', color: 'var(--z-text-3)', cursor: 'pointer', fontSize: 14, padding: 4,
-          }}>›</button>
+          <button onClick={onToggle} title="Cerrar (Esc)" aria-label="Cerrar" className="btn btn-quiet btn-sm btn-icon">
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
       </div>
 
@@ -188,11 +174,11 @@ export default function AgentBitacora({ collapsed, onToggle }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--z-warning)' }}>priority_high</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--z-text)', letterSpacing: '0.02em' }}>
+                  <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--z-text)', }}>
                     Proyectos estancados detectados
                   </span>
                 </div>
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--z-text-2)', lineHeight: 1.5, margin: 0 }}>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--z-text-2)', lineHeight: 1.5, margin: 0 }}>
                   {estancados.length === 1
                     ? `${estancados[0].clientes?.nombre || 'Un proyecto'} lleva ${estancados[0].dias} días en "Cotizado" sin avanzar.`
                     : `${estancados.length} proyectos llevan ${DIAS_ESTANCADO}+ días en "Cotizado" sin avanzar: ${estancados.slice(0, 3).map(e => e.clientes?.nombre || 'sin nombre').join(', ')}${estancados.length > 3 ? '…' : ''}.`}
@@ -201,10 +187,9 @@ export default function AgentBitacora({ collapsed, onToggle }) {
                   <button
                     onClick={() => navigate('/proyectos')}
                     style={{
-                      flex: 1, background: 'rgba(248,178,217,0.15)', color: 'var(--z-secondary)',
+                      flex: 1, background: 'rgb(var(--z-ai-c) / 0.15)', color: 'var(--z-secondary)',
                       border: 'none', borderRadius: 'var(--radius-sm)', padding: '6px 0',
-                      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)', fontSize:11.5, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     Ver proyectos
@@ -214,8 +199,7 @@ export default function AgentBitacora({ collapsed, onToggle }) {
                     style={{
                       padding: '6px 12px', background: 'var(--z-bg-2)', color: 'var(--z-text-3)',
                       border: '1px solid var(--z-border)', borderRadius: 'var(--radius-sm)',
-                      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500,
-                      textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)', fontSize:11.5, fontWeight: 500, cursor: 'pointer',
                     }}
                   >
                     Descartar
@@ -227,13 +211,13 @@ export default function AgentBitacora({ collapsed, onToggle }) {
             {/* Log de eventos del sistema (mono timestamps) */}
             {entradas.map(en => (
               <div key={en.id} style={{
-                background: en.esRespuesta ? 'rgba(248,178,217,0.06)' : 'transparent',
+                background: en.esRespuesta ? 'rgb(var(--z-ai-c) / 0.06)' : 'transparent',
                 borderLeft: '2px solid var(--z-border)', paddingLeft: 10,
               }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--z-text-muted)', marginBottom: 3, letterSpacing: '0.03em' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize:11.5, color: 'var(--z-text-muted)', marginBottom: 3, }}>
                   {formatHora(en.hora)} · {en.esRespuesta ? 'Respuesta' : 'Sistema'}
                 </div>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--z-text-2)', lineHeight: 1.45 }}>{en.texto}</div>
+                <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--z-text-2)', lineHeight: 1.5 }}>{en.texto}</div>
               </div>
             ))}
           </>
@@ -248,8 +232,8 @@ export default function AgentBitacora({ collapsed, onToggle }) {
             onChange={e => setPregunta(e.target.value)}
             placeholder="Preguntale algo a Zebrano..."
             style={{
-              width: '100%', padding: '9px 40px 9px 12px', fontSize: 12, borderRadius: 999,
-              border: '1px solid var(--z-border)', background: 'var(--z-bg-2)', color: 'var(--z-text)',
+              width: '100%', padding: '9px 40px 9px 12px', fontSize: 13.5, borderRadius: 999,
+              border: '1px solid var(--z-border)', background: 'var(--z-subtle)', color: 'var(--z-text)',
               outline: 'none', fontFamily: 'var(--font-mono)',
             }}
             onFocus={e => e.target.style.borderColor = 'var(--z-secondary)'}
@@ -258,7 +242,7 @@ export default function AgentBitacora({ collapsed, onToggle }) {
           <button type="submit" style={{
             position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
             width: 26, height: 26, borderRadius: '50%',
-            background: 'rgba(248,178,217,0.18)', color: 'var(--z-secondary)',
+            background: 'rgb(var(--z-ai-c) / 0.18)', color: 'var(--z-secondary)',
             border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -266,7 +250,6 @@ export default function AgentBitacora({ collapsed, onToggle }) {
           </button>
         </div>
       </form>
-      <style>{`@keyframes zbitacora-pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }`}</style>
-    </div>
+    </aside>
   );
 }

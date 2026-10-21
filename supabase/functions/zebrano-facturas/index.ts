@@ -112,21 +112,10 @@ ${catalogo}`;
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-// Dólar oficial (venta) del día de la compra, para llevar la base de precios a USD.
+// Dólar BCRA (minorista promedio vendedor, serie 4) vigente el día de la compra; lo carga tipo-cambio-bcra a diario.
 async function tcDe(fecha: string | null): Promise<number | null> {
-  const dia = fecha || new Date().toISOString().slice(0, 10);
-  const { data: t } = await sb.from("tipos_cambio").select("oficial_venta").eq("fecha", dia).maybeSingle();
-  if (t?.oficial_venta) return Number(t.oficial_venta);
-  try {
-    const r = await fetch(`https://api.bluelytics.com.ar/v2/historical?day=${dia}`);
-    if (r.ok) {
-      const d = await r.json();
-      const of = d?.oficial?.value_sell, bl = d?.blue?.value_sell;
-      if (of) { await sb.from("tipos_cambio").upsert({ fecha: dia, oficial_venta: of, blue_venta: bl }); return of; }
-    }
-  } catch (_) { /* sin TC: queda null y se completa después */ }
-  const { data: prev } = await sb.from("tipos_cambio").select("oficial_venta").lte("fecha", dia).order("fecha", { ascending: false }).limit(1).maybeSingle();
-  return prev?.oficial_venta ? Number(prev.oficial_venta) : null;
+  const { data } = await sb.rpc("tc_usd", { p_fecha: fecha || new Date().toISOString().slice(0, 10) });
+  return data != null ? Number(data) : null;
 }
 const cuitLimpio = (c?: string | null) => (c || "").replace(/\D/g, "") || null;
 const fmtCuit = (c: string | null) => c && c.length === 11 ? `${c.slice(0, 2)}-${c.slice(2, 10)}-${c.slice(10)}` : c;

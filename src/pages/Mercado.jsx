@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
 import { Badge, Spinner, EmptyState } from '../components/ui';
 
-const $ = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('es-AR');
+const $ = n => n == null ? '—' : (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('es-AR');
 const TONO = { competimos: 'success', 'margen bajo': 'warning', 'no competimos': 'danger', 'sin equivalente': 'neutral' };
 
 export default function Mercado() {
@@ -37,12 +37,12 @@ export default function Mercado() {
           <input className="ml-auto max-w-[260px]" placeholder="Buscar producto, marca o MLA…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
         </div>
         <p className="text-[12.5px] text-z-ink-3 mb-3">
-          "Nuestro costo" = material (recetas × precios vigentes) + horas estimadas × costo hora real, sin instalación. "Margen posible" = precio de mercado sin IVA ÷ nuestro costo: arriba de 1,6 competimos; entre 1,15 y 1,6 el margen es bajo.
+          "Te queda en ML" = precio − IVA − comisión − costo fijo − envío propio − ingresos brutos − débitos/créditos (se ajustan en Cotizar por módulos → Parámetros). "Nuestro costo" = material + horas × costo hora + gastos fijos prorrateados, sin instalación. Margen real sobre precio sin IVA: 20% o más competimos; 5–20% margen bajo.
         </p>
         {!rows ? <Spinner /> : (
           <div className="card overflow-auto">
             <table className="w-full text-[13px]">
-              <thead><tr><th>Producto</th><th>Marca</th><th className="text-right">Precio ML</th><th className="text-right">Sin IVA</th><th className="text-right">Nuestro costo</th><th className="text-right">Nuestro precio (Excel)</th><th className="text-right">Margen posible</th><th>Veredicto</th><th /></tr></thead>
+              <thead><tr><th>Producto</th><th>Marca</th><th className="text-right">Precio ML</th><th className="text-right">Sin IVA</th><th className="text-right">Te queda en ML</th><th className="text-right">Nuestro costo</th><th className="text-right">Margen real</th><th>Veredicto</th><th /></tr></thead>
               <tbody>
                 {lista.length === 0 ? <tr><td colSpan={9}><EmptyState icon="storefront" title="Sin productos relevados" /></td></tr> : lista.map(r => (
                   <FilaMercado key={r.id} r={r} abierto={abierto === r.id} hist={hist[r.id]} onHist={() => verHistorial(r.id)} />
@@ -66,9 +66,9 @@ function FilaMercado({ r, abierto, hist, onHist }) {
       <td>{r.marca || '—'}</td>
       <td className="text-right tabular-nums font-medium text-z-ink">{$(r.precio_mercado)}</td>
       <td className="text-right tabular-nums">{$(r.precio_mercado_neto)}</td>
-      <td className="text-right tabular-nums">{$(r.nuestro_costo)}</td>
-      <td className="text-right tabular-nums">{$(r.nuestro_precio_excel)}</td>
-      <td className="text-right tabular-nums">{r.margen_posible ? `${r.margen_posible}×` : '—'}</td>
+      <td className="text-right tabular-nums">{$(r.ml_ingreso_neto)}</td>
+      <td className="text-right tabular-nums" title={r.nuestro_costo ? `Material ${$(r.nuestro_material)} + MO ${$(r.nuestra_mo)} + estructura ${$(r.nuestra_estructura)}` : ''}>{$(r.nuestro_costo)}</td>
+      <td className="text-right tabular-nums whitespace-nowrap" style={{ color: r.margen_real < 0 ? 'rgb(var(--z-danger-c))' : undefined }}>{r.margen_real != null ? `${$(r.margen_real)} · ${r.margen_real_pct}%` : '—'}</td>
       <td><Badge tone={TONO[r.veredicto]}>{r.veredicto}</Badge></td>
       <td className="whitespace-nowrap">
         <button className="btn btn-quiet btn-icon" onClick={onHist} aria-label="Historial de precios" title="Historial de precios"><Icon name="history" /></button>

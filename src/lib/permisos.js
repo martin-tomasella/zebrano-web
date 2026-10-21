@@ -57,6 +57,7 @@ export const MODULOS = [
   { key:'proveedores',  label:'Proveedores',         path:'/proveedores',   categoria:'Insumos' },
   { key:'materiales',   label:'Materiales',          path:'/materiales',    categoria:'Insumos' },
 
+  { key:'personal',     label:'Personal y estructura', path:'/personal',    categoria:'Administracion' },
   { key:'finanzas',     label:'Finanzas',             path:'/finanzas',      categoria:'Administracion' },
   { key:'usuarios',     label:'Usuarios',             path:'/usuarios',      categoria:'Administracion' },
   { key:'landing',      label:'Landing publica',      path:'/landing',       categoria:'Administracion' },

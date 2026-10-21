@@ -29,6 +29,7 @@ const NAV_SECTIONS = [
     { path: '/materiales',  icon: 'box',   label: 'Materiales', moduloKey: 'materiales' },
   ]},
   { label: 'Administración', items: [
+    { path: '/personal',   icon: 'badge', label: 'Personal y estructura', moduloKey: 'personal' },
     { path: '/finanzas',   icon: 'wallet', label: 'Finanzas', moduloKey: 'finanzas' },
     { path: '/usuarios',   icon: 'user',   label: 'Usuarios', moduloKey: 'usuarios' },
     { path: '/landing',    icon: 'globe',  label: 'Landing pública', moduloKey: 'landing' },

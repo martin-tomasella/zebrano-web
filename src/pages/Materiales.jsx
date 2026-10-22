@@ -1,185 +1,77 @@
-
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { Layout, Topbar, PageContent } from '../components/Layout'
-import { Card, KpiCard, SectionTitle, Table, Spinner, Btn, Input } from '../components/ui'
+import { Layout, Topbar, PageContent, Icon } from '../components/Layout'
+import { KpiCard, Spinner, EmptyState, Badge } from '../components/ui'
 
-const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
+const $ = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('es-AR')
+const usd = n => n == null ? '—' : 'US$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const f = d => d ? new Date(d + 'T12:00').toLocaleDateString('es-AR') : '—'
 
+// Insumos: catálogo real (nacido del Excel y alimentado por las facturas confirmadas en Compras).
 export default function Materiales() {
-  const [tab, setTab] = useState('materiales')
-  const [materiales, setMateriales] = useState([])
-  const [herrajes, setHerrajes] = useState([])
-  const [proveedores, setProveedores] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [rows, setRows] = useState(null)
+  const [cat, setCat] = useState('todas')
+  const [q, setQ] = useState('')
+  const [nuevo, setNuevo] = useState(null)
+  const [err, setErr] = useState('')
+  const cargar = () => supabase.from('insumos_resumen').select('*').order('categoria').order('nombre').then(({ data }) => setRows(data || []))
+  useEffect(() => { cargar() }, [])
 
-  const [formMat, setFormMat] = useState({ nombre:'', tipo:'', espesor_mm:'', descripcion:'', unidad:'', precio_unitario:'', proveedor_id:'' })
-  const [formHer, setFormHer] = useState({ nombre:'', categoria:'', marca:'', descripcion:'', precio_unitario:'', stock_actual:'', proveedor_id:'' })
+  const cats = useMemo(() => ['todas', ...new Set((rows || []).map(r => r.categoria))], [rows])
+  const lista = (rows || []).filter(r => (cat === 'todas' || r.categoria === cat) && (!q || r.nombre.toLowerCase().includes(q.toLowerCase())))
+  const conFactura = (rows || []).filter(r => r.fuente === 'factura').length
+  const comprado = (rows || []).reduce((s, r) => s + Number(r.comprado_importe || 0), 0)
 
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const [{ data: m }, { data: h }, { data: p }] = await Promise.all([
-      supabase.from('catalogo_materiales').select('*, proveedores(nombre)').eq('activo', true).order('nombre'),
-      supabase.from('catalogo_herrajes').select('*, proveedores(nombre)').eq('activo', true).order('nombre'),
-      supabase.from('proveedores').select('id,nombre').eq('activo', true).order('nombre'),
-    ])
-    setMateriales(m || [])
-    setHerrajes(h || [])
-    setProveedores(p || [])
-    setLoading(false)
+  const guardar = async e => {
+    e.preventDefault(); setErr('')
+    const { error } = await supabase.from('insumos').insert({ nombre: nuevo.nombre, categoria: nuevo.categoria || 'otros', unidad: nuevo.unidad || 'unidad', precio_lista: nuevo.precio_lista ? Number(nuevo.precio_lista) : null, descuento_pct: 0, origen: 'manual' })
+    if (error) setErr(error.message); else { setNuevo(null); cargar() }
   }
-
-  async function crearMaterial(e) {
-    e.preventDefault()
-    if (!formMat.nombre || !formMat.unidad) return
-    setSaving(true)
-    await supabase.from('catalogo_materiales').insert({
-      nombre: formMat.nombre,
-      tipo: formMat.tipo || null,
-      espesor_mm: formMat.espesor_mm ? Number(formMat.espesor_mm) : null,
-      descripcion: formMat.descripcion || null,
-      unidad: formMat.unidad,
-      precio_unitario: formMat.precio_unitario ? Number(formMat.precio_unitario) : null,
-      proveedor_id: formMat.proveedor_id || null,
-      activo: true,
-    })
-    setFormMat({ nombre:'', tipo:'', espesor_mm:'', descripcion:'', unidad:'', precio_unitario:'', proveedor_id:'' })
-    setShowForm(false)
-    setSaving(false)
-    load()
-  }
-
-  async function crearHerraje(e) {
-    e.preventDefault()
-    if (!formHer.nombre) return
-    setSaving(true)
-    await supabase.from('catalogo_herrajes').insert({
-      nombre: formHer.nombre,
-      categoria: formHer.categoria || null,
-      marca: formHer.marca || null,
-      descripcion: formHer.descripcion || null,
-      precio_unitario: formHer.precio_unitario ? Number(formHer.precio_unitario) : null,
-      stock_actual: formHer.stock_actual ? Number(formHer.stock_actual) : 0,
-      proveedor_id: formHer.proveedor_id || null,
-      activo: true,
-    })
-    setFormHer({ nombre:'', categoria:'', marca:'', descripcion:'', precio_unitario:'', stock_actual:'', proveedor_id:'' })
-    setShowForm(false)
-    setSaving(false)
-    load()
-  }
-
-  const valorInventarioHerrajes = herrajes.reduce((s, h) => s + Number(h.precio_unitario || 0) * Number(h.stock_actual || 0), 0)
 
   return (
     <Layout>
-      <Topbar
-        title="Materiales e insumos"
-        subtitle={`${materiales.length} materiales · ${herrajes.length} herrajes`}
-        actions={<Btn small onClick={() => setShowForm(v => !v)}>{showForm ? 'Cancelar' : (tab === 'materiales' ? '+ Material' : '+ Herraje')}</Btn>}
-      />
+      <Topbar title="Insumos" subtitle="Catálogo de materiales y herrajes con el último precio pagado"
+        actions={<button className="btn btn-primary" onClick={() => setNuevo({})}><Icon name="add" />Insumo</button>} />
       <PageContent>
-        {loading ? <Spinner /> : <>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, marginBottom:20 }}>
-            <KpiCard label="Materiales activos" value={materiales.length} accent />
-            <KpiCard label="Herrajes activos" value={herrajes.length} />
-            <KpiCard label="Valor stock herrajes" value={fmt(valorInventarioHerrajes)} />
+        {!rows ? <Spinner /> : <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+            <KpiCard label="Insumos activos" value={rows.length} icon="inventory_2" />
+            <KpiCard label="Con precio de factura" value={conFactura} detail={`${rows.length - conFactura} todavía con precio de lista del Excel`} icon="receipt_long" />
+            <KpiCard label="Comprado (facturas confirmadas)" value={$(comprado)} icon="shopping_cart" />
           </div>
-
-          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
-            <Btn small variant={tab === 'materiales' ? 'primary' : 'ghost'} onClick={() => { setTab('materiales'); setShowForm(false) }}>Materiales</Btn>
-            <Btn small variant={tab === 'herrajes' ? 'primary' : 'ghost'} onClick={() => { setTab('herrajes'); setShowForm(false) }}>Herrajes</Btn>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {cats.map(c => <button key={c} className="z-chip capitalize" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}
+            <input className="ml-auto max-w-[260px]" placeholder="Buscar insumo…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
           </div>
-
-          {showForm && tab === 'materiales' && (
-            <Card style={{ marginBottom:20 }}>
-              <form onSubmit={crearMaterial}>
-                <Input label="Nombre" value={formMat.nombre} onChange={e => setFormMat({...formMat, nombre:e.target.value})} required />
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
-                  <Input label="Tipo" value={formMat.tipo} onChange={e => setFormMat({...formMat, tipo:e.target.value})} />
-                  <Input label="Espesor (mm)" type="number" value={formMat.espesor_mm} onChange={e => setFormMat({...formMat, espesor_mm:e.target.value})} />
-                  <Input label="Unidad" value={formMat.unidad} onChange={e => setFormMat({...formMat, unidad:e.target.value})} required placeholder="m2, unidad, kg..." />
-                </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                  <Input label="Precio unitario" type="number" value={formMat.precio_unitario} onChange={e => setFormMat({...formMat, precio_unitario:e.target.value})} />
-                  <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Proveedor</label>
-                    <select value={formMat.proveedor_id} onChange={e => setFormMat({...formMat, proveedor_id:e.target.value})}>
-                      <option value="">Sin asignar</option>
-                      {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <Input label="Descripción" value={formMat.descripcion} onChange={e => setFormMat({...formMat, descripcion:e.target.value})} />
-                <Btn onClick={crearMaterial} disabled={saving}>{saving ? 'Guardando...' : 'Guardar material'}</Btn>
-              </form>
-            </Card>
-          )}
-
-          {showForm && tab === 'herrajes' && (
-            <Card style={{ marginBottom:20 }}>
-              <form onSubmit={crearHerraje}>
-                <Input label="Nombre" value={formHer.nombre} onChange={e => setFormHer({...formHer, nombre:e.target.value})} required />
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                  <Input label="Categoría" value={formHer.categoria} onChange={e => setFormHer({...formHer, categoria:e.target.value})} placeholder="Bisagras, tiradores, rieles..." />
-                  <Input label="Marca" value={formHer.marca} onChange={e => setFormHer({...formHer, marca:e.target.value})} />
-                </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
-                  <Input label="Precio unitario" type="number" value={formHer.precio_unitario} onChange={e => setFormHer({...formHer, precio_unitario:e.target.value})} />
-                  <Input label="Stock actual" type="number" value={formHer.stock_actual} onChange={e => setFormHer({...formHer, stock_actual:e.target.value})} />
-                  <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Proveedor</label>
-                    <select value={formHer.proveedor_id} onChange={e => setFormHer({...formHer, proveedor_id:e.target.value})}>
-                      <option value="">Sin asignar</option>
-                      {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <Input label="Descripción" value={formHer.descripcion} onChange={e => setFormHer({...formHer, descripcion:e.target.value})} />
-                <Btn onClick={crearHerraje} disabled={saving}>{saving ? 'Guardando...' : 'Guardar herraje'}</Btn>
-              </form>
-            </Card>
-          )}
-
-          {tab === 'materiales' ? (
-            <>
-              <SectionTitle>Catálogo de materiales</SectionTitle>
-              <Table
-                cols={[
-                  { key:'nombre', label:'Nombre' },
-                  { key:'tipo', label:'Tipo', render:r => r.tipo || '—' },
-                  { key:'espesor_mm', label:'Espesor', render:r => r.espesor_mm ? `${r.espesor_mm}mm` : '—' },
-                  { key:'unidad', label:'Unidad' },
-                  { key:'precio_unitario', label:'Precio unit.', render:r => fmt(r.precio_unitario) },
-                  { key:'proveedor', label:'Proveedor', render:r => r.proveedores?.nombre || '—' },
-                ]}
-                rows={materiales}
-                empty="Sin materiales registrados"
-              />
-            </>
-          ) : (
-            <>
-              <SectionTitle>Catálogo de herrajes</SectionTitle>
-              <Table
-                cols={[
-                  { key:'nombre', label:'Nombre' },
-                  { key:'categoria', label:'Categoría', render:r => r.categoria || '—' },
-                  { key:'marca', label:'Marca', render:r => r.marca || '—' },
-                  { key:'precio_unitario', label:'Precio unit.', render:r => fmt(r.precio_unitario) },
-                  { key:'stock_actual', label:'Stock', render:r => r.stock_actual ?? 0 },
-                  { key:'proveedor', label:'Proveedor', render:r => r.proveedores?.nombre || '—' },
-                ]}
-                rows={herrajes}
-                empty="Sin herrajes registrados"
-              />
-            </>
-          )}
+          <div className="card overflow-auto">
+            <table className="w-full text-[13px]">
+              <thead><tr><th>Insumo</th><th>Categoría</th><th>Unidad</th><th className="text-right">Precio neto</th><th className="text-right">USD</th><th>Fuente</th><th className="text-right">Comprado</th><th>Última compra</th><th>Proveedor</th></tr></thead>
+              <tbody>{lista.length === 0 ? <tr><td colSpan={9}><EmptyState icon="inventory_2" title="Sin insumos" /></td></tr> : lista.map(r => (
+                <tr key={r.insumo_id}>
+                  <td className="font-medium text-z-ink">{r.nombre}</td><td className="capitalize">{r.categoria}</td><td>{r.unidad}</td>
+                  <td className="text-right tabular-nums">{$(r.precio_neto)}</td><td className="text-right tabular-nums">{usd(r.precio_usd)}</td>
+                  <td><Badge tone={r.fuente === 'factura' ? 'success' : 'neutral'}>{r.fuente === 'factura' ? 'Factura' : 'Lista Excel'}</Badge></td>
+                  <td className="text-right tabular-nums">{Number(r.comprado_cantidad) ? `${Number(r.comprado_cantidad).toLocaleString('es-AR')} ${r.unidad}` : '—'}</td>
+                  <td>{f(r.ultima_compra)}</td><td>{r.proveedor || '—'}</td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+          <p className="text-[12px] text-z-ink-3 mt-2">Los precios se actualizan solos al confirmar facturas en Compras. "Comprado" suma lo facturado; el stock en taller requiere registrar consumos por proyecto (próximo paso).</p>
         </>}
       </PageContent>
+      {nuevo && (
+        <div className="z-drawer-wrap" onMouseDown={() => setNuevo(null)}>
+          <form className="z-drawer" onMouseDown={e => e.stopPropagation()} onSubmit={guardar} role="dialog" aria-label="Nuevo insumo">
+            <div className="z-drawer-head"><h2 className="text-[17px] flex-1">Nuevo insumo</h2><button type="button" className="btn btn-quiet btn-icon" onClick={() => setNuevo(null)} aria-label="Cerrar"><Icon name="close" /></button></div>
+            <div className="z-drawer-body grid gap-4">
+              {[['nombre', 'Nombre', { required: true }], ['categoria', 'Categoría (placa, canto, bisagra…)'], ['unidad', 'Unidad (hoja, unidad, metro…)'], ['precio_lista', 'Precio de lista (opcional)', { type: 'number', min: 0 }]].map(([k, l, p = {}]) => (
+                <div key={k} className="z-field"><label htmlFor={'in-' + k}>{l}</label><input id={'in-' + k} value={nuevo[k] || ''} onChange={e => setNuevo({ ...nuevo, [k]: e.target.value })} {...p} /></div>))}
+              {err && <div role="alert" className="text-[13px]" style={{ color: 'rgb(var(--z-danger-c))' }}>{err}</div>}
+            </div>
+            <div className="z-drawer-foot"><button type="button" className="btn btn-secondary" onClick={() => setNuevo(null)}>Cancelar</button><button className="btn btn-primary" type="submit">Guardar</button></div>
+          </form>
+        </div>
+      )}
     </Layout>
   )
 }

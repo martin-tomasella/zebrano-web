@@ -11,7 +11,7 @@ export default function HorasTrabajo() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ ot_id:'', empleado_id:'', etapa:'armado', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+  const [form, setForm] = useState({ ot_id:'', personal_id:'', etapa:'armado', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
 
   useEffect(() => { load() }, [])
 
@@ -19,8 +19,8 @@ export default function HorasTrabajo() {
     setLoading(true)
     const [{ data: o }, { data: e }, { data: r }] = await Promise.all([
       supabase.from('ordenes_trabajo').select('id, numero_ot, estado, horas_estimadas, horas_reales, horas_fabricacion_estimadas, horas_instalacion_estimadas, horas_fabricacion_reales, horas_instalacion_reales, modulos(nombre, proyectos(nombre, clientes(nombre))), proyectos(nombre, clientes(nombre))').order('created_at', { ascending:false }).limit(200),
-      supabase.from('empleados').select('id,nombre').eq('activo', true).order('nombre'),
-      supabase.from('horas_trabajo_ot').select('*, empleados(nombre), ordenes_trabajo(numero_ot)').order('fecha', { ascending:false }).limit(100),
+      supabase.from('personal_nombres').select('id,nombre').eq('activo', true).order('nombre'),
+      supabase.from('horas_trabajo_ot').select('*, ordenes_trabajo(numero_ot)').order('fecha', { ascending:false }).limit(100),
     ])
     setOts(o || [])
     setEmpleados(e || [])
@@ -30,11 +30,11 @@ export default function HorasTrabajo() {
 
   async function cargarHoras(e) {
     e.preventDefault()
-    if (!form.ot_id || !form.empleado_id || !form.horas) return
+    if (!form.ot_id || !form.personal_id || !form.horas) return
     setSaving(true)
     const { error } = await supabase.from('horas_trabajo_ot').insert({
       ot_id: form.ot_id,
-      empleado_id: form.empleado_id,
+      personal_id: form.personal_id,
       tipo: form.etapa === 'instalacion' ? 'instalacion' : 'fabricacion',
       etapa: form.etapa,
       fecha: form.fecha,
@@ -43,7 +43,7 @@ export default function HorasTrabajo() {
     })
     setSaving(false)
     if (error) { alert('No se pudo cargar las horas: ' + error.message); return }
-    setForm({ ot_id:'', empleado_id:'', etapa:'armado', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
+    setForm({ ot_id:'', personal_id:'', etapa:'armado', fecha: new Date().toISOString().slice(0,10), horas:'', notas:'' })
     setShowForm(false)
     load()
   }
@@ -89,9 +89,9 @@ export default function HorasTrabajo() {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                   <div style={{ marginBottom:14 }}>
-                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Empleado</label>
-                    <select value={form.empleado_id} onChange={e => setForm({...form, empleado_id:e.target.value})} required>
-                      <option value="">Elegir empleado...</option>
+                    <label style={{ display:'block', fontSize:11.5, color:'var(--z-hint)', marginBottom:5, }}>Operario</label>
+                    <select value={form.personal_id} onChange={e => setForm({...form, personal_id:e.target.value})} required>
+                      <option value="">Elegir operario...</option>
                       {empleados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                     </select>
                   </div>
@@ -137,7 +137,7 @@ export default function HorasTrabajo() {
             <Table
               cols={[
                 { key:'fecha', label:'Fecha' },
-                { key:'empleado', label:'Empleado', render:r => r.empleados?.nombre || '—' },
+                { key:'empleado', label:'Operario', render:r => empleados.find(e => e.id === r.personal_id)?.nombre || '—' },
                 { key:'ot', label:'OT', render:r => r.ordenes_trabajo?.numero_ot || '—' },
                 { key:'etapa', label:'Etapa', render:r => ({corte:'Corte',canteado:'Canteado',armado:'Armado',terminacion:'Laqueado / lustre',instalacion:'Instalación',otro:'Otro'})[r.etapa] || (r.tipo === 'instalacion' ? 'Instalación' : 'Fabricación') },
                 { key:'horas', label:'Horas' },

@@ -19,7 +19,8 @@ export default function Usuarios() {
   useEffect(() => { load() }, [])
 
   async function load() {
-    const { data } = await supabase.from('empleados').select('*').order('created_at')
+    // Usuarios = cuentas con acceso al sistema; el personal del taller vive aparte (Personal y estructura)
+    const { data } = await supabase.from('empleados').select('*').not('auth_user_id', 'is', null).order('created_at')
     setEmpleados(data || [])
     setLoading(false)
   }

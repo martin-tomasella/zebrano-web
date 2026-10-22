@@ -38,18 +38,18 @@ export default function Personal() {
 function Legajos({ onCambio }) {
   const [rows, setRows] = useState(null);
   const [edit, setEdit] = useState(null);
-  const cargar = useCallback(() => supabase.from('empleados_legajo').select('*').order('es_operario', { ascending: false }).order('nombre').then(({ data }) => setRows(data || [])), []);
+  const cargar = useCallback(() => supabase.from('personal_legajo').select('*').order('es_operario', { ascending: false }).order('nombre').then(({ data }) => setRows(data || [])), []);
   useEffect(() => { cargar(); }, [cargar]);
   if (!rows) return <Spinner />;
   return <>
-    <div className="flex mb-3"><button className="btn btn-primary ml-auto" onClick={() => setEdit({ activo: true, es_operario: true, rol: 'ayudante', puesto: 'ayudante' })}><Icon name="person_add" />Agregar persona</button></div>
+    <div className="flex mb-3"><button className="btn btn-primary ml-auto" onClick={() => setEdit({ activo: true, es_operario: true, puesto: 'ayudante' })}><Icon name="person_add" />Agregar persona</button></div>
     <div className="card overflow-auto">
       <table className="w-full text-[13px]">
         <thead><tr><th>Nombre</th><th>Puesto</th><th>Antigüedad</th><th className="text-right">Por semana</th><th>Vacaciones</th><th>Emergencia</th><th className="text-right">Horas 30 d</th><th className="text-right">Proyectos</th></tr></thead>
         <tbody>{rows.length === 0 ? <tr><td colSpan={8}><EmptyState icon="badge" title="Sin personal cargado" /></td></tr> : rows.map(r => (
           <tr key={r.id} className="cursor-pointer" onClick={() => setEdit(r)}>
             <td className="font-medium text-z-ink">{r.nombre}{!r.activo && <Badge tone="neutral"> baja</Badge>}<div className="text-[11.5px] text-z-ink-3 font-normal">{r.telefono || r.email || ''}</div></td>
-            <td>{r.es_operario ? <Badge tone="info">{r.puesto || 'operario'}</Badge> : <span className="text-z-ink-3">{r.puesto || r.rol}</span>}</td>
+            <td>{r.es_operario ? <Badge tone="info">{r.puesto || 'operario'}</Badge> : <span className="text-z-ink-3">{r.puesto || '—'}</span>}</td>
             <td>{r.antiguedad_meses != null ? `${Math.floor(r.antiguedad_meses / 12)} a ${r.antiguedad_meses % 12} m` : '—'}</td>
             <td className="text-right tabular-nums">{$(r.sueldo_semanal)}</td>
             <td className="tabular-nums">{r.vacaciones_corresponden != null ? `${r.vacaciones_tomadas} de ${r.vacaciones_corresponden} días` : '—'}</td>
@@ -59,7 +59,7 @@ function Legajos({ onCambio }) {
           </tr>))}</tbody>
       </table>
     </div>
-    <p className="text-[12px] text-z-ink-3 mt-2">Vacaciones según Ley de Contrato de Trabajo (art. 150): 14 días hasta 5 años, 21 hasta 10, 28 hasta 20 y 35 después; con menos de 6 meses, 1 día cada 20 trabajados. Los operarios con sueldo cargado reemplazan el parámetro de $8M en el costo hora.</p>
+    <p className="text-[12px] text-z-ink-3 mt-2">Vacaciones según Ley de Contrato de Trabajo (art. 150): 14 días hasta 5 años, 21 hasta 10, 28 hasta 20 y 35 después; con menos de 6 meses, 1 día cada 20 trabajados. Los operarios con sueldo cargado reemplazan el parámetro de $8M en el costo hora. El personal es independiente de los usuarios que entran al sistema.</p>
     {edit && <EditarLegajo r={edit} onClose={() => setEdit(null)} onSave={() => { setEdit(null); cargar(); onCambio(); }} />}
   </>;
 }
@@ -74,7 +74,8 @@ function EditarLegajo({ r, onClose, onSave }) {
     const campos = ['nombre', 'puesto', 'es_operario', 'telefono', 'email', 'direccion', 'fecha_ingreso', 'fecha_egreso', 'fecha_nacimiento', 'sueldo_semanal', 'emergencia_nombre', 'emergencia_vinculo', 'emergencia_telefono', 'activo'];
     const data = Object.fromEntries(campos.map(k => [k, x[k] === '' ? null : x[k]]));
     if (data.sueldo_semanal != null) data.sueldo_semanal = Number(data.sueldo_semanal);
-    const q = r.id ? supabase.from('empleados').update(data).eq('id', r.id) : supabase.from('empleados').insert({ ...data, rol: x.es_operario ? (x.puesto === 'oficial' ? 'carpintero_oficial' : x.puesto === 'suboficial' ? 'carpintero' : 'ayudante') : 'gestion' });
+    data.updated_at = new Date().toISOString();
+    const q = r.id ? supabase.from('personal').update(data).eq('id', r.id) : supabase.from('personal').insert(data);
     const { error } = await q;
     if (error) setErr(error.message); else onSave();
   };
@@ -107,12 +108,12 @@ function EditarLegajo({ r, onClose, onSave }) {
 function Ausencias() {
   const [rows, setRows] = useState(null);
   const [emp, setEmp] = useState([]);
-  const [x, setX] = useState({ empleado_id: '', tipo: 'vacaciones', desde: '', hasta: '', notas: '' });
+  const [x, setX] = useState({ personal_id: '', tipo: 'vacaciones', desde: '', hasta: '', notas: '' });
   const [err, setErr] = useState('');
   const cargar = useCallback(async () => {
     const [{ data: a }, { data: e }] = await Promise.all([
-      supabase.from('rrhh_ausencias').select('*, empleados(nombre)').order('desde', { ascending: false }).limit(300),
-      supabase.from('empleados').select('id,nombre').eq('activo', true).order('nombre'),
+      supabase.from('rrhh_ausencias').select('*, personal(nombre)').order('desde', { ascending: false }).limit(300),
+      supabase.from('personal').select('id,nombre').eq('activo', true).order('nombre'),
     ]);
     setRows(a || []); setEmp(e || []);
   }, []);
@@ -125,7 +126,7 @@ function Ausencias() {
   if (!rows) return <Spinner />;
   return <>
     <form className="card p-4 grid grid-cols-1 sm:grid-cols-[1.4fr_1fr_1fr_1fr_1.4fr_auto] gap-3 items-end mb-4" onSubmit={agregar}>
-      <div className="z-field"><label htmlFor="au-e">Persona</label><select id="au-e" required value={x.empleado_id} onChange={e => setX({ ...x, empleado_id: e.target.value })}><option value="">Elegir…</option>{emp.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></div>
+      <div className="z-field"><label htmlFor="au-e">Persona</label><select id="au-e" required value={x.personal_id} onChange={e => setX({ ...x, personal_id: e.target.value })}><option value="">Elegir…</option>{emp.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></div>
       <div className="z-field"><label htmlFor="au-t">Tipo</label><select id="au-t" value={x.tipo} onChange={e => setX({ ...x, tipo: e.target.value })}><option value="vacaciones">Vacaciones</option><option value="enfermedad">Enfermedad</option><option value="licencia">Licencia</option><option value="ausencia">Ausencia</option></select></div>
       <div className="z-field"><label htmlFor="au-d">Desde</label><input id="au-d" type="date" required value={x.desde} onChange={e => setX({ ...x, desde: e.target.value })} /></div>
       <div className="z-field"><label htmlFor="au-h">Hasta</label><input id="au-h" type="date" value={x.hasta} onChange={e => setX({ ...x, hasta: e.target.value })} /></div>
@@ -136,7 +137,7 @@ function Ausencias() {
     <div className="card overflow-auto"><table className="w-full text-[13px]">
       <thead><tr><th>Persona</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th className="text-right">Días</th><th>Notas</th></tr></thead>
       <tbody>{rows.length === 0 ? <tr><td colSpan={6}><EmptyState icon="beach_access" title="Sin ausencias cargadas" /></td></tr> : rows.map(r => (
-        <tr key={r.id}><td className="font-medium text-z-ink">{r.empleados?.nombre}</td><td><Badge tone={r.tipo === 'vacaciones' ? 'info' : 'warning'}>{r.tipo}</Badge></td><td>{f(r.desde)}</td><td>{f(r.hasta)}</td>
+        <tr key={r.id}><td className="font-medium text-z-ink">{r.personal?.nombre}</td><td><Badge tone={r.tipo === 'vacaciones' ? 'info' : 'warning'}>{r.tipo}</Badge></td><td>{f(r.desde)}</td><td>{f(r.hasta)}</td>
           <td className="text-right tabular-nums">{Math.round((new Date(r.hasta) - new Date(r.desde)) / 864e5) + 1}</td><td>{r.notas || ''}</td></tr>))}</tbody>
     </table></div>
   </>;

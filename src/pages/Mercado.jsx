@@ -11,6 +11,11 @@ export default function Mercado() {
   const [hist, setHist] = useState({});
   const [cat, setCat] = useState('todas');
   const [q, setQ] = useState('');
+  const [ver, setVer] = useState('todos');
+  const [marca, setMarca] = useState('');
+  const [pmin, setPmin] = useState('');
+  const [pmax, setPmax] = useState('');
+  const [orden, setOrden] = useState('categoria');
   const [abierto, setAbierto] = useState(null);
 
   useEffect(() => {
@@ -25,7 +30,19 @@ export default function Mercado() {
   };
 
   const cats = useMemo(() => ['todas', ...new Set((rows || []).map(r => r.categoria))], [rows]);
-  const lista = (rows || []).filter(r => (cat === 'todas' || r.categoria === cat) && (!q || `${r.titulo} ${r.marca} ${r.ext_id}`.toLowerCase().includes(q.toLowerCase())));
+  const marcas = useMemo(() => [...new Set((rows || []).map(r => r.marca).filter(Boolean))].sort(), [rows]);
+  const ORDEN = {
+    categoria: (a, b) => a.categoria.localeCompare(b.categoria) || b.precio_mercado - a.precio_mercado,
+    margen: (a, b) => (b.margen_real_pct ?? -999) - (a.margen_real_pct ?? -999),
+    precio_asc: (a, b) => a.precio_mercado - b.precio_mercado,
+    precio_desc: (a, b) => b.precio_mercado - a.precio_mercado,
+  };
+  const lista = (rows || []).filter(r => (cat === 'todas' || r.categoria === cat)
+    && (ver === 'todos' || r.veredicto === ver)
+    && (!marca || r.marca === marca)
+    && (!pmin || r.precio_mercado >= Number(pmin)) && (!pmax || r.precio_mercado <= Number(pmax))
+    && (!q || `${r.titulo} ${r.marca} ${r.ext_id}`.toLowerCase().includes(q.toLowerCase()))).sort(ORDEN[orden]);
+  const limpiar = () => { setCat('todas'); setVer('todos'); setMarca(''); setPmin(''); setPmax(''); setQ(''); };
   const ultima = rows?.reduce((m, r) => r.fecha > m ? r.fecha : m, '') || '';
 
   return (
@@ -35,6 +52,15 @@ export default function Mercado() {
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {cats.map(c => <button key={c} className="z-chip capitalize" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}
           <input className="ml-auto max-w-[260px]" placeholder="Buscar producto, marca o MLA…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
+        </div>
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <div className="z-field"><label htmlFor="mk-v">Veredicto</label><select id="mk-v" value={ver} onChange={e => setVer(e.target.value)}><option value="todos">Todos</option>{Object.keys(TONO).map(v => <option key={v} value={v}>{v}</option>)}</select></div>
+          <div className="z-field"><label htmlFor="mk-m">Marca</label><select id="mk-m" value={marca} onChange={e => setMarca(e.target.value)}><option value="">Todas</option>{marcas.map(m => <option key={m}>{m}</option>)}</select></div>
+          <div className="z-field"><label htmlFor="mk-pmin">Precio desde</label><input id="mk-pmin" type="number" className="w-[130px]" value={pmin} onChange={e => setPmin(e.target.value)} /></div>
+          <div className="z-field"><label htmlFor="mk-pmax">hasta</label><input id="mk-pmax" type="number" className="w-[130px]" value={pmax} onChange={e => setPmax(e.target.value)} /></div>
+          <div className="z-field"><label htmlFor="mk-o">Ordenar</label><select id="mk-o" value={orden} onChange={e => setOrden(e.target.value)}><option value="categoria">Categoría</option><option value="margen">Mejor margen</option><option value="precio_asc">Precio menor</option><option value="precio_desc">Precio mayor</option></select></div>
+          <span className="text-[13px] text-z-ink-3 pb-2">{lista.length} de {rows?.length || 0}</span>
+          <button className="btn btn-quiet btn-sm mb-1" onClick={limpiar}>Limpiar filtros</button>
         </div>
         <p className="text-[12.5px] text-z-ink-3 mb-3">
           "Te queda en ML" = precio − IVA − comisión − costo fijo − envío propio − ingresos brutos − débitos/créditos (se ajustan en Cotizar por módulos → Parámetros). "Nuestro costo" = material + horas × costo hora + gastos fijos prorrateados, sin instalación. Margen real sobre precio sin IVA: 20% o más competimos; 5–20% margen bajo.

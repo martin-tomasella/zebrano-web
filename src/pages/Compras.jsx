@@ -22,7 +22,7 @@ export default function Compras() {
 
   const cargar = useCallback(async () => {
     const [{ data: f }, { data: p }] = await Promise.all([
-      supabase.from('facturas_compra').select('id,fecha,tipo_comprobante,punto_venta,numero,total,neto_gravado,estado,a_nombre_de,alertas,comprador_nombre,created_at,proveedores(nombre)').order('created_at', { ascending: false }).limit(500),
+      supabase.from('facturas_compra').select('id,fecha,tipo_comprobante,punto_venta,numero,total,neto_gravado,estado,a_nombre_de,alertas,comprador_nombre,created_at,drive_url,proveedores(nombre)').order('created_at', { ascending: false }).limit(500),
       supabase.from('precios_vigentes').select('*').order('categoria'),
     ]);
     setFacturas(f || []); setPrecios(p || []); setLoading(false);
@@ -98,7 +98,7 @@ export default function Compras() {
                       <td className="tabular-nums">{f.tipo_comprobante} {f.punto_venta}-{f.numero}</td>
                       <td>{f.a_nombre_de === 'cliente' ? <Badge tone="info">Cliente · {f.comprador_nombre}</Badge> : <Badge tone="neutral">Zebrano</Badge>}</td>
                       <td className="text-right tabular-nums font-medium text-z-ink">{$(f.total)}</td>
-                      <td>{f.alertas?.length ? <Badge tone="warning">{f.alertas.length}</Badge> : <Icon name="check" size={18} color="rgb(var(--z-success-c))" />}</td>
+                      <td className="whitespace-nowrap">{f.alertas?.length ? <Badge tone="warning">{f.alertas.length}</Badge> : <Icon name="check" size={18} color="rgb(var(--z-success-c))" />}{f.drive_url && <Icon name="add_to_drive" size={17} color="rgb(var(--z-ink-3-c))" />}</td>
                     </tr>))}
               </tbody>
             </table>
@@ -209,6 +209,7 @@ function Revision({ id, onClose, onDone }) {
       <div className="z-drawer" style={{ width: 'min(880px, 100vw)' }} onMouseDown={e => e.stopPropagation()} role="dialog" aria-label="Revisar factura">
         <div className="z-drawer-head">
           <h2 className="text-[17px] flex-1 truncate">{f ? `${f.proveedores?.nombre || 'Proveedor'} · ${f.tipo_comprobante || ''} ${f.punto_venta || ''}-${f.numero || ''}` : 'Factura'}</h2>
+          {f?.drive_url && <a className="btn btn-secondary btn-sm" href={f.drive_url} target="_blank" rel="noreferrer"><Icon name="add_to_drive" />En Drive</a>}
           {url && <a className="btn btn-secondary btn-sm" href={url} target="_blank" rel="noreferrer"><Icon name="open_in_new" />Ver original</a>}
           <button type="button" className="btn btn-quiet btn-icon" onClick={onClose} aria-label="Cerrar"><Icon name="close" /></button>
         </div>

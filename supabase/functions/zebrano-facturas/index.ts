@@ -117,6 +117,60 @@ async function tcDe(fecha: string | null): Promise<number | null> {
   const { data } = await sb.rpc("tc_usd", { p_fecha: fecha || new Date().toISOString().slice(0, 10) });
   return data != null ? Number(data) : null;
 }
+// ── Google Drive: archiva el original en <carpeta facturas>/<año>/ con un nombre ordenado ──
+async function driveToken(): Promise<string | null> {
+  const { data: t } = await sb.from("google_oauth_tokens").select("*").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!t?.refresh_token || !String(t.scope || "").includes("auth/drive ") && !String(t.scope || "").endsWith("auth/drive")) return null;
+  if (t.access_token && new Date(t.expires_at).getTime() > Date.now() + 60_000) return t.access_token;
+  const r = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("GOOGLE_ID_de_Cliente") || Deno.env.get("GOOGLE_CLIENT_ID") || "",
+      client_secret: Deno.env.get("GOOGLE_Secreto_de_Cliente") || Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+      refresh_token: t.refresh_token, grant_type: "refresh_token",
+    }),
+  });
+  if (!r.ok) throw new Error(`Google token ${r.status}: ${(await r.text()).slice(0, 150)}`);
+  const n = await r.json();
+  await sb.from("google_oauth_tokens").update({ access_token: n.access_token, expires_at: new Date(Date.now() + n.expires_in * 1000).toISOString() }).eq("id", t.id);
+  return n.access_token;
+}
+async function driveCarpetaAnio(tok: string, raiz: string, anio: string): Promise<string> {
+  const q = encodeURIComponent(`'${raiz}' in parents and name = '${anio}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error(`Drive buscar carpeta ${r.status}: ${(await r.text()).slice(0, 150)}`);
+  const id = (await r.json()).files?.[0]?.id;
+  if (id) return id;
+  const c = await fetch("https://www.googleapis.com/drive/v3/files?supportsAllDrives=true", {
+    method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ name: anio, mimeType: "application/vnd.google-apps.folder", parents: [raiz] }),
+  });
+  if (!c.ok) throw new Error(`Drive crear carpeta ${c.status}: ${(await c.text()).slice(0, 150)}`);
+  return (await c.json()).id;
+}
+async function archivarEnDrive(bytes: Uint8Array, mime: string, nombre: string, fecha: string | null) {
+  const raiz = (await ctx("drive_facturas_folder")) as string | undefined;
+  if (!raiz) return null;
+  const tok = await driveToken();
+  if (!tok) throw new Error("Google Drive no está conectado con permiso de escritura");
+  const carpeta = await driveCarpetaAnio(tok, raiz, (fecha || new Date().toISOString()).slice(0, 4));
+  const limite = "zbr" + crypto.randomUUID();
+  const meta = JSON.stringify({ name: nombre, parents: [carpeta] });
+  const enc = new TextEncoder();
+  const ini = enc.encode(`--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${limite}\r\nContent-Type: ${mime}\r\n\r\n`);
+  const fin = enc.encode(`\r\n--${limite}--`);
+  const cuerpo = new Uint8Array(ini.length + bytes.length + fin.length);
+  cuerpo.set(ini); cuerpo.set(bytes, ini.length); cuerpo.set(fin, ini.length + bytes.length);
+  const r = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink", {
+    method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": `multipart/related; boundary=${limite}` }, body: cuerpo,
+  });
+  if (!r.ok) throw new Error(`Drive subir ${r.status}: ${(await r.text()).slice(0, 150)}`);
+  return await r.json() as { id: string; webViewLink: string };
+}
+async function ctx(clave: string) {
+  const { data } = await sb.from("zebrano_contexto").select("valor").eq("clave", clave).maybeSingle();
+  return data?.valor;
+}
 const cuitLimpio = (c?: string | null) => (c || "").replace(/\D/g, "") || null;
 const fmtCuit = (c: string | null) => c && c.length === 11 ? `${c.slice(0, 2)}-${c.slice(2, 10)}-${c.slice(10)}` : c;
 
@@ -155,7 +209,8 @@ Deno.serve(async (req) => {
     if (eDl || !blob) return json({ ok: false, error: "No se encontró el archivo en el bucket facturas" }, 404);
     const ext = archivo_path.split(".").pop()!.toLowerCase();
     const mime = ext === "pdf" ? "application/pdf" : ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-    const b64 = encodeBase64(new Uint8Array(await blob.arrayBuffer()));
+    const bytesArchivo = new Uint8Array(await blob.arrayBuffer());
+    const b64 = encodeBase64(bytesArchivo);
 
     const { data: ins } = await sb.from("insumos").select("id,nombre,categoria,unidad").eq("activo", true).order("categoria");
     const catalogo = (ins || []).map((i) => `${i.id} | ${i.nombre} | ${i.categoria} | ${i.unidad}`).join("\n");
@@ -255,8 +310,19 @@ Deno.serve(async (req) => {
       const { error: eI } = await sb.from("facturas_compra_items").insert(items.map((i: any) => ({ ...i, factura_id: f.id })));
       if (eI) throw eI;
     }
+    // Archivo original a Drive (no frena la carga si falla: queda como alerta)
+    let drive: { id: string; webViewLink: string } | null = null;
+    try {
+      const prov = (d.proveedor?.nombre || "Proveedor").replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 60);
+      const nombre = `${c.fecha || "sin-fecha"} ${prov} ${c.tipo || ""} ${c.punto_venta || ""}-${c.numero || ""}.${ext}`.replace(/\s+/g, " ");
+      drive = await archivarEnDrive(bytesArchivo, mime, nombre, c.fecha);
+      if (drive) await sb.from("facturas_compra").update({ drive_file_id: drive.id, drive_url: drive.webViewLink }).eq("id", f.id);
+    } catch (e) {
+      alertas.push(`No se pudo guardar en Drive: ${(e as Error).message}`);
+      await sb.from("facturas_compra").update({ alertas }).eq("id", f.id);
+    }
     if (body.staging_id) await sb.from("facturas_staging").delete().eq("id", body.staging_id);
-    return json({ ok: true, factura_id: f.id, alertas, items: items.length, modelo: model });
+    return json({ ok: true, factura_id: f.id, alertas, items: items.length, modelo: model, drive_url: drive?.webViewLink ?? null });
   } catch (e) {
     return json({ ok: false, error: (e as Error).message }, 500);
   }

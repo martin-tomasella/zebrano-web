@@ -42,10 +42,11 @@ const TOOL = {
         precio_neto_unit: { ...num, description: "precio unitario después del descuento, sin IVA" },
         iva_pct: num, importe_neto: { ...num, description: "importe del renglón sin IVA" },
         insumo_id: { type: ["string", "null"], description: "id del insumo del catálogo que corresponde, o null si ninguno es el mismo producto" },
+        categoria: { type: ["string", "null"], description: "placa, canto, bisagra, corredera, tirador, piston, perfil, placard, barral, accesorio, ferreteria, pintura u otros" },
       } } },
       totales: { type: "object", properties: {
         neto_gravado: num, iva_21: num, iva_105: num,
-        percepciones: { ...num, description: "suma de percepciones (IIBB, IVA, etc.)" },
+        percepciones: { ...num, description: "suma de TODAS las percepciones y retenciones impresas (IIBB de cualquier provincia, IVA, ganancias)" },
         otros_impuestos: num, total: num } },
       observaciones: { type: ["string", "null"], description: "sellos (pagado), partes ilegibles, dudas de lectura" },
     },
@@ -64,7 +65,9 @@ Leé esta factura de proveedor (Argentina) y registrala con la herramienta. Regl
 - En factura A los precios e importes de los renglones YA son netos sin IVA: NO les saques IVA. Solo en factura B/C (precios con IVA incluido) dividí por 1,21.
 - El código del artículo del proveedor va en "codigo". No confundas el número de despacho de aduana con el código.
 - insumo_id: elegí del catálogo el insumo que sea el MISMO producto (misma medida y tipo). Si dudás, null.
-- Lo que no figure o no se lea, null. Anotá dudas en observaciones.
+- Percepciones: sumá todas las percepciones impresas (ej. "Percepción IIBB", "Perc. IIBB CABA/BA", "Percepción IVA") en totales.percepciones. Verificá que neto + IVA + percepciones + otros = total.
+- categoria: clasificá cada renglón (placa, canto, bisagra, corredera, tirador, piston, perfil, placard, barral, accesorio, ferreteria, pintura, otros).
+- Lo que no figure o no se lea, null. Anotá dudas en observaciones (no repitas datos que ya registraste).
 
 Catálogo de insumos (id | nombre | categoría | unidad):
 ${catalogo}`;
@@ -276,6 +279,29 @@ Deno.serve(async (req) => {
         for (const m of map || []) for (const it of items) if (it.codigo_proveedor === m.codigo) it.insumo_id = m.insumo_id;
       }
     }
+    // Renglones sin insumo: se busca por nombre y, si no existe, se crea con el código del proveedor
+    const creados: string[] = [];
+    for (let k = 0; k < items.length; k++) {
+      const it = items[k];
+      if (it.insumo_id || !it.descripcion) continue;
+      const nombre = String(it.descripcion).replace(/\s+/g, " ").trim().slice(0, 200);
+      let { data: ex } = await sb.from("insumos").select("id").ilike("nombre", nombre).maybeSingle();
+      if (!ex) {
+        const ins = await sb.from("insumos").insert({
+          nombre, categoria: (d.items?.[k]?.categoria || "otros").toLowerCase(), unidad: it.unidad || "unidad",
+          precio_lista: it.precio_lista_unit ?? it.precio_neto_unit, descuento_pct: it.descuento_pct || 0,
+          proveedor_id: proveedorId, origen: "factura",
+        }).select("id").single();
+        if (ins.error) ({ data: ex } = await sb.from("insumos").select("id").ilike("nombre", nombre).maybeSingle());
+        else { ex = ins.data; creados.push(nombre); }
+      }
+      if (ex) {
+        it.insumo_id = ex.id;
+        if (proveedorId && it.codigo_proveedor)
+          await sb.from("insumo_codigos").upsert({ proveedor_id: proveedorId, codigo: it.codigo_proveedor, insumo_id: ex.id }, { onConflict: "proveedor_id,codigo" });
+      }
+    }
+    if (creados.length) alertas.push(`Insumo(s) nuevo(s) creados en el catálogo: ${creados.join("; ")}`);
     const t = d.totales || {};
     let sumaItems = items.reduce((s: number, i: any) => s + (i.importe_neto || 0), 0);
     // El modelo a veces le saca IVA a precios que ya eran netos: si ×1,21 cuadra con el neto, se corrige.
@@ -292,9 +318,11 @@ Deno.serve(async (req) => {
     if (t.total && Math.abs(calc - t.total) > Math.max(2, t.total * 0.005))
       alertas.push(`Neto + impuestos (${r2(calc)}) no coincide con el total (${t.total})`);
     if (!c.cae) alertas.push("Sin CAE: verificar que sea comprobante válido");
-    if (d.observaciones) alertas.push(d.observaciones);
+    if (d.observaciones) alertas.push(`Observación de la lectura: ${d.observaciones}`);
     const sinMatch = items.filter((i: any) => !i.insumo_id).length;
     if (sinMatch) alertas.push(`${sinMatch} renglón(es) sin insumo del catálogo asignado`);
+    // Solo estas alertas son informativas; cualquier otra deja la factura para revisar a mano
+    const informativa = (a: string) => /^(Proveedor nuevo|Insumo\(s\) nuevo|No se pudo guardar en Drive)/.test(a);
 
     const { data: f, error: eF } = await sb.from("facturas_compra").insert({
       proveedor_id: proveedorId, tipo_comprobante: c.tipo, punto_venta: c.punto_venta, numero: c.numero,
@@ -321,8 +349,14 @@ Deno.serve(async (req) => {
       alertas.push(`No se pudo guardar en Drive: ${(e as Error).message}`);
       await sb.from("facturas_compra").update({ alertas }).eq("id", f.id);
     }
+    // Si los números cierran, se confirma sola: el precio de cada insumo queda actualizado
+    let confirmada = false;
+    if (proveedorId && alertas.every(informativa)) {
+      const { error: eC } = await sb.rpc("confirmar_factura", { p_factura: f.id });
+      if (!eC) { confirmada = true; await sb.from("facturas_compra").update({ auto_confirmada: true }).eq("id", f.id); }
+    }
     if (body.staging_id) await sb.from("facturas_staging").delete().eq("id", body.staging_id);
-    return json({ ok: true, factura_id: f.id, alertas, items: items.length, modelo: model, drive_url: drive?.webViewLink ?? null });
+    return json({ ok: true, factura_id: f.id, alertas, items: items.length, modelo: model, confirmada, drive_url: drive?.webViewLink ?? null });
   } catch (e) {
     return json({ ok: false, error: (e as Error).message }, 500);
   }

@@ -22,7 +22,7 @@ export default function Compras() {
 
   const cargar = useCallback(async () => {
     const [{ data: f }, { data: p }] = await Promise.all([
-      supabase.from('facturas_compra').select('id,fecha,tipo_comprobante,punto_venta,numero,total,neto_gravado,estado,a_nombre_de,alertas,comprador_nombre,created_at,drive_url,proveedores(nombre)').order('created_at', { ascending: false }).limit(500),
+      supabase.from('facturas_compra').select('id,fecha,tipo_comprobante,punto_venta,numero,total,neto_gravado,estado,a_nombre_de,alertas,comprador_nombre,created_at,drive_url,auto_confirmada,proveedores(nombre)').order('created_at', { ascending: false }).limit(500),
       supabase.from('precios_vigentes').select('*').order('categoria'),
     ]);
     setFacturas(f || []); setPrecios(p || []); setLoading(false);
@@ -78,6 +78,8 @@ export default function Compras() {
           <div className="z-seg" role="group" aria-label="Vista">
             <button aria-pressed={tab === 'facturas'} onClick={() => setTab('facturas')}>Facturas</button>
             <button aria-pressed={tab === 'precios'} onClick={() => setTab('precios')}>Precios vigentes</button>
+            <button aria-pressed={tab === 'resumen'} onClick={() => setTab('resumen')}>Totales e impuestos</button>
+            <button aria-pressed={tab === 'ordenes'} onClick={() => setTab('ordenes')}>Costo por orden</button>
           </div>
           {tab === 'facturas' && ESTADOS.map(([k, l]) => (
             <button key={k} className="z-chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l} <span className="z-chip-count">{conteo[k] || 0}</span></button>
@@ -85,7 +87,7 @@ export default function Compras() {
           <input className="ml-auto max-w-[260px]" placeholder="Buscar…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
         </div>
 
-        {loading ? <Spinner /> : tab === 'facturas' ? (
+        {loading ? <Spinner /> : tab === 'resumen' ? <Resumen /> : tab === 'ordenes' ? <CostoOrdenes /> : tab === 'facturas' ? (
           <div className="card overflow-auto">
             <table className="w-full">
               <thead><tr><th>Fecha</th><th>Proveedor</th><th>Comprobante</th><th>A nombre de</th><th className="text-right">Total</th><th>Alertas</th></tr></thead>
@@ -98,7 +100,7 @@ export default function Compras() {
                       <td className="tabular-nums">{f.tipo_comprobante} {f.punto_venta}-{f.numero}</td>
                       <td>{f.a_nombre_de === 'cliente' ? <Badge tone="info">Cliente · {f.comprador_nombre}</Badge> : <Badge tone="neutral">Zebrano</Badge>}</td>
                       <td className="text-right tabular-nums font-medium text-z-ink">{$(f.total)}</td>
-                      <td className="whitespace-nowrap">{f.alertas?.length ? <Badge tone="warning">{f.alertas.length}</Badge> : <Icon name="check" size={18} color="rgb(var(--z-success-c))" />}{f.drive_url && <Icon name="add_to_drive" size={17} color="rgb(var(--z-ink-3-c))" />}</td>
+                      <td className="whitespace-nowrap">{f.alertas?.length ? <Badge tone="warning">{f.alertas.length}</Badge> : <Icon name="check" size={18} color="rgb(var(--z-success-c))" />}{f.auto_confirmada && <span title="Confirmada automáticamente: los números cerraban"><Icon name="bolt" size={17} color="rgb(var(--z-ink-3-c))" /></span>}{f.drive_url && <Icon name="add_to_drive" size={17} color="rgb(var(--z-ink-3-c))" />}</td>
                     </tr>))}
               </tbody>
             </table>
@@ -168,7 +170,7 @@ function Revision({ id, onClose, onDone }) {
         supabase.from('facturas_compra').select('*, proveedores(nombre,cuit)').eq('id', id).single(),
         supabase.from('facturas_compra_items').select('*').eq('factura_id', id).order('orden'),
         supabase.from('insumos').select('id,nombre,categoria,unidad').eq('activo', true).order('nombre'),
-        supabase.from('proyectos').select('id, estado, clientes(nombre)').not('estado', 'in', '(entregado,cancelado)').limit(200),
+        supabase.from('proyectos').select('id, nombre, estado, clientes(nombre), ordenes_trabajo(numero_ot)').not('estado', 'in', '(cancelado)').order('created_at', { ascending: false }).limit(200),
       ]);
       setF(fa); setItems(it || []); setInsumos(ins || []); setProyectos(pr || []);
       if (fa?.archivo_path) { const { data } = await supabase.storage.from('facturas').createSignedUrl(fa.archivo_path, 3600); setUrl(data?.signedUrl); }
@@ -227,18 +229,20 @@ function Revision({ id, onClose, onDone }) {
               <Dato l="Condición de pago" v={f.condicion_pago} />
               <Dato l="Neto gravado" v={$(f.neto_gravado)} />
               <Dato l="IVA" v={$(Number(f.iva_21 || 0) + Number(f.iva_105 || 0))} />
-              <Dato l="Percepciones / otros" v={$(Number(f.percepciones || 0) + Number(f.otros_impuestos || 0))} />
+              <Dato l="Percepciones" v={$(f.percepciones)} />
+              {Number(f.otros_impuestos) > 0 && <Dato l="Otros impuestos" v={$(f.otros_impuestos)} />}
               <Dato l="Total" v={<b className="text-z-ink">{$(f.total)}</b>} />
-              <Dato l="Dólar oficial del día" v={f.tc_usd ? $(f.tc_usd) : '—'} />
+              <Dato l="Dólar BCRA del día" v={f.tc_usd ? $(f.tc_usd) : '—'} />
               <div className="z-field"><label>Comprada a nombre de</label>
                 <select value={f.a_nombre_de} onChange={e => setF({ ...f, a_nombre_de: e.target.value })} disabled={f.estado !== 'pendiente'}>
                   <option value="zebrano">Zebrano (VETCOM SAS)</option><option value="cliente">Cliente ({f.comprador_nombre || '?'})</option>
                 </select></div>
-              <div className="z-field col-span-2"><label>Proyecto</label>
+              <div className="z-field col-span-2"><label>Orden de trabajo / proyecto</label>
                 <select value={f.proyecto_id || ''} onChange={e => setF({ ...f, proyecto_id: e.target.value })}>
                   <option value="">Stock general / sin asignar</option>
-                  {proyectos.map(p => <option key={p.id} value={p.id}>{p.clientes?.nombre || 'Sin nombre'} · {p.estado}</option>)}
-                </select></div>
+                  {proyectos.map(p => <option key={p.id} value={p.id}>{(p.ordenes_trabajo || []).map(o => o.numero_ot).join(', ') || 'Sin OT'} · {p.clientes?.nombre || p.nombre || 'Sin nombre'} · {p.estado}</option>)}
+                </select>
+                <span className="text-[12px] text-z-ink-3 mt-1 block">Se puede cambiar aunque la factura ya esté confirmada; suma al costo real de esa orden.</span></div>
             </div>
 
             <div>
@@ -289,3 +293,58 @@ function Revision({ id, onClose, onDone }) {
 }
 
 const Dato = ({ l, v }) => <div><div className="text-[12px] text-z-ink-3 mb-1">{l}</div><div className="tabular-nums">{v || '—'}</div></div>;
+
+function Resumen() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => { supabase.from('compras_resumen_mensual').select('*').order('mes', { ascending: false }).then(({ data }) => setRows(data || [])); }, []);
+  if (!rows) return <Spinner />;
+  const meses = [...new Set(rows.map(r => r.mes))];
+  const suma = (rs, k) => rs.reduce((a, r) => a + Number(r[k] || 0), 0);
+  const cols = [['neto', 'Neto'], ['iva_21', 'IVA 21%'], ['iva_105', 'IVA 10,5%'], ['percepciones', 'Percepciones'], ['otros_impuestos', 'Otros imp.'], ['total', 'Total']];
+  return (
+    <div className="grid gap-3">
+      <div className="card overflow-auto">
+        <table className="w-full text-[13px]">
+          <thead><tr><th>Mes</th><th className="text-right">Facturas</th>{cols.map(([k, l]) => <th key={k} className="text-right">{l}</th>)}<th className="text-right">Neto USD</th><th className="text-right">A nombre del cliente</th></tr></thead>
+          <tbody>{meses.length === 0 ? <tr><td colSpan={10}><EmptyState icon="calculate" title="Sin facturas todavía" /></td></tr> : meses.map(m => {
+            const rs = rows.filter(r => r.mes === m);
+            return <tr key={m}><td className="font-medium text-z-ink">{m}</td><td className="text-right tabular-nums">{suma(rs, 'facturas')}</td>
+              {cols.map(([k]) => <td key={k} className={`text-right tabular-nums${k === 'total' ? ' font-semibold text-z-ink' : ''}`}>{$(suma(rs, k))}</td>)}
+              <td className="text-right tabular-nums">{usd(suma(rs, 'neto_usd'))}</td>
+              <td className="text-right tabular-nums">{$(suma(rs.filter(r => r.a_nombre_de === 'cliente'), 'total'))}</td></tr>;
+          })}</tbody>
+          {meses.length > 0 && <tfoot><tr className="font-semibold"><td>Total</td><td className="text-right tabular-nums">{suma(rows, 'facturas')}</td>{cols.map(([k]) => <td key={k} className="text-right tabular-nums">{$(suma(rows, k))}</td>)}<td className="text-right tabular-nums">{usd(suma(rows, 'neto_usd'))}</td><td className="text-right tabular-nums">{$(suma(rows.filter(r => r.a_nombre_de === 'cliente'), 'total'))}</td></tr></tfoot>}
+        </table>
+      </div>
+      <p className="text-[12px] text-z-ink-3 m-0">Incluye facturas pendientes y confirmadas (no las descartadas). El IVA es crédito fiscal y las percepciones son pago a cuenta: se recuperan, pero salen de caja el día de la compra. Base para el cálculo financiero.</p>
+    </div>
+  );
+}
+
+function CostoOrdenes() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => { supabase.from('proyecto_costos').select('*').order('estado').then(({ data }) => setRows(data || [])); }, []);
+  if (!rows) return <Spinner />;
+  return (
+    <div className="grid gap-3">
+      <div className="card overflow-auto">
+        <table className="w-full text-[13px]">
+          <thead><tr><th>Orden / proyecto</th><th>Estado</th><th className="text-right">Se cobra (sin IVA)</th><th className="text-right">Material (facturas)</th><th className="text-right">Horas</th><th className="text-right">Mano de obra</th><th className="text-right">Estructura</th><th className="text-right">Costo real</th><th className="text-right">Margen</th></tr></thead>
+          <tbody>{rows.length === 0 ? <tr><td colSpan={9}><EmptyState icon="assignment" title="Sin órdenes todavía">Cuando haya proyectos, vinculá cada factura a su orden y cargá las horas: acá ves el costo real contra lo que se cobra.</EmptyState></td></tr> : rows.map(r => (
+            <tr key={r.proyecto_id}>
+              <td className="font-medium text-z-ink">{r.ots || 'Sin OT'} · {r.cliente || r.nombre}<div className="text-[11.5px] text-z-ink-3 font-normal">{r.facturas} factura(s){Number(r.material_a_nombre_cliente) ? ` · ${$(r.material_a_nombre_cliente)} a nombre del cliente` : ''}</div></td>
+              <td><Badge value={r.estado} /></td>
+              <td className="text-right tabular-nums">{$(r.facturacion_sin_iva)}</td>
+              <td className="text-right tabular-nums">{$(r.material_real)}</td>
+              <td className="text-right tabular-nums">{Number(r.horas_reales).toLocaleString('es-AR')}</td>
+              <td className="text-right tabular-nums">{$(r.mo_real)}</td>
+              <td className="text-right tabular-nums">{$(r.estructura_real)}</td>
+              <td className="text-right tabular-nums font-medium">{$(r.costo_real)}</td>
+              <td className="text-right tabular-nums" style={{ color: r.margen < 0 ? 'rgb(var(--z-danger-c))' : undefined }}>{r.margen != null ? `${$(r.margen)} · ${r.margen_pct ?? '—'}%` : '—'}</td>
+            </tr>))}</tbody>
+        </table>
+      </div>
+      <p className="text-[12px] text-z-ink-3 m-0">Costo real = facturas confirmadas vinculadas a la orden + horas cargadas × costo hora (mano de obra y gastos fijos de Personal y estructura).</p>
+    </div>
+  );
+}

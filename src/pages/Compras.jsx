@@ -13,7 +13,7 @@ export default function Compras() {
   const [facturas, setFacturas] = useState([]);
   const [precios, setPrecios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState('pendiente');
+  const [filtro, setFiltro] = useState('todas');
   const [abierta, setAbierta] = useState(null);
   const [subiendo, setSubiendo] = useState(null); // {hechas, total, actual}
   const [toast, setToast] = useState(null);
@@ -22,7 +22,7 @@ export default function Compras() {
 
   const cargar = useCallback(async () => {
     const [{ data: f }, { data: p }] = await Promise.all([
-      supabase.from('facturas_compra').select('id,fecha,tipo_comprobante,punto_venta,numero,total,neto_gravado,estado,a_nombre_de,alertas,comprador_nombre,created_at,drive_url,auto_confirmada,proveedores(nombre)').order('created_at', { ascending: false }).limit(500),
+      supabase.from('facturas_compra').select('id,fecha,tipo_comprobante,punto_venta,numero,total,neto_gravado,estado,a_nombre_de,alertas,comprador_nombre,created_at,drive_url,auto_confirmada,proveedores(nombre),proyectos(nombre,clientes(nombre),ordenes_trabajo(numero_ot))').order('created_at', { ascending: false }).limit(500),
       supabase.from('precios_vigentes').select('*').order('categoria'),
     ]);
     setFacturas(f || []); setPrecios(p || []); setLoading(false);
@@ -47,12 +47,12 @@ export default function Compras() {
         errores.push(`${file.name}: ${msg}`);
       }
     }
-    setSubiendo(null); await cargar(); setFiltro('pendiente');
+    setSubiendo(null); await cargar(); setFiltro('todas');
     setToast(errores.length ? { tone: 'danger', text: errores.join(' · ') } : { tone: 'success', text: `${files.length} factura(s) leída(s). Revisalas y confirmá.` });
   };
 
   const conteo = useMemo(() => Object.fromEntries(ESTADOS.map(([k]) => [k, facturas.filter(f => f.estado === k).length])), [facturas]);
-  const lista = facturas.filter(f => f.estado === filtro && (!q || `${f.proveedores?.nombre} ${f.numero} ${f.comprador_nombre}`.toLowerCase().includes(q.toLowerCase())));
+  const lista = facturas.filter(f => (filtro === 'todas' ? f.estado !== 'descartada' : f.estado === filtro) && (!q || `${f.proveedores?.nombre} ${f.numero} ${f.comprador_nombre}`.toLowerCase().includes(q.toLowerCase())));
   const preciosF = precios.filter(p => !q || `${p.nombre} ${p.categoria}`.toLowerCase().includes(q.toLowerCase()));
   const mes = new Date().toISOString().slice(0, 7);
   const compradoMes = facturas.filter(f => f.estado === 'confirmada' && (f.fecha || '').startsWith(mes)).reduce((s, f) => s + Number(f.neto_gravado || 0), 0);
@@ -81,6 +81,7 @@ export default function Compras() {
             <button aria-pressed={tab === 'resumen'} onClick={() => setTab('resumen')}>Totales e impuestos</button>
             <button aria-pressed={tab === 'ordenes'} onClick={() => setTab('ordenes')}>Costo por orden</button>
           </div>
+          {tab === 'facturas' && <button className="z-chip" aria-pressed={filtro === 'todas'} onClick={() => setFiltro('todas')}>Todas <span className="z-chip-count">{facturas.filter(f => f.estado !== 'descartada').length}</span></button>}
           {tab === 'facturas' && ESTADOS.map(([k, l]) => (
             <button key={k} className="z-chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l} <span className="z-chip-count">{conteo[k] || 0}</span></button>
           ))}
@@ -90,15 +91,17 @@ export default function Compras() {
         {loading ? <Spinner /> : tab === 'resumen' ? <Resumen /> : tab === 'ordenes' ? <CostoOrdenes /> : tab === 'facturas' ? (
           <div className="card overflow-auto">
             <table className="w-full">
-              <thead><tr><th>Fecha</th><th>Proveedor</th><th>Comprobante</th><th>A nombre de</th><th className="text-right">Total</th><th>Alertas</th></tr></thead>
+              <thead><tr><th>Fecha</th><th>Proveedor</th><th>Comprobante</th><th>A nombre de</th><th>Orden</th><th>Estado</th><th className="text-right">Total</th><th>Alertas</th></tr></thead>
               <tbody>
-                {lista.length === 0 ? <tr><td colSpan={6}><EmptyState icon="receipt_long" title="No hay facturas acá">Subí PDFs o fotos de facturas: Zebrano las lee y te las deja para revisar.</EmptyState></td></tr>
+                {lista.length === 0 ? <tr><td colSpan={8}><EmptyState icon="receipt_long" title="No hay facturas acá">Subí PDFs o fotos de facturas: Zebrano las lee y te las deja para revisar.</EmptyState></td></tr>
                   : lista.map(f => (
                     <tr key={f.id} onClick={() => setAbierta(f.id)} className="cursor-pointer">
                       <td>{fecha(f.fecha)}</td>
                       <td className="font-medium text-z-ink">{f.proveedores?.nombre || '—'}</td>
                       <td className="tabular-nums">{f.tipo_comprobante} {f.punto_venta}-{f.numero}</td>
                       <td>{f.a_nombre_de === 'cliente' ? <Badge tone="info">Cliente · {f.comprador_nombre}</Badge> : <Badge tone="neutral">Zebrano</Badge>}</td>
+                      <td>{f.proyectos ? <span className="text-z-ink">{(f.proyectos.ordenes_trabajo || []).map(o => o.numero_ot).join(', ') || 'Sin OT'} · {f.proyectos.clientes?.nombre || f.proyectos.nombre}</span> : <span className="text-z-ink-3">Sin asignar</span>}</td>
+                      <td><Badge tone={f.estado === 'confirmada' ? 'success' : f.estado === 'pendiente' ? 'warning' : 'neutral'}>{f.estado === 'pendiente' ? 'Por revisar' : f.estado === 'confirmada' ? 'Confirmada' : 'Descartada'}</Badge></td>
                       <td className="text-right tabular-nums font-medium text-z-ink">{$(f.total)}</td>
                       <td className="whitespace-nowrap">{f.alertas?.length ? <Badge tone="warning">{f.alertas.length}</Badge> : <Icon name="check" size={18} color="rgb(var(--z-success-c))" />}{f.auto_confirmada && <span title="Confirmada automáticamente: los números cerraban"><Icon name="bolt" size={17} color="rgb(var(--z-ink-3-c))" /></span>}{f.drive_url && <Icon name="add_to_drive" size={17} color="rgb(var(--z-ink-3-c))" />}</td>
                     </tr>))}
@@ -160,6 +163,7 @@ function Revision({ id, onClose, onDone }) {
   const [items, setItems] = useState([]);
   const [insumos, setInsumos] = useState([]);
   const [proyectos, setProyectos] = useState([]);
+  const [nuevaOrden, setNuevaOrden] = useState(null);
   const [url, setUrl] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -185,6 +189,16 @@ function Revision({ id, onClose, onDone }) {
     const { data, error } = await supabase.from('insumos').insert({ nombre, categoria: 'Otros', unidad: it.unidad || 'unidad', proveedor_id: f.proveedor_id, origen: 'factura' }).select('id,nombre,categoria,unidad').single();
     if (error) { setError(error.message); return; }
     setInsumos(xs => [...xs, data].sort((a, b) => a.nombre.localeCompare(b.nombre))); setItem(i, 'insumo_id', data.id);
+  };
+
+  const crearOrden = async () => {
+    if (!nuevaOrden.cliente.trim() || !nuevaOrden.descripcion.trim()) { setError('Completá cliente y trabajo'); return; }
+    setError('');
+    const { data, error } = await supabase.rpc('crear_orden', { p_cliente: nuevaOrden.cliente.trim(), p_descripcion: nuevaOrden.descripcion.trim(), p_valor: nuevaOrden.valor ? Number(nuevaOrden.valor) : null });
+    if (error) { setError(error.message); return; }
+    const { data: pr } = await supabase.from('proyectos').select('id, nombre, estado, clientes(nombre), ordenes_trabajo(numero_ot)').not('estado', 'in', '(cancelado)').order('created_at', { ascending: false }).limit(200);
+    setProyectos(pr || []); setF(x => ({ ...x, proyecto_id: data.proyecto_id })); setNuevaOrden(null);
+    await supabase.from('facturas_compra').update({ proyecto_id: data.proyecto_id }).eq('id', id);
   };
 
   const guardar = async confirmar => {
@@ -242,7 +256,14 @@ function Revision({ id, onClose, onDone }) {
                   <option value="">Stock general / sin asignar</option>
                   {proyectos.map(p => <option key={p.id} value={p.id}>{(p.ordenes_trabajo || []).map(o => o.numero_ot).join(', ') || 'Sin OT'} · {p.clientes?.nombre || p.nombre || 'Sin nombre'} · {p.estado}</option>)}
                 </select>
-                <span className="text-[12px] text-z-ink-3 mt-1 block">Se puede cambiar aunque la factura ya esté confirmada; suma al costo real de esa orden.</span></div>
+                <span className="text-[12px] text-z-ink-3 mt-1 block">Se puede cambiar aunque la factura ya esté confirmada; suma al costo real de esa orden. {!nuevaOrden && <button type="button" className="underline font-medium text-z-ink" onClick={() => setNuevaOrden({ cliente: '', descripcion: '', valor: '' })}>+ Crear orden nueva</button>}</span>
+                {nuevaOrden && <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_.8fr_auto_auto] gap-2 mt-2 items-end">
+                  <div className="z-field"><label htmlFor="no-c">Cliente</label><input id="no-c" value={nuevaOrden.cliente} onChange={e => setNuevaOrden({ ...nuevaOrden, cliente: e.target.value })} /></div>
+                  <div className="z-field"><label htmlFor="no-d">Trabajo</label><input id="no-d" placeholder="Cocina, placard…" value={nuevaOrden.descripcion} onChange={e => setNuevaOrden({ ...nuevaOrden, descripcion: e.target.value })} /></div>
+                  <div className="z-field"><label htmlFor="no-v">Se cobra sin IVA</label><input id="no-v" type="number" min="0" value={nuevaOrden.valor} onChange={e => setNuevaOrden({ ...nuevaOrden, valor: e.target.value })} /></div>
+                  <button type="button" className="btn btn-primary btn-sm mb-1" onClick={crearOrden}>Crear</button>
+                  <button type="button" className="btn btn-quiet btn-sm mb-1" onClick={() => setNuevaOrden(null)}>Cancelar</button>
+                </div>}</div>
             </div>
 
             <div>

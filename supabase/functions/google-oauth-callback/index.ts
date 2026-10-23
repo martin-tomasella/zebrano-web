@@ -10,13 +10,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth-callback`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
+// Supabase sirve las funciones como texto plano (no permite páginas HTML en su dominio): se responde texto legible.
 const HTML = (body: string) => new Response(
-  `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-    body{font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;margin:0}
-    .card{background:#fff;border-radius:16px;padding:40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:460px;width:90%}
-    h2{font-size:22px;margin:0 0 8px}p{color:#555;font-size:14px;line-height:1.6}
-  </style></head><body><div class="card">${body}</div></body></html>`,
-  { headers: { "Content-Type": "text/html; charset=utf-8" } },
+  body.replace(/<br>/g, "\n").replace(/<\/(h2|p)>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').trim(),
+  { headers: { "Content-Type": "text/plain; charset=utf-8" } },
 );
 
 Deno.serve(async (req) => {

@@ -51,6 +51,7 @@ export const MODULOS = [
   { key:'metricas',     label:'Tiempos de ciclo',    path:'/metricas',      categoria:'Ventas' },
 
   { key:'produccion',      label:'Produccion',        path:'/produccion',      categoria:'Produccion' },
+  { key:'ordenes',         label:'Órdenes de fabricación', path:'/ordenes', categoria:'Produccion' },
   { key:'horas_trabajo',   label:'Horas de trabajo',  path:'/horas-trabajo',   categoria:'Produccion' },
 
   { key:'compras',      label:'Compras',             path:'/compras',       categoria:'Insumos' },
@@ -76,8 +77,8 @@ const PERMISOS_POR_ROL = {
   gestion: MODULOS.filter(m => m.categoria !== 'Marketing' && m.categoria !== 'Administracion').map(m => m.key),
 
   // Roles de taller: acceso operativo acotado
-  carpintero_oficial: ['dashboard','produccion','proyectos','materiales','horas_trabajo'],
-  carpintero:         ['dashboard','produccion','proyectos','materiales','horas_trabajo'],
+  carpintero_oficial: ['dashboard','produccion','ordenes','proyectos','materiales','horas_trabajo'],
+  carpintero:         ['dashboard','produccion','ordenes','proyectos','materiales','horas_trabajo'],
   ayudante:           ['dashboard','produccion','horas_trabajo'],
 };
 

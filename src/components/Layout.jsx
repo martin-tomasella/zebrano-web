@@ -21,6 +21,7 @@ const NAV_SECTIONS = [
   ]},
   { label: 'Producción', items: [
     { path: '/produccion',    icon: 'gear',  label: 'Taller', moduloKey: 'produccion' },
+    { path: '/ordenes',       icon: 'content_cut', label: 'Órdenes y despiece', moduloKey: 'ordenes' },
     { path: '/horas-trabajo', icon: 'clock', label: 'Horas de trabajo', moduloKey: 'horas_trabajo' },
   ]},
   { label: 'Insumos', items: [

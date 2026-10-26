@@ -12,11 +12,13 @@ const NAV_SECTIONS = [
   ]},
   { label: 'Ventas', items: [
     { path: '/prospectos', icon: 'funnel', label: 'Prospectos', moduloKey: 'prospectos' },
-    { path: '/clientes',   icon: 'users',  label: 'Clientes', moduloKey: 'clientes' },
     { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', moduloKey: 'cotizador' },
     { path: '/cotizar-modulos', icon: 'straighten', label: 'Cotizar por módulos', moduloKey: 'cotizador_modular' },
-    { path: '/mercado',    icon: 'storefront', label: 'Mercado', moduloKey: 'mercado' },
     { path: '/proyectos',  icon: 'layers', label: 'Proyectos', moduloKey: 'proyectos' },
+  ]},
+  { label: 'Clientes y mercado', items: [
+    { path: '/clientes',   icon: 'users',  label: 'Clientes', moduloKey: 'clientes' },
+    { path: '/mercado',    icon: 'storefront', label: 'Mercado', moduloKey: 'mercado' },
     { path: '/metricas',   icon: 'chart',  label: 'Tiempos de ciclo', moduloKey: 'metricas' },
   ]},
   { label: 'Producción', items: [
@@ -33,9 +35,9 @@ const NAV_SECTIONS = [
     { path: '/personal',   icon: 'badge', label: 'Personal y estructura', moduloKey: 'personal' },
     { path: '/finanzas',   icon: 'wallet', label: 'Finanzas', moduloKey: 'finanzas' },
     { path: '/usuarios',   icon: 'user',   label: 'Usuarios', moduloKey: 'usuarios' },
-    { path: '/landing',    icon: 'globe',  label: 'Landing pública', moduloKey: 'landing' },
   ]},
   { label: 'Marketing', items: [
+    { path: '/landing',       icon: 'globe',  label: 'Landing pública', moduloKey: 'landing' },
     { path: '/tiktok',        icon: 'tiktok', label: 'TikTok', moduloKey: 'tiktok' },
     { path: '/rrss',          icon: 'rrss',   label: 'Instagram / FB', moduloKey: 'rrss' },
     { path: '/rrss/importar', icon: 'upload', label: 'Importar fotos', moduloKey: 'rrss_importar' },
@@ -216,6 +218,9 @@ export function Layout({ children }) {
   const [palette, setPalette] = useState(false)
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light')
   const [userMenu, setUserMenu] = useState(false)
+  // Secciones del menú: arrancan contraídas; se abre la de la página actual y las que el usuario abra.
+  const [abiertas, setAbiertas] = useState(() => store.get('z-nav-abiertas', {}))
+  useEffect(() => { store.set('z-nav-abiertas', abiertas) }, [abiertas])
 
   useEffect(() => { document.documentElement.dataset.theme = theme; store.set('z-theme', theme) }, [theme])
   useEffect(() => { store.set('z-nav-collapsed', collapsed) }, [collapsed])
@@ -250,10 +255,18 @@ export function Layout({ children }) {
           {NAV_SECTIONS.map((section, si) => {
             const visibles = section.items.filter(item => tieneAcceso(profile?.rol, item.moduloKey))
             if (!visibles.length) return null
+            const tieneActiva = visibles.some(i => current?.item.path === i.path)
+            const abierta = !section.label || tieneActiva || !!abiertas[section.label]
             return (
               <div key={si} className="z-nav-section">
-                {section.label && <div className="z-nav-heading">{section.label}</div>}
-                {visibles.map(item => {
+                {section.label && (
+                  <button type="button" className="z-nav-heading flex w-full items-center justify-between bg-transparent border-0 cursor-pointer text-left"
+                    aria-expanded={abierta} onClick={() => setAbiertas(o => ({ ...o, [section.label]: !abierta }))}>
+                    <span>{section.label}</span>
+                    <span className="material-symbols-outlined z-nav-label" aria-hidden style={{ fontSize: 16 }}>{abierta ? 'expand_less' : 'expand_more'}</span>
+                  </button>
+                )}
+                {(abierta || collapsed) && visibles.map(item => {
                   const active = current?.item.path === item.path
                   return (
                     <a key={item.path} href={item.path} title={collapsed ? item.label : undefined}

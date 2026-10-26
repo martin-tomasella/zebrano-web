@@ -43,12 +43,12 @@ export const MODULOS = [
   { key:'dashboard',    label:'Dashboard',           path:'/',              categoria:'Principal' },
 
   { key:'prospectos',   label:'Prospectos',          path:'/prospectos',    categoria:'Ventas' },
-  { key:'clientes',     label:'Clientes',            path:'/clientes',      categoria:'Ventas' },
+  { key:'clientes',     label:'Clientes',            path:'/clientes',      categoria:'Clientes y mercado' },
   { key:'cotizador',    label:'Cotizador AI',        path:'/cotizador',     categoria:'Ventas' },
   { key:'cotizador_modular', label:'Cotizar por módulos', path:'/cotizar-modulos', categoria:'Ventas' },
-  { key:'mercado',      label:'Mercado',             path:'/mercado',       categoria:'Ventas' },
+  { key:'mercado',      label:'Mercado',             path:'/mercado',       categoria:'Clientes y mercado' },
   { key:'proyectos',    label:'Proyectos',           path:'/proyectos',     categoria:'Ventas' },
-  { key:'metricas',     label:'Tiempos de ciclo',    path:'/metricas',      categoria:'Ventas' },
+  { key:'metricas',     label:'Tiempos de ciclo',    path:'/metricas',      categoria:'Clientes y mercado' },
 
   { key:'produccion',      label:'Produccion',        path:'/produccion',      categoria:'Produccion' },
   { key:'ordenes',         label:'Órdenes de fabricación', path:'/ordenes', categoria:'Produccion' },
@@ -61,14 +61,14 @@ export const MODULOS = [
   { key:'personal',     label:'Personal y estructura', path:'/personal',    categoria:'Administracion' },
   { key:'finanzas',     label:'Finanzas',             path:'/finanzas',      categoria:'Administracion' },
   { key:'usuarios',     label:'Usuarios',             path:'/usuarios',      categoria:'Administracion' },
-  { key:'landing',      label:'Landing publica',      path:'/landing',       categoria:'Administracion' },
+  { key:'landing',      label:'Landing publica',      path:'/landing',       categoria:'Marketing' },
 
   { key:'tiktok',           label:'TikTok',            path:'/tiktok',           categoria:'Marketing' },
   { key:'rrss',              label:'Instagram / FB',    path:'/rrss',             categoria:'Marketing' },
   { key:'rrss_importar',    label:'Importar fotos',    path:'/rrss/importar',   categoria:'Marketing' },
 ];
 
-export const CATEGORIAS_ORDEN = ['Principal','Ventas','Produccion','Insumos','Administracion','Marketing'];
+export const CATEGORIAS_ORDEN = ['Principal','Ventas','Clientes y mercado','Produccion','Insumos','Administracion','Marketing'];
 
 // --- Matriz de permisos: rol -> set de module keys permitidos ---
 // admin: acceso implicito a todo (se resuelve aparte, no listamos todo aca)

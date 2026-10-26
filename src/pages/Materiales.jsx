@@ -14,8 +14,9 @@ export default function Materiales() {
   const [q, setQ] = useState('')
   const [nuevo, setNuevo] = useState(null)
   const [err, setErr] = useState('')
+  const [tc, setTc] = useState(null)
   const cargar = () => supabase.from('insumos_resumen').select('*').order('categoria').order('nombre').then(({ data }) => setRows(data || []))
-  useEffect(() => { cargar() }, [])
+  useEffect(() => { cargar(); supabase.from('tipos_cambio').select('*').order('fecha', { ascending: false }).limit(1).maybeSingle().then(({ data }) => setTc(data)) }, [])
 
   const cats = useMemo(() => ['todas', ...new Set((rows || []).map(r => r.categoria))], [rows])
   const lista = (rows || []).filter(r => (cat === 'todas' || r.categoria === cat) && (!q || r.nombre.toLowerCase().includes(q.toLowerCase())))
@@ -34,10 +35,12 @@ export default function Materiales() {
         actions={<button className="btn btn-primary" onClick={() => setNuevo({})}><Icon name="add" />Insumo</button>} />
       <PageContent>
         {!rows ? <Spinner /> : <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
             <KpiCard label="Insumos activos" value={rows.length} icon="inventory_2" />
-            <KpiCard label="Con precio de factura" value={conFactura} detail={`${rows.length - conFactura} todavía con precio de lista del Excel`} icon="receipt_long" />
+            <KpiCard label="Con precio de factura" value={conFactura} detail={`${rows.length - conFactura} sin factura todavía`} icon="receipt_long" />
             <KpiCard label="Comprado (facturas confirmadas)" value={$(comprado)} icon="shopping_cart" />
+            <KpiCard label="Dólar oficial venta (BCRA)" value={tc ? '$' + Number(tc.oficial_venta).toLocaleString('es-AR', { maximumFractionDigits: 2 }) : '—'} icon="currency_exchange"
+              detail={tc ? `Mayorista $${Number(tc.mayorista).toLocaleString('es-AR', { maximumFractionDigits: 2 })} · cotización del ${f(tc.fecha)}, tomada ${new Date(tc.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'Sin cotización'} />
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {cats.map(c => <button key={c} className="z-chip capitalize" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}

@@ -336,6 +336,7 @@ iframe { background: var(--z-canvas) !important; }
 .z-nav-scroll::-webkit-scrollbar-thumb { background-color: rgb(255 255 255 / 0.12); }
 .z-nav-section { margin-bottom: 6px; }
 .z-nav-heading { font-size: 12px; font-weight: 600; color: rgb(var(--z-nav-ink-2-c)); padding: 14px 10px 6px; }
+button.z-nav-heading { font-family: inherit; border-radius: 6px; } button.z-nav-heading:hover { color: rgb(var(--z-nav-ink-c, var(--z-nav-ink-2-c))); }
 
 .z-nav-item {
   position: relative; display: flex; align-items: center; gap: 12px;

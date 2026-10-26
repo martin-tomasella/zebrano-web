@@ -17,15 +17,27 @@ export default function Mercado() {
   const [pmax, setPmax] = useState('');
   const [orden, setOrden] = useState('categoria');
   const [abierto, setAbierto] = useState(null);
+  const [rel, setRel] = useState(null);
+  const [relevando, setRelevando] = useState(false);
 
   useEffect(() => {
     supabase.from('mercado_comparacion').select('*').order('categoria').order('precio_mercado', { ascending: false })
       .then(({ data }) => setRows(data || []));
+    supabase.from('zebrano_contexto').select('valor').eq('clave', 'mercado_relevamiento').maybeSingle().then(({ data }) => setRel(data?.valor || null));
   }, []);
+  const relevarAhora = async () => {
+    setRelevando(true);
+    await supabase.rpc('relevar_mercado_ahora');
+    setTimeout(async () => {
+      const { data } = await supabase.from('zebrano_contexto').select('valor').eq('clave', 'mercado_relevamiento').maybeSingle();
+      setRel(data?.valor || null); setRelevando(false);
+      const { data: r } = await supabase.from('mercado_comparacion').select('*').order('categoria').order('precio_mercado', { ascending: false }); setRows(r || []);
+    }, 25000);
+  };
   const verHistorial = async id => {
     setAbierto(abierto === id ? null : id);
     if (hist[id]) return;
-    const { data } = await supabase.from('mercado_precios').select('fecha,precio,precio_min_90d,precio_max_90d,vendedores').eq('producto_id', id).order('fecha', { ascending: false });
+    const { data } = await supabase.from('mercado_precios').select('fecha,precio,precio_min_90d,precio_max_90d,precio_min_vendedores,precio_max_vendedores,vendedores,fuente').eq('producto_id', id).order('fecha', { ascending: false });
     setHist(h => ({ ...h, [id]: data || [] }));
   };
 
@@ -49,6 +61,12 @@ export default function Mercado() {
     <Layout>
       <Topbar title="Mercado" subtitle={`Precios de la competencia en Mercado Libre vs. nuestro costo · último relevamiento ${ultima ? new Date(ultima + 'T12:00').toLocaleDateString('es-AR') : '—'}`} />
       <PageContent>
+        <div className="flex flex-wrap items-center gap-3 mb-3 text-[12.5px] text-z-ink-3">
+          <span>Actualización automática: 1er y 3er lunes de cada mes.</span>
+          {rel && <span style={{ color: rel.ok ? undefined : 'rgb(var(--z-danger-c))' }}>Último intento {new Date(rel.fecha).toLocaleString('es-AR')}: {rel.ok ? `${rel.actualizados} de ${rel.total} precios actualizados` : rel.error}</span>}
+          {rel && !rel.ok && /no est. conectado/.test(rel.error || '') && <a className="underline font-medium text-z-ink" href={`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/mercado-relevamiento?conectar=1`} target="_blank" rel="noreferrer">Conectar Mercado Libre</a>}
+          <button className="btn btn-quiet btn-sm" onClick={relevarAhora} disabled={relevando}>{relevando ? 'Actualizando…' : 'Actualizar ahora'}</button>
+        </div>
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {cats.map(c => <button key={c} className="z-chip capitalize" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}
           <input className="ml-auto max-w-[260px]" placeholder="Buscar producto, marca o MLA…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
@@ -103,7 +121,7 @@ function FilaMercado({ r, abierto, hist, onHist }) {
     </tr>
     {abierto && <tr><td colSpan={9} style={{ background: 'var(--z-subtle)' }}>
       {!hist ? 'Cargando…' : <div className="flex flex-wrap gap-4 text-[12.5px]">{hist.map(h => (
-        <span key={h.fecha} className="tabular-nums">{new Date(h.fecha + 'T12:00').toLocaleDateString('es-AR')}: <b>{$(h.precio)}</b>{h.precio_min_90d ? ` (90 días: ${$(h.precio_min_90d)} – ${$(h.precio_max_90d)})` : ''}{h.vendedores ? ` · ${h.vendedores} vendedores` : ''}</span>
+        <span key={h.fecha} className="tabular-nums">{new Date(h.fecha + 'T12:00').toLocaleDateString('es-AR')}: <b>{$(h.precio)}</b>{h.precio_min_vendedores ? ` (entre vendedores: ${$(h.precio_min_vendedores)} – ${$(h.precio_max_vendedores)})` : h.precio_min_90d ? ` (90 días: ${$(h.precio_min_90d)} – ${$(h.precio_max_90d)})` : ''}{h.fuente === 'ml_api' ? ' · API ML' : ''}{h.vendedores ? ` · ${h.vendedores} vendedores` : ''}</span>
       ))}</div>}
     </td></tr>}
   </>;

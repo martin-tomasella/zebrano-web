@@ -67,3 +67,11 @@ insert into prosp_senales (codigo, descripcion, costo, estado) values
  ('FABRICA_PROPIA','Dice que fabrica (posible competidor)','gratis','confirmada'), ('A_MEDIDA','Ofrece trabajos a medida','gratis','confirmada'),
  ('MARCAS_TERCEROS','Revende marcas de terceros','gratis','confirmada'), ('OBRAS_EN_CURSO','Publica obras o proyectos','gratis','confirmada')
 on conflict (codigo) do nothing;
+
+-- ── Descubrir desde la base (pg_net) ─────────────────────────────────────────
+-- Overpass rechaza las IPs de las edge functions; desde la base responde. Pedido (lunes) + procesamiento (cada 5 min).
+-- prosp_config.zonas debe incluir 'bbox:sur,oeste,norte,este' (ej. AMBA: 'bbox:-35.05,-59.10,-34.25,-58.15').
+-- Copiar del proyecto Zebrano las funciones prosp_descubrir_pedir(text,int) y prosp_descubrir_procesar() y la tabla prosp_pedidos
+-- (migración "prospector_descubrir_sql"), y programar:
+--   select cron.schedule('prospector-descubrir', '0 11 * * 1', $$ select prosp_descubrir_pedir() $$);
+--   select cron.schedule('prospector-descubrir-procesar', '*/5 * * * *', $$ select prosp_descubrir_procesar() where exists (select 1 from prosp_pedidos where procesado_at is null) $$);

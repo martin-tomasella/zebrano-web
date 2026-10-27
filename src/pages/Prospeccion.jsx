@@ -27,6 +27,10 @@ export default function Prospeccion() {
   };
   useEffect(() => { cargar(); }, []);
 
+  const buscar = async () => {
+    const { data, error } = await supabase.rpc('prosp_descubrir_pedir', { p_segmento: f.seg || null });
+    setMsg(error ? error.message : `Buscando ${data?.segmento} en el mapa… las empresas aparecen en unos minutos (se procesan cada 5).`);
+  };
   const correr = async (etapa, extra = {}) => {
     setMsg(`Corriendo "${etapa}"… tarda hasta 2 minutos.`);
     await supabase.rpc('prospector_correr', { p_etapa: etapa, p_extra: extra });
@@ -53,7 +57,7 @@ export default function Prospeccion() {
     <Layout>
       <Topbar title="Prospección" subtitle="Empresas a las que venderles, con el mail listo para tu aprobación en Alfred"
         actions={<div className="flex gap-2">
-          <button className="btn btn-secondary" onClick={() => correr('descubrir', f.seg ? { segmento: f.seg } : {})}><Icon name="travel_explore" />Buscar empresas</button>
+          <button className="btn btn-secondary" onClick={buscar} title="Busca el segmento elegido en el filtro (o el de la semana)"><Icon name="travel_explore" />Buscar empresas</button>
           <button className="btn btn-secondary" onClick={() => correr('perfilar')}><Icon name="language" />Leer webs</button>
           <button className="btn btn-primary" onClick={() => correr('escribir')}><Icon name="edit_note" />Escribir mails</button>
         </div>} />

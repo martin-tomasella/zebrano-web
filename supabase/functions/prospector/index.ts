@@ -29,11 +29,14 @@ async function descubrir(c: any, limite = 400, segmento?: string) {
   const todos: Seg[] = c.segmentos || [];
   const semana = Math.floor(Date.now() / (7 * 864e5));
   const segs = segmento ? todos.filter((s) => s.codigo === segmento) : todos.length ? [todos[semana % todos.length]] : [];
-  const zonas = (c.zonas || []).map((z: string) => z.replace(/["\\]/g, "")).join("|");
+  // Zona: "bbox:sur,oeste,norte,este" (rápido) o nombres de partidos/ciudades de OSM (más lento)
+  const bbox = (c.zonas || []).find((z: string) => z.startsWith("bbox:"))?.slice(5);
+  const zonas = (c.zonas || []).filter((z: string) => !z.startsWith("bbox:")).map((z: string) => z.replace(/["\\]/g, "")).join("|");
+  const area = bbox ? "" : `area["boundary"="administrative"]["name"~"^(${zonas})$"]->.z;`, en = bbox ? `(${bbox})` : "(area.z)";
   let nuevas = 0, vistas = 0;
   for (const s of segs) {
-    const filtros = s.osm.map((f) => { const [k, v] = f.split("="); return `nwr["${k}"="${v}"](area.z);`; }).join("");
-    const q = `[out:json][timeout:90];area["boundary"="administrative"]["name"~"^(${zonas})$"]->.z;(${filtros});out center tags ${limite};`;
+    const filtros = s.osm.map((f) => { const [k, v] = f.split("="); return `nwr["${k}"="${v}"]${en};`; }).join("");
+    const q = `[out:json][timeout:90];${area}(${filtros});out center tags ${limite};`;
     // Instancias públicas de Overpass: si una rechaza (algunas bloquean IPs de nube), se prueba la siguiente
     let els: any[] | null = null; const fallas: string[] = [];
     for (const srv of ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]) {
@@ -46,27 +49,30 @@ async function descubrir(c: any, limite = 400, segmento?: string) {
       } catch (e) { fallas.push(`${new URL(srv).host} ${(e as Error).message.slice(0, 60)}`); }
     }
     if (!els) throw new Error("Overpass no respondió: " + fallas.join(" | "));
-    for (const e of els) {
-      const t = e.tags || {};
-      if (!t.name) continue;
-      vistas++;
-      const fila = {
+    const filas = els.filter((e: any) => e.tags?.name).map((e: any) => {
+      const t = e.tags;
+      return {
         fuente: "osm", ext_id: `${e.type}/${e.id}`, nombre: t.name, segmento: s.codigo,
         rubro: t.shop || t.office || t.craft || null,
         web: t.website || t["contact:website"] || null, email: (t.email || t["contact:email"] || "").toLowerCase() || null,
         telefono: t.phone || t["contact:phone"] || null, instagram: t["contact:instagram"] || null,
         direccion: [t["addr:street"], t["addr:housenumber"]].filter(Boolean).join(" ") || null,
-        zona: t["addr:city"] || null, lat: e.lat ?? e.center?.lat ?? null, lon: e.lon ?? e.center?.lon ?? null,
+        zona: t["addr:city"] || t["addr:suburb"] || null, lat: e.lat ?? e.center?.lat ?? null, lon: e.lon ?? e.center?.lon ?? null,
       };
-      const { data: ya } = await sb.from("prosp_empresas").select("id").eq("fuente", "osm").eq("ext_id", fila.ext_id).maybeSingle();
-      if (ya) continue;
-      const { data: ins } = await sb.from("prosp_empresas").insert(fila).select("id").single();
-      if (!ins) continue;
-      nuevas++;
-      await observar(ins.id, "RUBRO", fila.rubro);
-      if (fila.web) await observar(ins.id, "TIENE_WEB", fila.web, null, fila.web); else await observar(ins.id, "SIN_WEB", null, 1);
-      if (fila.email) await observar(ins.id, "EMAIL_ENCONTRADO", fila.email, null, `https://www.openstreetmap.org/${fila.ext_id}`);
-      if (fila.telefono) await observar(ins.id, "TELEFONO", fila.telefono);
+    });
+    vistas += filas.length;
+    // En bloques: alta solo de las nuevas (las ya existentes se ignoran) y sus señales iniciales
+    for (let i = 0; i < filas.length; i += 200) {
+      const { data: ins } = await sb.from("prosp_empresas").upsert(filas.slice(i, i + 200), { onConflict: "fuente,ext_id", ignoreDuplicates: true }).select("id,rubro,web,email,telefono,ext_id");
+      const obs: any[] = [];
+      for (const f of ins || []) {
+        obs.push({ empresa_id: f.id, senal: "RUBRO", valor_text: f.rubro });
+        obs.push(f.web ? { empresa_id: f.id, senal: "TIENE_WEB", valor_text: f.web, evidencia_url: f.web } : { empresa_id: f.id, senal: "SIN_WEB", valor_num: 1 });
+        if (f.email) obs.push({ empresa_id: f.id, senal: "EMAIL_ENCONTRADO", valor_text: f.email, evidencia_url: `https://www.openstreetmap.org/${f.ext_id}` });
+        if (f.telefono) obs.push({ empresa_id: f.id, senal: "TELEFONO", valor_text: f.telefono });
+      }
+      if (obs.length) await sb.from("prosp_observaciones").insert(obs);
+      nuevas += ins?.length || 0;
     }
   }
   return { vistas, nuevas };

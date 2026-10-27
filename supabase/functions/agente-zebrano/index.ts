@@ -48,6 +48,29 @@ async function proponer(p: any, key: string) {
   }
 }
 
+// ── Gmail (envío de lo aprobado por Martín). Requiere el permiso gmail.send en la cuenta de Google conectada ──
+async function gmailToken(): Promise<string | null> {
+  const { data: t } = await sb.from("google_oauth_tokens").select("*").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!t?.refresh_token || !/gmail\.send/.test(String(t.scope))) return null;
+  if (t.access_token && new Date(t.expires_at).getTime() > Date.now() + 60_000) return t.access_token;
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: Deno.env.get("GOOGLE_ID_de_Cliente") || "", client_secret: Deno.env.get("GOOGLE_Secreto_de_Cliente") || "", refresh_token: t.refresh_token, grant_type: "refresh_token" }) });
+  if (!r.ok) return null;
+  const n = await r.json();
+  await sb.from("google_oauth_tokens").update({ access_token: n.access_token, expires_at: new Date(Date.now() + n.expires_in * 1000).toISOString() }).eq("id", t.id);
+  return n.access_token;
+}
+async function enviarMail(para: string, asunto: string, cuerpo: string, remitente?: string | null) {
+  const tok = await gmailToken();
+  if (!tok) return { ok: false, motivo: "Gmail no está conectado con permiso de envío" };
+  const b64 = (s: string) => btoa(unescape(encodeURIComponent(s)));
+  const raw = [`To: ${para}`, remitente ? `From: ${remitente}` : "", `Subject: =?UTF-8?B?${b64(asunto)}?=`, "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64(cuerpo)].filter((l, i) => l !== "" || i > 3).join("\r\n");
+  const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ raw: b64(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") }) });
+  if (!r.ok) return { ok: false, motivo: `Gmail ${r.status}: ${(await r.text()).slice(0, 150)}` };
+  return { ok: true, id: (await r.json()).id };
+}
+
 // ── LLM gratis (llm-gateway, OpenAI compatible). Sin gateway configurado devuelve null. ──
 async function llm(system: string, user: string) {
   const url = Deno.env.get("LLM_GATEWAY_URL") || (await ctx("llm_gateway_url"));
@@ -76,6 +99,10 @@ async function estado() {
     sb.from("agente_propuestas").select("id,estado", { count: "exact" }).eq("tipo", "publicar_rrss").eq("estado", "ejecutada").gte("ejecutada_at", hace(7)),
     sb.from("agente_log").select("created_at").order("created_at", { ascending: false }).limit(1),
   ]);
+  const [prospEmail, prospEnv] = await Promise.all([
+    sb.from("prosp_empresas").select("id", { count: "exact", head: true }).not("email", "is", null),
+    sb.from("prosp_mensajes").select("id", { count: "exact", head: true }).eq("estado", "enviado").gte("enviado_at", hace(7)),
+  ]);
   const hoy = new Date().toISOString().slice(0, 10);
   const s7 = ses7.data || [], s30 = ses30.data || [];
   const montoSemana = s7.reduce((a: number, s: any) => a + Number(s.precio_aprobado || s.valor_estimado || 0), 0);
@@ -94,6 +121,7 @@ async function estado() {
       { nombre: "Cotizaciones sin respuesta > 7 días", valor: quietos.length, objetivo: 0, fecha: hoy },
       { nombre: "Tasa de cierre (30 días)", valor: s30.length ? `${Math.round((aprob / s30.length) * 100)}%` : "sin datos", objetivo: "[falta]", fecha: hoy },
       { nombre: "Publicaciones hechas (7 días)", valor: posts.count || 0, objetivo: "[falta]", fecha: hoy },
+      { nombre: "Prospección: empresas con email / mails enviados (7 días)", valor: `${prospEmail.count || 0} / ${prospEnv.count || 0}`, objetivo: "10 mails por día hábil", fecha: hoy },
     ],
     trabado,
     ultima_actividad: ultima.data?.[0]?.created_at || new Date().toISOString(),
@@ -156,10 +184,35 @@ Deno.serve(async (req) => {
       }
       let resultado = "";
       const tipo = p?.tipo || accion?.tipo || accion;
-      if (tipo === "contactar_lead" || tipo === "enviar_cotizacion" || tipo === "responder_consulta") {
+      const pmid = p?.accion?.prosp_mensaje_id;
+      if (pmid) {
+        // Prospección: se vuelve a pasar el control de bajas al momento de enviar (aunque ya esté aprobado)
+        const { data: m } = await sb.from("prosp_mensajes").select("*, prosp_empresas(*)").eq("id", pmid).single();
+        const dom = String(m?.para || "").split("@")[1] || "";
+        const { data: baja } = await sb.from("prosp_bajas").select("valor").in("valor", [String(m?.para || "").toLowerCase(), dom]);
+        const { data: c } = await sb.from("prosp_config").select("remitente_email,remitente_nombre").eq("id", 1).maybeSingle();
+        if (!m) resultado = "No encontré el mensaje de prospección.";
+        else if (baja?.length) { await sb.from("prosp_mensajes").update({ estado: "bloqueado", error: "en bajas" }).eq("id", pmid); resultado = "No se envió: la dirección está en bajas."; }
+        else {
+          const cuerpo = texto_final && texto_final.trim().length > 20 ? texto_final : m.cuerpo;
+          const envio = await enviarMail(m.para, m.asunto, cuerpo, c?.remitente_email ? `${c.remitente_nombre || ""} <${c.remitente_email}>` : null);
+          // El lead pasa al CRM de Zebrano (prospectos) aunque el envío quede manual
+          let pid = m.prosp_empresas?.prospecto_id;
+          if (!pid) {
+            const e = m.prosp_empresas || {};
+            const { data: np } = await sb.from("prospectos").insert({ nombre: e.nombre, email: m.para, telefono: e.telefono, canal_origen: "prospeccion", handle_rrss: e.instagram, estado: "contactado", tipo_trabajo: e.segmento, notas: `Prospección (${e.rubro || ""}${e.zona ? ", " + e.zona : ""}). Web: ${e.web || "-"}`, activo: true }).select("id").single();
+            pid = np?.id;
+            if (pid) await sb.from("prosp_empresas").update({ prospecto_id: pid }).eq("id", m.empresa_id);
+          }
+          if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: "email", direccion: "saliente", contenido: `${m.asunto}\n\n${cuerpo}`, tipo: "texto" });
+          await sb.from("prosp_mensajes").update({ estado: envio.ok ? "enviado" : "aprobado", cuerpo, enviado_at: envio.ok ? new Date().toISOString() : null, error: envio.ok ? null : envio.motivo }).eq("id", pmid);
+          await sb.from("prosp_empresas").update({ estado: "contactada" }).eq("id", m.empresa_id);
+          resultado = envio.ok ? `Mail enviado a ${m.para}.` : `Aprobado y registrado en el CRM. No se envió: ${envio.motivo}. Mandalo a mano a ${m.para}.`;
+        }
+      } else if (tipo === "contactar_lead" || tipo === "enviar_cotizacion" || tipo === "responder_consulta") {
         // Sin WhatsApp/mail conectados todavía: queda registrado en la conversación del prospecto, listo para enviar.
         const pid = p?.accion?.prospecto_id;
-        if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: p?.accion?.canal || "whatsapp", direccion: "saliente", contenido: texto_final, tipo: "texto", enviado_por: "agente-zebrano (aprobado por Martín)" });
+        if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: p?.accion?.canal || "whatsapp", direccion: "saliente", contenido: texto_final, tipo: "texto", enviado_por: null });
         await sb.from("prospectos").update({ ultimo_contacto: new Date().toISOString() }).eq("id", pid ?? "00000000-0000-0000-0000-000000000000");
         resultado = "Mensaje aprobado y registrado en la conversación del prospecto. WhatsApp Business aún no está conectado: enviarlo a mano desde el ERP.";
       } else if (tipo === "publicar_rrss") {
@@ -225,6 +278,20 @@ Deno.serve(async (req) => {
           }, key);
           out.push({ informe: true });
         } catch (err) { out.push({ informe_error: (err as Error).message }); }
+      }
+      // 5) Prospección: cada borrador que pasó el gate va a Alfred para el "dale" (hasta 10 por día)
+      const { data: borr } = await sb.from("prosp_mensajes").select("*, prosp_empresas(nombre,rubro,zona,segmento,web)").eq("estado", "borrador").order("created_at").limit(10);
+      for (const m of borr || []) {
+        const e = m.prosp_empresas || {};
+        const r = await proponer({
+          origen: `zebrano:prosp:${m.id}`, tipo: "contactar_lead", prioridad: e.segmento === "mayorista" ? "alta" : "media",
+          titulo: `Mail a ${e.nombre} (${e.rubro || e.segmento}${e.zona ? ", " + e.zona : ""})`,
+          descripcion: `Asunto: ${m.asunto}. Prospección ${e.segmento}; ${e.web ? "web " + e.web : "sin web"}.`,
+          meta: e.segmento === "mayorista" ? "Canal recurrente que cubra el 120% de la estructura" : "Obras a medida con margen de gremio",
+          accion: { canal: "email", para: m.para, asunto: m.asunto, texto: m.cuerpo, prosp_mensaje_id: m.id },
+        }, key);
+        if (!r.error) { await sb.from("prosp_mensajes").update({ estado: "propuesto", propuesta_origen: `zebrano:prosp:${m.id}` }).eq("id", m.id); await sb.from("prosp_empresas").update({ estado: "propuesta" }).eq("id", m.empresa_id); }
+        out.push(r);
       }
       // 4) Encargos recibidos: con gateway se responden; sin gateway se avisan como pendientes
       const { data: enc } = await sb.from("agente_encargos").select("*").eq("estado", "recibido");

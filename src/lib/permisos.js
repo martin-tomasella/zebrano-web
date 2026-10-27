@@ -43,6 +43,7 @@ export const MODULOS = [
   { key:'dashboard',    label:'Dashboard',           path:'/',              categoria:'Principal' },
 
   { key:'prospectos',   label:'Prospectos',          path:'/prospectos',    categoria:'Ventas' },
+  { key:'prospeccion',  label:'Prospección',         path:'/prospeccion',   categoria:'Ventas' },
   { key:'clientes',     label:'Clientes',            path:'/clientes',      categoria:'Clientes y mercado' },
   { key:'cotizador',    label:'Cotizador AI',        path:'/cotizador',     categoria:'Ventas' },
   { key:'cotizador_modular', label:'Cotizar por módulos', path:'/cotizar-modulos', categoria:'Ventas' },

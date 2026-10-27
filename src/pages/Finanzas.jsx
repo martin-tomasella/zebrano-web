@@ -86,13 +86,13 @@ export default function Finanzas() {
                   <tr className="cursor-pointer hover:bg-z-subtle" onClick={() => setAbierta(abierta === i ? null : i)}>
                     <td className="whitespace-nowrap">{fecha(s.semana_inicio)}</td>
                     <td>{fecha(s.viernes)}</td>
-                    <td className="text-right tabular-nums">{$(s.nomina)}</td>
-                    <td className="text-right tabular-nums">{$(s.fijos)}</td>
-                    <td className="text-right tabular-nums">{$(s.facturas)}</td>
-                    <td className="text-right tabular-nums">{$(s.otros)}</td>
-                    <td className="text-right tabular-nums font-semibold text-z-ink">{$(s.necesario)}</td>
-                    <td className="text-right tabular-nums">{$(s.ingresos_esperados)}</td>
-                    <td className="text-right tabular-nums font-medium" style={{ color: dif < 0 ? 'rgb(var(--z-danger-c))' : 'rgb(var(--z-success-c))' }}>{$(dif)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap">{$(s.nomina)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap">{$(s.fijos)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap">{$(s.facturas)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap">{$(s.otros)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap font-semibold text-z-ink">{$(s.necesario)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap">{$(s.ingresos_esperados)}</td>
+                    <td className="text-right tabular-nums whitespace-nowrap font-medium" style={{ color: dif < 0 ? 'rgb(var(--z-danger-c))' : 'rgb(var(--z-success-c))' }}>{$(dif)}</td>
                   </tr>
                   {abierta === i && <tr><td colSpan={9} style={{ background: 'var(--z-subtle)' }}>
                     <div className="grid sm:grid-cols-3 gap-4 text-[12.5px] py-1">
@@ -120,11 +120,11 @@ export default function Finanzas() {
               <tbody>{(meta.productos || []).map(p => (
                 <tr key={p.nombre}>
                   <td className="font-medium text-z-ink">{p.nombre}</td>
-                  <td className="text-right tabular-nums">{p.horas_unidad}</td>
-                  <td className="text-right tabular-nums">{p.unidades_mes}</td>
-                  <td className="text-right tabular-nums">{$(p.material_unidad)}{p.material_incompleto && <span title="Hay insumos de la receta sin precio de factura todavía"> <Badge tone="warning">incompleto</Badge></span>}</td>
-                  <td className="text-right tabular-nums">{$(p.aporte_unidad)}</td>
-                  <td className="text-right tabular-nums font-semibold text-z-ink">{$(p.precio_minimo_sin_iva)}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap">{p.horas_unidad}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap">{p.unidades_mes}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap">{$(p.material_unidad)}{p.material_incompleto && <span title="Hay insumos de la receta sin precio de factura todavía"> <Badge tone="warning">incompleto</Badge></span>}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap">{$(p.aporte_unidad)}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap font-semibold text-z-ink">{$(p.precio_minimo_sin_iva)}</td>
                 </tr>))}</tbody>
             </table>
           </div>
@@ -140,9 +140,9 @@ export default function Finanzas() {
                 <td className="capitalize">{p.puesto || '—'}{p.es_operario ? '' : ' · administración'}</td>
                 <td className="text-right"><input type="number" min="0" className="w-[140px] text-right" defaultValue={p.sueldo_semanal ?? ''} aria-label={`Sueldo semanal de ${p.nombre}`}
                   onBlur={e => String(e.target.value) !== String(p.sueldo_semanal ?? '') && guardarSueldo(p.id, e.target.value)} /></td>
-                <td className="text-right tabular-nums">{$(Number(p.sueldo_semanal || 0) * 52 / 12)}</td>
+                <td className="text-right tabular-nums whitespace-nowrap">{$(Number(p.sueldo_semanal || 0) * 52 / 12)}</td>
               </tr>))}
-              <tr><td colSpan={2} className="font-semibold text-z-ink">Total · se paga los viernes</td><td className="text-right tabular-nums font-semibold text-z-ink">{$(est.nomina_semanal)}</td><td className="text-right tabular-nums font-semibold text-z-ink">{$(est.nomina_mensual)}</td></tr>
+              <tr><td colSpan={2} className="font-semibold text-z-ink">Total · se paga los viernes</td><td className="text-right tabular-nums whitespace-nowrap font-semibold text-z-ink">{$(est.nomina_semanal)}</td><td className="text-right tabular-nums whitespace-nowrap font-semibold text-z-ink">{$(est.nomina_mensual)}</td></tr>
             </tbody>
           </table>
           <p className="text-[12px] text-z-ink-3 px-3 pb-3 m-0">Sale de Personal y estructura (legajos), no de los usuarios del sistema. El sueldo se edita acá o en el legajo; al salir del campo se guarda.</p>
@@ -160,7 +160,7 @@ export default function Finanzas() {
                   <td className="capitalize">{e.categoria}</td>
                   <td>{ORIGEN[e.origen]}</td>
                   <td className="whitespace-nowrap">{fecha(e.vencimiento)}</td>
-                  <td className="text-right tabular-nums font-medium text-z-ink">{$(e.monto)}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap font-medium text-z-ink">{$(e.monto)}</td>
                   <td>{e.pagada_en ? <Badge tone="success">Pagado {fecha(e.pagada_en)}</Badge> : puedeAprobar ? <button className="btn btn-secondary btn-sm" onClick={() => marcarPagado(e)}>Marcar pagado</button> : <Badge tone="warning">Pendiente</Badge>}</td>
                 </tr>))}</tbody>
             </table>
@@ -174,11 +174,11 @@ export default function Finanzas() {
               <tr key={r.proyecto_id}>
                 <td className="text-z-ink">{r.cliente} · {r.nombre}</td>
                 <td className="capitalize">{String(r.estado || '').replace('_', ' ')}</td>
-                <td className="text-right tabular-nums">{$(r.facturacion_sin_iva)}</td>
-                <td className="text-right tabular-nums">{$(r.material_real)}</td>
-                <td className="text-right tabular-nums">{$(r.mo_real)}</td>
-                <td className="text-right tabular-nums">{$(r.estructura_real)}</td>
-                <td className="text-right tabular-nums font-medium" style={{ color: r.margen < 0 ? 'rgb(var(--z-danger-c))' : undefined }}>{r.margen != null ? `${$(r.margen)}${r.margen_pct != null ? ` · ${r.margen_pct}%` : ''}` : '—'}</td>
+                <td className="text-right tabular-nums whitespace-nowrap">{$(r.facturacion_sin_iva)}</td>
+                <td className="text-right tabular-nums whitespace-nowrap">{$(r.material_real)}</td>
+                <td className="text-right tabular-nums whitespace-nowrap">{$(r.mo_real)}</td>
+                <td className="text-right tabular-nums whitespace-nowrap">{$(r.estructura_real)}</td>
+                <td className="text-right tabular-nums whitespace-nowrap font-medium" style={{ color: r.margen < 0 ? 'rgb(var(--z-danger-c))' : undefined }}>{r.margen != null ? `${$(r.margen)}${r.margen_pct != null ? ` · ${r.margen_pct}%` : ''}` : '—'}</td>
               </tr>))}</tbody>
           </table>
           <p className="text-[12px] text-z-ink-3 px-3 pb-3 m-0">Material = facturas de compra asignadas a la orden. Mano de obra y estructura = horas reales cargadas × costo hora.</p>

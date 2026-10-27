@@ -11,6 +11,7 @@ const NAV_SECTIONS = [
     { path: '/', icon: 'grid', label: 'Inicio', moduloKey: 'dashboard' },
   ]},
   { label: 'Ventas', items: [
+    { path: '/prospeccion', icon: 'travel_explore', label: 'Prospección', moduloKey: 'prospeccion' },
     { path: '/prospectos', icon: 'funnel', label: 'Prospectos', moduloKey: 'prospectos' },
     { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', moduloKey: 'cotizador' },
     { path: '/cotizar-modulos', icon: 'straighten', label: 'Cotizar por módulos', moduloKey: 'cotizador_modular' },

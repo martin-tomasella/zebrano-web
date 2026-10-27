@@ -1,8 +1,8 @@
 // prospector — módulo de prospección reutilizable por unidad (mismo código en Zebrano, Theron, Inteltech…).
 // Lo propio de cada unidad está en la tabla prosp_config (segmentos, zonas, oferta, firma, límites).
-// Etapas (POST {etapa}): "descubrir" (OpenStreetMap, gratis) → "perfilar" (lee la web, sin modelo) →
+// Etapas (POST {etapa}): "perfilar" (lee la web, sin modelo) →
 // "escribir" (modelo gratis + gate determinístico) → los borradores los propone agente-<unidad> a Alfred.
-// "ciclo" corre las tres con sus límites diarios. Nada se envía desde acá: enviar es /alfred/ejecutar.
+// Descubrir empresas (OpenStreetMap) lo hace la base con pg_net. Nada se envía desde acá: enviar es /alfred/ejecutar.
 // Diseño basado en Harvey (github.com/ethanplusai/harvey, MIT).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -12,6 +12,7 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const UA = "Mozilla/5.0 (compatible; prospector/1.0; +contacto por mail)";
 
 type Seg = { codigo: string; nombre: string; osm: string[]; oferta: string; objetivo?: string };
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function cfg() {
   const { data } = await sb.from("prosp_config").select("*").eq("id", 1).single();
@@ -23,60 +24,8 @@ async function observar(empresa_id: string, senal: string, valor_text?: string |
 }
 const dominio = (u?: string | null) => { try { return new URL(u!.startsWith("http") ? u! : `https://${u}`).hostname.replace(/^www\./, ""); } catch { return null; } };
 
-// ── 1. DESCUBRIR: OpenStreetMap / Overpass (gratis, sin cuenta) ─────────────────
-async function descubrir(c: any, limite = 400, segmento?: string) {
-  // Un segmento por corrida (Overpass es lento): el indicado, o rota por semana del año
-  const todos: Seg[] = c.segmentos || [];
-  const semana = Math.floor(Date.now() / (7 * 864e5));
-  const segs = segmento ? todos.filter((s) => s.codigo === segmento) : todos.length ? [todos[semana % todos.length]] : [];
-  // Zona: "bbox:sur,oeste,norte,este" (rápido) o nombres de partidos/ciudades de OSM (más lento)
-  const bbox = (c.zonas || []).find((z: string) => z.startsWith("bbox:"))?.slice(5);
-  const zonas = (c.zonas || []).filter((z: string) => !z.startsWith("bbox:")).map((z: string) => z.replace(/["\\]/g, "")).join("|");
-  const area = bbox ? "" : `area["boundary"="administrative"]["name"~"^(${zonas})$"]->.z;`, en = bbox ? `(${bbox})` : "(area.z)";
-  let nuevas = 0, vistas = 0;
-  for (const s of segs) {
-    const filtros = s.osm.map((f) => { const [k, v] = f.split("="); return `nwr["${k}"="${v}"]${en};`; }).join("");
-    const q = `[out:json][timeout:90];${area}(${filtros});out center tags ${limite};`;
-    // Instancias públicas de Overpass: si una rechaza (algunas bloquean IPs de nube), se prueba la siguiente
-    let els: any[] | null = null; const fallas: string[] = [];
-    for (const srv of ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]) {
-      try {
-        const r = await fetch(srv, { method: "POST",
-          headers: { "User-Agent": "zebrano-prospector/1.0 (+https://zebrano-web.vercel.app)", "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-          body: "data=" + encodeURIComponent(q) });
-        if (!r.ok) { fallas.push(`${new URL(srv).host} ${r.status}`); continue; }
-        els = (await r.json()).elements || []; break;
-      } catch (e) { fallas.push(`${new URL(srv).host} ${(e as Error).message.slice(0, 60)}`); }
-    }
-    if (!els) throw new Error("Overpass no respondió: " + fallas.join(" | "));
-    const filas = els.filter((e: any) => e.tags?.name).map((e: any) => {
-      const t = e.tags;
-      return {
-        fuente: "osm", ext_id: `${e.type}/${e.id}`, nombre: t.name, segmento: s.codigo,
-        rubro: t.shop || t.office || t.craft || null,
-        web: t.website || t["contact:website"] || null, email: (t.email || t["contact:email"] || "").toLowerCase() || null,
-        telefono: t.phone || t["contact:phone"] || null, instagram: t["contact:instagram"] || null,
-        direccion: [t["addr:street"], t["addr:housenumber"]].filter(Boolean).join(" ") || null,
-        zona: t["addr:city"] || t["addr:suburb"] || null, lat: e.lat ?? e.center?.lat ?? null, lon: e.lon ?? e.center?.lon ?? null,
-      };
-    });
-    vistas += filas.length;
-    // En bloques: alta solo de las nuevas (las ya existentes se ignoran) y sus señales iniciales
-    for (let i = 0; i < filas.length; i += 200) {
-      const { data: ins } = await sb.from("prosp_empresas").upsert(filas.slice(i, i + 200), { onConflict: "fuente,ext_id", ignoreDuplicates: true }).select("id,rubro,web,email,telefono,ext_id");
-      const obs: any[] = [];
-      for (const f of ins || []) {
-        obs.push({ empresa_id: f.id, senal: "RUBRO", valor_text: f.rubro });
-        obs.push(f.web ? { empresa_id: f.id, senal: "TIENE_WEB", valor_text: f.web, evidencia_url: f.web } : { empresa_id: f.id, senal: "SIN_WEB", valor_num: 1 });
-        if (f.email) obs.push({ empresa_id: f.id, senal: "EMAIL_ENCONTRADO", valor_text: f.email, evidencia_url: `https://www.openstreetmap.org/${f.ext_id}` });
-        if (f.telefono) obs.push({ empresa_id: f.id, senal: "TELEFONO", valor_text: f.telefono });
-      }
-      if (obs.length) await sb.from("prosp_observaciones").insert(obs);
-      nuevas += ins?.length || 0;
-    }
-  }
-  return { vistas, nuevas };
-}
+// ── 1. DESCUBRIR: lo hace la base (prosp_descubrir_pedir / prosp_descubrir_procesar, vía pg_net),
+//    porque Overpass rechaza las IPs de las edge functions.
 
 // ── 2. PERFILAR: lee la home (y /contacto) — sin modelo, sin costo ──────────────
 const RE_MAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
@@ -129,8 +78,10 @@ async function llm(system: string, user: string): Promise<{ texto: string | null
   if (gem) intentos.push(["gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", gem, "gemini-2.5-flash", { reasoning_effort: "low", response_format: { type: "json_object" } }]);
   for (const [nombre, url, key, model, extra] of intentos) {
     try {
-      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      const pedir = () => fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: JSON.stringify({ model, temperature: 0.4, max_tokens: 4000, messages: [{ role: "system", content: system }, { role: "user", content: user }], ...extra }) });
+      let r = await pedir();
+      if (r.status === 429) { await esperar(15000); r = await pedir(); } // capa gratis: pocas consultas por minuto
       if (!r.ok) continue;
       const t = (await r.json()).choices?.[0]?.message?.content;
       if (t) return { texto: t, modelo: nombre };
@@ -184,6 +135,7 @@ rubro: ${e.rubro || "-"}
 zona: ${e.zona || "-"}
 hechos: ${hechos.join("; ") || "-"}
 DATOS>>>`;
+    if (creados + bloqueados > 0) await esperar(6000); // espaciado para la capa gratis del modelo
     const { texto, modelo } = await llm(system, user);
     if (!texto) break; // sin modelo disponible: se reintenta en el próximo ciclo
     let j: any = null; try { j = JSON.parse(texto.match(/\{[\s\S]*\}/)?.[0] || ""); } catch { /* */ }
@@ -205,7 +157,6 @@ Deno.serve(async (req) => {
     const c = await cfg();
     const etapa = body.etapa || "ciclo";
     const out: Record<string, unknown> = { etapa, unidad: c.unidad };
-    if (etapa === "descubrir" || (etapa === "ciclo" && new Date().getUTCDay() === 1)) out.descubrir = await descubrir(c, body.limite || 400, body.segmento);
     if (etapa === "perfilar" || etapa === "ciclo") out.perfilar = await perfilar(c);
     if (etapa === "escribir" || etapa === "ciclo") out.escribir = await escribir(c);
     await sb.from("prosp_config").update({ ultimo_ciclo: { ...out, fecha: new Date().toISOString() } }).eq("id", 1);

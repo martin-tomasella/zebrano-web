@@ -98,7 +98,7 @@ export default function Ordenes() {
 function Detalle({ ot, mods, onClose }) {
   const [piezas, setPiezas] = useState(null);
   useEffect(() => {
-    supabase.from('ot_piezas').select('*').eq('orden_trabajo_id', ot.id).eq('origen', 'taller').order('orden').then(({ data }) => setPiezas(data || []));
+    supabase.from('ot_piezas').select('*').eq('orden_trabajo_id', ot.id).order('orden').then(({ data }) => setPiezas(data || []));
   }, [ot.id]);
   useEffect(() => { const k = e => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   const cli = ot.proyectos?.clientes || {};
@@ -106,7 +106,8 @@ function Detalle({ ot, mods, onClose }) {
   const imprimir = () => {
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const bloques = mods.map(m => {
-      const ps = (piezas || []).filter(p => p.modulo_id === m.id);
+      const todas = (piezas || []).filter(p => p.modulo_id === m.id);
+      const ps = todas.some(p => p.origen === 'taller') ? todas.filter(p => p.origen === 'taller') : todas;
       return `<h3>${esc(m.nombre)}</h3><p class="s">${esc(m.material || '')} · ${n(m.ml)} ml${m.alto_m ? ` · alto ${n(m.alto_m)}` : ''}${m.prof_m ? ` · prof ${n(m.prof_m)}` : ''}${m.notas ? ` — ${esc(m.notas)}` : ''}</p>` +
         (ps.length ? `<table><tr><th>Cant</th><th>Largo</th><th>Ancho</th><th>Esp</th><th>Pieza</th><th>Material</th><th>Canto</th><th>✓</th></tr>${ps.map(p => `<tr><td>${p.cantidad}</td><td>${p.largo_mm}</td><td>${p.ancho_mm}</td><td>${p.espesor_mm}</td><td>${esc(p.nombre_pieza)}${p.lectura_dudosa ? ' (?)' : ''}</td><td>${esc(p.material_nombre)}</td><td>${cantos(p)}</td><td></td></tr>`).join('')}</table>` : '<p class="s">Sin despiece.</p>');
     }).join('');
@@ -134,7 +135,10 @@ function Detalle({ ot, mods, onClose }) {
         <div className="z-drawer-body">
           {ot.proyectos?.notas_internas && <p className="text-[13px] text-z-ink-2 mb-4">{ot.proyectos.notas_internas}</p>}
           {!piezas ? <Spinner /> : mods.map(m => {
-            const ps = piezas.filter(p => p.modulo_id === m.id);
+            const todas = piezas.filter(p => p.modulo_id === m.id);
+            const taller = todas.filter(p => p.origen === 'taller'), agente = todas.filter(p => p.origen === 'agente');
+            const ps = taller.length ? taller : agente;
+            const m2 = xs => xs.reduce((a, p) => a + p.largo_mm * p.ancho_mm * p.cantidad * (p.espesor_mm / 18), 0) / 1e6;
             return (
               <section key={m.id} className="mb-6">
                 <div className="flex flex-wrap items-baseline gap-x-3 mb-1">
@@ -143,6 +147,8 @@ function Detalle({ ot, mods, onClose }) {
                   {!m.sin_despiece && <span className="text-[12.5px] text-z-ink-2 ml-auto tabular-nums">{n(m.m2_placa)} m² · {n(m.placas_netas)} placas netas{m.placas_reales != null ? ` (orden dice ${n(m.placas_reales)})` : ''} · {n(m.ml_canto, 1)} m de canto</span>}
                 </div>
                 {m.notas && <p className="text-[12.5px] text-z-ink-3 mb-2">{m.notas}</p>}
+                {!taller.length && agente.length > 0 && <p className="text-[12.5px] mb-2"><Badge tone="info">Despiece propuesto por el agente</Badge> <span className="text-z-ink-3">{n(m2(agente))} m² · el taller lo verifica o carga el suyo para comparar.</span></p>}
+                {taller.length > 0 && agente.length > 0 && <p className="text-[12.5px] mb-2" style={{ color: Math.abs(m2(agente) / m2(taller) - 1) > 0.1 ? 'rgb(var(--z-danger-c))' : undefined }}>Agente {n(m2(agente))} m² vs. taller {n(m2(taller))} m² · desvío {Math.round((m2(agente) / m2(taller) - 1) * 100)}%</p>}
                 {ps.length === 0 ? <p className="text-[12.5px] text-z-ink-3">Sin despiece.</p> : (
                   <table className="w-full text-[12.5px]">
                     <thead><tr><th className="text-right">Cant</th><th className="text-right">Largo</th><th className="text-right">Ancho</th><th>Pieza</th><th>Material</th><th>Canto</th></tr></thead>

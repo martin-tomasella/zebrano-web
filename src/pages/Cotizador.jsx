@@ -1,10 +1,44 @@
 
 import React, { useState, useRef, useEffect } from 'react'
-import { supabase, N8N_COTIZADOR } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { Layout, Topbar } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 
-const MENSAJE_INICIAL = { role:'assistant', text:'Hola, soy el cotizador de Zebrano. Contame qué necesita el cliente — tipo de mueble, medidas, material — y te armo la cotización.' }
+const MENSAJE_INICIAL = { role:'assistant', text:'Hola, soy el cotizador de Zebrano. Contame qué necesita el cliente — tipo de mueble, medidas, material — o adjuntá fotos, un PDF o un plano, y te armo diseño, render, cotización y despiece.' }
+const FN_COTIZADOR = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano-cotizador`
+const MAX_LADO = 1600
+
+// Imagen → JPEG base64 reducido (para no mandar fotos de 10 MB al modelo)
+function imagenAJpeg(src) {
+  return new Promise((ok, mal) => {
+    const img = new Image()
+    img.onload = () => {
+      const k = Math.min(1, MAX_LADO / Math.max(img.width, img.height))
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k)
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height)
+      ok(c.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = () => mal(new Error('No se pudo leer la imagen'))
+    img.src = src
+  })
+}
+// PDF / plano → una imagen por página (hasta 4) con pdf.js
+async function pdfAJpegs(file) {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf')
+  pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise
+  const out = []
+  for (let i = 1; i <= Math.min(doc.numPages, 4); i++) {
+    const page = await doc.getPage(i)
+    const v0 = page.getViewport({ scale: 1 })
+    const vp = page.getViewport({ scale: MAX_LADO / Math.max(v0.width, v0.height) })
+    const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height)
+    await page.render({ canvasContext: ctx, viewport: vp }).promise
+    out.push(c.toDataURL('image/jpeg', 0.85))
+  }
+  return out
+}
 
 const ETAPAS = [
   { key:'diseno',     label:'Diseño' },
@@ -32,6 +66,9 @@ export default function Cotizador() {
   const [diseno, setDiseno]       = useState(null)
   const [resumen, setResumen]     = useState(null)
   const [aprobando, setAprobando] = useState(false)
+  const [adjuntos, setAdjuntos] = useState([]) // [{ nombre, dataUrl }]
+  const [leyendo, setLeyendo] = useState(false)
+  const fileRef = useRef(null)
   const endRef = useRef(null)
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
@@ -68,6 +105,7 @@ export default function Cotizador() {
       setMessages(data.map(m => ({
         role: m.rol === 'user' ? 'user' : 'assistant',
         text: m.contenido || '(sin texto)',
+        imgs: (m.imagenes || []).filter(u => typeof u === 'string' && !u.startsWith('data:')),
       })))
     } else {
       setMessages([{ role:'assistant', text:'Esta sesión todavía no tiene mensajes.' }])
@@ -131,16 +169,36 @@ export default function Cotizador() {
     }
   }
 
+  async function agregarArchivos(files) {
+    setLeyendo(true)
+    const nuevos = []
+    for (const f of Array.from(files || [])) {
+      try {
+        if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+          const pags = await pdfAJpegs(f)
+          pags.forEach((dataUrl, i) => nuevos.push({ nombre: `${f.name} · pág. ${i + 1}`, dataUrl }))
+        } else if (f.type.startsWith('image/')) {
+          nuevos.push({ nombre: f.name, dataUrl: await imagenAJpeg(URL.createObjectURL(f)) })
+        } else {
+          setMessages(m => [...m, { role:'assistant', text:`No puedo leer "${f.name}". Subí fotos (JPG/PNG) o PDF. Un plano .dwg exportalo a PDF primero.`, error:true }])
+        }
+      } catch (e) { setMessages(m => [...m, { role:'assistant', text:`No pude leer "${f.name}": ${e.message}`, error:true }]) }
+    }
+    setAdjuntos(a => [...a, ...nuevos].slice(0, 6))
+    setLeyendo(false)
+  }
+
   async function send() {
-    if (!input.trim() || loading) return
-    const text = input.trim()
-    setInput('')
-    setMessages(m => [...m, { role:'user', text }])
+    if ((!input.trim() && adjuntos.length === 0) || loading) return
+    const text = input.trim() || 'Te adjunto el material del cliente: interpretalo, armá el diseño y cotizá.'
+    const imgs = adjuntos.map(a => a.dataUrl)
+    setInput(''); setAdjuntos([])
+    setMessages(m => [...m, { role:'user', text, imgs }])
     setLoading(true)
 
     try {
-      const body = { mensaje: text, sesion_id: sesionId, user_id: user?.id }
-      const res  = await fetch(N8N_COTIZADOR, {
+      const body = { mensaje: text, sesion_id: sesionId, user_id: user?.id, imagenes_base64: imgs.map(u => u.split(',')[1]) }
+      const res  = await fetch(FN_COTIZADOR, {
         method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
       })
       const data = await res.json()
@@ -156,7 +214,7 @@ export default function Cotizador() {
       }
       setMessages(m => [...m, { role:'assistant', text: reply }])
     } catch (e) {
-      setMessages(m => [...m, { role:'assistant', text:'❌ Error al conectar con el agente. Verificá que n8n esté activo.', error: true }])
+      setMessages(m => [...m, { role:'assistant', text:'❌ Error al conectar con el agente. Probá de nuevo en un momento.', error: true }])
     }
     setLoading(false)
   }
@@ -173,7 +231,7 @@ export default function Cotizador() {
 
   return (
     <Layout>
-      <Topbar title="Cotizador AI" subtitle="Agente Zebrano · conectado a n8n" actions={
+      <Topbar title="Cotizador AI" subtitle="Texto, fotos, PDF o planos → diseño, render, cotización y despiece" actions={
         <button className="btn btn-ghost btn-sm" onClick={nuevaSesion}>+ Nueva sesión</button>
       } />
 
@@ -286,6 +344,11 @@ export default function Cotizador() {
                   whiteSpace:'pre-wrap',
                 }}>
                   {m.text}
+                  {m.imgs?.length > 0 && (
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>
+                      {m.imgs.map((u, j) => <a key={j} href={u} target="_blank" rel="noreferrer"><img src={u} alt="Adjunto" style={{ height:72, borderRadius:6, border:'1px solid var(--z-border)', background:'#fff' }} /></a>)}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -303,15 +366,31 @@ export default function Cotizador() {
             <div ref={endRef} />
           </div>
 
-          <div style={{ padding:'14px 24px', borderTop:'1px solid var(--z-border)', display:'flex', gap:10, alignItems:'flex-end' }}>
+          {adjuntos.length > 0 && (
+            <div style={{ padding:'10px 24px 0', display:'flex', gap:8, flexWrap:'wrap' }}>
+              {adjuntos.map((a, i) => (
+                <div key={i} style={{ position:'relative' }} title={a.nombre}>
+                  <img src={a.dataUrl} alt={a.nombre} style={{ height:56, borderRadius:6, border:'1px solid var(--z-border)', background:'#fff' }} />
+                  <button className="btn btn-quiet btn-icon" aria-label={`Quitar ${a.nombre}`} onClick={() => setAdjuntos(x => x.filter((_, j) => j !== i))}
+                    style={{ position:'absolute', top:-8, right:-8, width:22, height:22, minHeight:0, padding:0, borderRadius:'50%', background:'var(--z-card)', border:'1px solid var(--z-border)', fontSize:12 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ padding:'14px 24px', borderTop: adjuntos.length ? 'none' : '1px solid var(--z-border)', display:'flex', gap:10, alignItems:'flex-end' }}
+            onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); agregarArchivos(e.dataTransfer.files) }}>
+            <input ref={fileRef} type="file" accept="image/*,application/pdf,.pdf" multiple hidden onChange={e => { agregarArchivos(e.target.files); e.target.value = '' }} />
+            <button className="btn btn-secondary" onClick={() => fileRef.current?.click()} disabled={loading || leyendo} title="Adjuntar fotos, PDF o plano" aria-label="Adjuntar archivos">
+              {leyendo ? 'Leyendo…' : '📎'}
+            </button>
             <textarea
               value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              placeholder="Ej: placard 3 cuerpos melamina blanco, 2,40m de frente, 2m alto..."
+              placeholder="Ej: placard 3 cuerpos melamina blanco, 2,40m de frente, 2m alto… o adjuntá fotos / PDF / plano (también podés arrastrarlos acá)"
               rows={2}
               style={{ flex:1, resize:'none' }}
             />
-            <button className="btn btn-primary" onClick={send} disabled={loading || !input.trim()}>
+            <button className="btn btn-primary" onClick={send} disabled={loading || leyendo || (!input.trim() && adjuntos.length === 0)}>
               Enviar
             </button>
           </div>

@@ -102,7 +102,7 @@ Lo unico que compartis con el cliente: el diseno, el render, y el PRECIO FINAL y
 Estas hablando con un empleado de Zebrano armando una cotizacion para un cliente. Podes razonar sobre costos y margen si el empleado los pide explicitamente, pero el campo respuesta_texto que se muestra en el chat igual debe ser breve (Regla 6) - el desglose de costos ya queda guardado en la base de datos, no hace falta repetirlo en el texto.`;
 }
 
-function sysNogal(placas,herrajes,disenoStr,renderPromptActual,canal){
+function sysNogal(placas,herrajes,disenoStr,renderPromptActual,canal,ejemplos){
   const tieneRender=renderPromptActual&&renderPromptActual.length>10;
   return `Sos NOGAL, agente de diseno y cotizacion de Zebrano carpinteria premium argentina.
 Espanol rioplatense. Profesional y preciso.
@@ -154,6 +154,18 @@ REGLA 6 - RESPUESTA JSON COMPACTA Y SIN MARKDOWN:
 Devolves UNICAMENTE el objeto JSON puro, sin \`\`\`json ni ningun otro texto antes o despues.
 En la etapa cotizacion, el campo respuesta_texto debe ser BREVE (2-3 lineas maximo, solo el precio final y que fue aprobado) - el detalle de piezas ya queda guardado en la base de datos, no lo repitas en el texto.
 
+REGLA 8 - ADJUNTOS (FOTOS, PDF, PLANOS):
+Si el usuario adjunta imagenes (fotos del lugar, fotos de referencia, paginas de un PDF o un plano), las interpretas: leé las cotas y textos del plano, identificá los modulos, sus medidas y materiales. Las medidas escritas en el plano mandan sobre lo que estimes a ojo. Si una medida clave no se puede leer, la pedis en respuesta_texto y avanzas con el resto. En una foto sin cotas no inventes medidas: pedilas.
+
+REGLA 9 - DESPIECE COMO EN EL TALLER:
+En la etapa cotizacion, "piezas" es el despiece real de corte: una linea por medida distinta, cantidad, largo_mm x ancho_mm en placa de 18 mm (36 mm = dos placas, indicalo en el nombre).
+Cantos: SOLO en los lados que se ven. Estantes, fijos, bases y techos: solo el canto de frente (canto_largo=true, canto_ancho=false). Laterales: solo el frente. Puertas y frentes de cajon: los 4 lados. Fondos: sin canto.
+Incluí laterales, techo, base, estantes, divisiones, fajas/ajustes, zocalos, puertas, frentes y las piezas de cajones (laterales y frente/contrafrente de 100 mm de alto). El fondo de cajones y de muebles va en fibro 3 mm blanco ("Plus blanco").
+Medidas internas = ancho exterior menos 36 mm (dos laterales de 18).
+
+${ejemplos?`DESPIECES REALES DEL TALLER (referencia de como se despieza en Zebrano):
+${ejemplos}
+`:""}
 REGLA 7 - NOMBRE DE MATERIAL EXACTO:
 El campo "material" de cada pieza en la etapa cotizacion debe copiarse TEXTUALMENTE de la lista MATERIALES de arriba (mismo texto, sin agregar sufijos como "(laminada)", "(macizo)", "(reforzado)" ni ninguna otra aclaracion entre parentesis). Si una pieza usa un material distinto a los listados, elegis el mas parecido de la lista tal cual esta escrito. Un nombre de material que no matchea exacto rompe el calculo de costos.
 
@@ -227,10 +239,11 @@ Deno.serve(async(req)=>{
     const renderPromptActual=da?.render_prompt_actual||"";
     if(aprobar_cotizacion&&sid){
       const yr=new Date().getFullYear();
-      const{count}=await sb.from("ordenes_trabajo").select("*",{count:"exact",head:true});
-      const nOT=`OT-${yr}-${String((count??0)+1).padStart(3,"0")}`;
+      const{data:ots}=await sb.from("ordenes_trabajo").select("numero_ot").like("numero_ot",`OT-${yr}-%`);
+      const nMax=Math.max(0,...(ots??[]).map(o=>Number(String(o.numero_ot).split("-").pop())||0));
+      const nOT=`OT-${yr}-${String(nMax+1).padStart(3,"0")}`;
       const{data:s}=await sb.from("cotizacion_sesiones").select("tipo_trabajo,ambiente,cliente_nombre,cliente_telefono,cliente_email").eq("id",sid).single();
-      const{data:resumen}=await sb.from("cotizacion_resumen").select("precio_sugerido").eq("sesion_id",sid).maybeSingle();
+      const{data:resumen}=await sb.from("cotizacion_resumen").select("precio_sugerido,horas_totales_est").eq("sesion_id",sid).maybeSingle();
       const tipoTrabajo=s?.tipo_trabajo??"custom";
       const nombreCliente=(s?.cliente_nombre||"").trim();
       const telCliente=(s?.cliente_telefono||"").trim();
@@ -257,21 +270,50 @@ Deno.serve(async(req)=>{
       // hace que despues aparezca tambien en /produccion.
       const{data:proy,error:proyErr}=await sb.from("proyectos").insert({nombre:nombreProyecto,descripcion:s?.ambiente?`${tipoTrabajo} - ${s.ambiente}`:tipoTrabajo,tipo_trabajo:normTipoTrabajoProyecto(tipoTrabajo),estado:"cotizado",cliente_id:clienteId,valor_estimado:resumen?.precio_sugerido??null,fecha_creacion:hoy,fecha_cotizado:hoy}).select("id").single();
       if(proyErr){return json({ok:false,sesion_id:sid,error:`No se pudo crear el proyecto: ${proyErr.message}`},500);}
-      const{error:otErr}=await sb.from("ordenes_trabajo").insert({numero_ot:nOT,sesion_cotizacion_id:sid,proyecto_id:proy.id,tipo_trabajo:tipoTrabajo,estado:"pendiente",avance_pct:0,horas_reales:0});
+      // La OT lleva todo el detalle de fabricacion (diseno, render, modulos y despiece) pero NUNCA el precio de venta
+      const notasOT=[`Generada por el Cotizador AI (sesion ${String(sid).slice(0,8)}).`,
+        da?`Medidas generales: ${da.ancho_mm??"?"} x ${da.alto_mm??"?"} x ${da.prof_mm??"?"} mm.`:"",
+        ...((da?.modulos)??[]).map(m=>`- ${m.nombre}: ${m.ancho_mm??"?"} x ${m.alto_mm??"?"} mm, ${m.material??""}. ${m.detalles??""}`),
+        da?.render_fotorrealista_url&&!String(da.render_fotorrealista_url).startsWith("data:")?`Render: ${da.render_fotorrealista_url}`:""].filter(Boolean).join("\n");
+      const{data:otRow,error:otErr}=await sb.from("ordenes_trabajo").insert({numero_ot:nOT,sesion_cotizacion_id:sid,proyecto_id:proy.id,tipo_trabajo:tipoTrabajo,estado:"pendiente",avance_pct:0,horas_reales:0,historica:false,presupuesto:`AI-${String(sid).slice(0,6)}`,notas:notasOT,fecha_inicio:hoy,horas_estimadas:resumen?.horas_totales_est??null}).select("id").single();
       if(otErr){return json({ok:false,sesion_id:sid,error:`No se pudo crear la orden de trabajo: ${otErr.message}`},500);}
+      await sb.from("proyectos").update({notas_internas:notasOT}).eq("id",proy.id);
+      // Modulos + despiece del agente (origen 'agente'): el taller despues carga el suyo y se comparan
+      const{data:piezasCot}=await sb.from("cotizacion_piezas").select("*").eq("sesion_id",sid).order("orden");
+      let nPiezas=0;
+      const grupos={};
+      for(const p of(piezasCot??[])){(grupos[p.modulo_nombre||"General"]??=[]).push(p);}
+      let ordenMod=0;
+      for(const[nombreMod,ps]of Object.entries(grupos)){
+        const dm=((da?.modulos)??[]).find(m=>String(m.nombre||"").toLowerCase()===nombreMod.toLowerCase());
+        const{data:mod}=await sb.from("ot_modulos").insert({orden_trabajo_id:otRow.id,nombre:nombreMod,ml:dm?.ancho_mm?Number(dm.ancho_mm)/1000:null,alto_m:dm?.alto_mm?Number(dm.alto_mm)/1000:(da?.alto_mm?Number(da.alto_mm)/1000:null),prof_m:da?.prof_mm?Number(da.prof_mm)/1000:null,material:ps[0]?.material??null,notas:dm?.detalles??null,orden:++ordenMod}).select("id").single();
+        if(!mod)continue;
+        const filas=ps.map((p,i)=>{const esFrente=/puerta|frente/i.test(p.nombre_pieza||"");return{orden_trabajo_id:otRow.id,modulo_id:mod.id,nombre_pieza:p.nombre_pieza,material_nombre:p.material,largo_mm:p.largo_mm,ancho_mm:p.ancho_mm,cantidad:p.cantidad,con_canto_largo:!!p.con_canto_largo,con_canto_ancho:!!p.con_canto_ancho,cantos_largo:esFrente?2:(p.con_canto_largo?1:0),cantos_ancho:esFrente?2:(p.con_canto_ancho?1:0),espesor_mm:/36/.test(p.nombre_pieza||"")?36:18,origen:"agente",orden:i+1};});
+        const{error:pe}=await sb.from("ot_piezas").insert(filas);if(!pe)nPiezas+=filas.length;
+      }
       await sb.from("cotizacion_sesiones").update({estado:"aprobada"}).eq("id",sid);
-      return json({ok:true,sesion_id:sid,respuesta:`Orden ${nOT} creada. Ya figura en Proyectos con estado "Cotizado".`,ot_creada:true,numero_ot:nOT,proyecto_id:proy.id});
+      return json({ok:true,sesion_id:sid,respuesta:`Orden ${nOT} creada con el diseño${nPiezas?` y ${nPiezas} líneas de despiece propuestas por el agente`:""} (sin precio de venta). Está en Órdenes y despiece; el proyecto figura en Proyectos como "Cotizado".`,ot_creada:true,numero_ot:nOT,proyecto_id:proy.id});
     }
     if(aprobar_svg&&sid&&da){const{url:ru,error:re}=await renderFoto(da.render_prompt_actual??"");await sb.from("cotizacion_diseno").update({svg_aprobado:true,svg_aprobado_at:new Date().toISOString(),render_fotorrealista_url:ru,render_generado_at:ru?new Date().toISOString():null}).eq("sesion_id",sid);if(ru)await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:ru,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});const txt=ru?"Render listo. Lo aprobas para calcular el presupuesto?":`No pude generar el render (${re}).`;await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:ru?[ru]:[]});return json({ok:true,sesion_id:sid,respuesta:txt,render_url:ru,svg_aprobado:true,render_error:re});}
     const iu=[];
     for(let i=0;i<imagenes_base64.length;i++){try{const b=Uint8Array.from(atob(imagenes_base64[i]),c=>c.charCodeAt(0));const pt=`sesiones/${sid}/img_${Date.now()}_${i}.jpg`;const{error}=await sb.storage.from("zebrano-proyectos").upload(pt,b,{contentType:"image/jpeg",upsert:true});if(!error){const{data:u}=sb.storage.from("zebrano-proyectos").getPublicUrl(pt);iu.push(u.publicUrl);}}catch{}}
     if(mensaje||iu.length>0){await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"user",contenido:mensaje??"(imagenes)",imagenes:iu});if(iu.length>0){const{data:s}=await sb.from("cotizacion_sesiones").select("imagenes_urls").eq("id",sid).single();await sb.from("cotizacion_sesiones").update({imagenes_urls:[...(s?.imagenes_urls??[]),...iu]}).eq("id",sid);}}
     const{data:hist}=await sb.from("cotizacion_mensajes").select("rol,contenido").eq("sesion_id",sid).order("created_at",{ascending:true}).limit(40);
+    // Despieces reales cargados por el taller (ot_piezas origen taller), compactos, como referencia para el agente
+    let ejemplos="";
+    try{
+      const{data:mods}=await sb.from("ot_modulos").select("id,nombre,ml,alto_m,prof_m,material,sin_despiece").eq("sin_despiece",false).not("modulo_tipo_id","is",null).limit(4);
+      for(const m of(mods??[])){
+        const{data:ps}=await sb.from("ot_piezas").select("cantidad,largo_mm,ancho_mm,espesor_mm,nombre_pieza,cantos_largo,cantos_ancho").eq("modulo_id",m.id).eq("origen","taller").order("orden").limit(25);
+        if(!ps?.length)continue;
+        ejemplos+=`- ${m.nombre} (${m.ml} ml x alto ${m.alto_m??"?"} x prof ${m.prof_m??"?"}, ${m.material}): `+ps.map(p=>`${p.cantidad}) ${p.largo_mm}x${p.ancho_mm}${p.espesor_mm!==18?"x"+p.espesor_mm:""} ${p.nombre_pieza}${p.cantos_largo||p.cantos_ancho?` [canto ${p.cantos_largo}L${p.cantos_ancho?"+"+p.cantos_ancho+"A":""}]`:""}`).join("; ")+"\n";
+      }
+    }catch{}
     const msgs=[];
     for(const m of(hist??[])){if(m.rol==="system")continue;const role=m.rol==="agent"?"assistant":"user";const last=msgs[msgs.length-1];if(last&&last.role===role&&typeof last.content==="string")last.content+="\n\n"+m.contenido;else msgs.push({role,content:m.contenido});}
     if(imagenes_base64.length>0){const c=imagenes_base64.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));if(mensaje)c.push({type:"text",text:mensaje});const last=msgs[msgs.length-1];if(last&&last.role==="user")last.content=c;else msgs.push({role:"user",content:c});}
     if(msgs.length===0)msgs.push({role:"user",content:mensaje??"Hola"});
-    const{raw,parsed,apiError,truncado,modelo}=await callLLM(msgs,sysNogal(pstr,hstr,disenoStr,renderPromptActual,canalSeguro));
+    const{raw,parsed,apiError,truncado,modelo}=await callLLM(msgs,sysNogal(pstr,hstr,disenoStr,renderPromptActual,canalSeguro,ejemplos));
     if(apiError){return json({ok:false,sesion_id:sid,error:apiError},502);}
     if(!parsed&&truncado){const txt="La respuesta se corto por longitud. Proba de nuevo o pedi el presupuesto de forma mas resumida.";await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:[]});return json({ok:true,sesion_id:sid,respuesta:txt,etapa:"conv",truncado:true});}
     const etapa=parsed?.etapa??"conv";

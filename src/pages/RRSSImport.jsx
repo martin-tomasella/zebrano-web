@@ -1,6 +1,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Layout, Topbar, PageContent } from '../components/Layout';
+import { authFetch as fetch } from '../lib/authFetch';
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;

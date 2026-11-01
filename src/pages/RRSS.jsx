@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'
+import { authFetch as fetch } from '../lib/authFetch';
 import { Layout, Topbar, PageContent } from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
 

@@ -38,7 +38,7 @@ export default function Usuarios() {
         headers: {
           'Content-Type': 'application/json',
           'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
         body: JSON.stringify({
           nombre: form.nombre,

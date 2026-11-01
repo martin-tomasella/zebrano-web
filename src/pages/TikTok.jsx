@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'
+import { authFetch as fetch } from '../lib/authFetch';
 import { Layout, Topbar, PageContent } from '../components/Layout';
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;

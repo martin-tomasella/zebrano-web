@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'
+import { authFetch as fetch } from '../lib/authFetch';
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
 import { Avatar } from '../components/ui';
 

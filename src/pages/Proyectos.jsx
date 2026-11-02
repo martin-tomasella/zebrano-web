@@ -333,7 +333,7 @@ export default function Proyectos() {
                             <Avatar name={p.clientes?.nombre || p.nombre} size={28} />
                             <div className="min-w-0 flex-1">
                               <div className="text-[13.5px] font-semibold text-z-ink truncate">{p.clientes?.nombre || 'Sin nombre'}</div>
-                              <div className="text-[12.5px] text-z-ink-3 capitalize truncate">{(p.tipo_trabajo || p.descripcion || '—').replace(/_/g,' ')}{ot?.numero_ot ? ` · ${ot.numero_ot}` : ''}</div>
+                              <div className="text-[12.5px] text-z-ink-3 capitalize truncate">{(p.tipo_trabajo || p.descripcion || '—').replace(/_/g,' ')}{ot?.numero_ot ? ` · ${ot.numero_ot}` : ''}{p.historico ? ' · histórico' : ''}</div>
                             </div>
                             <div className="text-[13px] font-semibold text-z-ink whitespace-nowrap">{fmt(p.valor_final || p.valor_estimado)}</div>
                           </div>

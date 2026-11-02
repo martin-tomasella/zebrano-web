@@ -1,5 +1,11 @@
 # Changelog
 
+## 02/11/2026
+- Seguridad: `zebrano-leader` v22 cerrada (antes abierta: resumen operativo, avance de OT y gasto de Claude sin credenciales).
+- Cotizador v52: render con varios proveedores (gpt-image-1 → dall-e-3 → Gemini Image → Pollinations) y guardado en Storage; se puede cotizar sin render. Antes fallaba siempre (gpt-image-1 no habilitado en la cuenta de OpenAI).
+- `docs/mapa/`: vault de Obsidian con el flujo comercial y las entidades, para personas y agentes (Theron).
+- Preparada (pendiente de aprobación): migración de endurecimiento (clave pública sin acceso a tablas, storage, precios internos, cron con llave interna, estados OAuth).
+
 ## 01/11/2026
 - **Flujo manual completo**: botón "Nueva cotización" en Proyectos (cliente nuevo o existente, monto sin IVA, renglones de costo por rubro, presupuesto adjunto, trabajos históricos). "Nuevo cliente" en Clientes.
 - **Estado Aprobado** entre Cotizado y Seña: al aprobar se fija el precio vendido y se genera la OT (`aprobar_proyecto`, `generar_ot`).

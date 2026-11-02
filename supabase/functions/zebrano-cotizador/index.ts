@@ -2,26 +2,69 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { callLLM } from "./llm.ts";
+import { autorizado, ipHash, topeExterno, rendersDeSesion, registrar, TOPES, MSG_TOPE } from "./guard.ts";
 
 const OK = Deno.env.get("OPENAI_API_KEY") ?? "";
-const CORS = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,content-type","Content-Type":"application/json; charset=utf-8"};
+const CORS = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,content-type,x-kb-secret","Content-Type":"application/json; charset=utf-8"};
 function json(data, status=200){return new Response(JSON.stringify(data),{status,headers:CORS});}
 
-async function renderFoto(prompt){
-  if(!OK)return{url:null,error:"OPENAI_API_KEY no configurada"};
-  try{
-    const r=await fetch("https://api.openai.com/v1/images/generations",{
-      method:"POST",
-      headers:{"Content-Type":"application/json",Authorization:`Bearer ${OK}`},
-      body:JSON.stringify({model:"gpt-image-1",n:1,size:"1536x1024",quality:"medium",
-        prompt:`Photorealistic FLAT FRONT VIEW render of custom built-in furniture: ${prompt}. White studio background, professional lighting, NO perspective, NO room context, exact proportions.`}),
-    });
-    const d=await r.json();
-    if(d.error)return{url:null,error:`OpenAI error: ${d.error.message}`};
-    const b64=d.data?.[0]?.b64_json;
-    if(b64)return{url:`data:image/png;base64,${b64}`,error:null};
-    return{url:d.data?.[0]?.url??null,error:null};
-  }catch(e){return{url:null,error:`Exception: ${e.message}`};}
+// v52 (02/11/2026): el render prueba varios proveedores y guarda la imagen en Storage (link estable, sin base64 en la base).
+// Orden: OpenAI gpt-image-1 -> OpenAI dall-e-3 -> Gemini Image -> Pollinations. Si todos fallan se puede cotizar igual.
+const GK = Deno.env.get("GEMINI_API_KEY") ?? "";
+const PROMPT_RENDER = (p) => `Photorealistic FLAT FRONT VIEW render of custom built-in furniture: ${p}. White studio background, professional lighting, NO perspective, NO room context, exact proportions.`.slice(0, 3900);
+const b64aBytes = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0));
+
+async function subir(sb, bytes, ct) {
+  const path = `renders/${crypto.randomUUID()}.${ct.includes("png") ? "png" : "jpg"}`;
+  const { error } = await sb.storage.from("zebrano-proyectos").upload(path, bytes, { contentType: ct });
+  if (error) throw new Error(`Storage: ${error.message}`);
+  return sb.storage.from("zebrano-proyectos").getPublicUrl(path).data.publicUrl;
+}
+
+async function openaiImg(model, prompt) {
+  if (!OK) throw new Error("OPENAI_API_KEY no configurada");
+  const extra = model === "dall-e-3" ? { size: "1792x1024", quality: "standard", response_format: "b64_json" } : { size: "1536x1024", quality: "medium" };
+  const r = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${OK}` },
+    body: JSON.stringify({ model, n: 1, prompt: PROMPT_RENDER(prompt), ...extra }), signal: AbortSignal.timeout(120000),
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  const b64 = d.data?.[0]?.b64_json;
+  if (!b64) throw new Error("sin imagen");
+  return { bytes: b64aBytes(b64), ct: "image/png" };
+}
+
+async function geminiImg(prompt) {
+  if (!GK) throw new Error("GEMINI_API_KEY no configurada");
+  const model = Deno.env.get("COTIZADOR_GEMINI_IMG_MODEL") || "gemini-2.5-flash-image";
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GK}`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents: [{ parts: [{ text: PROMPT_RENDER(prompt) }] }], generationConfig: { responseModalities: ["IMAGE"] } }),
+    signal: AbortSignal.timeout(120000),
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  const part = (d.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData?.data);
+  if (!part) throw new Error("sin imagen");
+  return { bytes: b64aBytes(part.inlineData.data), ct: part.inlineData.mimeType || "image/png" };
+}
+
+async function pollinationsImg(prompt) {
+  const r = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(PROMPT_RENDER(prompt).slice(0, 1500))}?width=1536&height=1024&nologo=true&seed=7`, { signal: AbortSignal.timeout(90000) });
+  if (!r.ok || !(r.headers.get("content-type") || "").startsWith("image/")) throw new Error(`HTTP ${r.status}`);
+  return { bytes: new Uint8Array(await r.arrayBuffer()), ct: r.headers.get("content-type") };
+}
+
+async function renderFoto(sb, prompt) {
+  const intentos = [["gpt-image-1", () => openaiImg("gpt-image-1", prompt)], ["dall-e-3", () => openaiImg("dall-e-3", prompt)],
+    ["gemini-image", () => geminiImg(prompt)], ["pollinations", () => pollinationsImg(prompt)]];
+  const errores = [];
+  for (const [modelo, fn] of intentos) {
+    try { const { bytes, ct } = await fn(); return { url: await subir(sb, bytes, ct), error: null, modelo }; }
+    catch (e) { errores.push(`${modelo}: ${e.message}`); }
+  }
+  return { url: null, error: errores.join(" | ") };
 }
 
 async function generarSVG(diseno){
@@ -173,7 +216,7 @@ FLUJO:
   medidas + tipo -> etapa diseno
   aprueba SVG -> etapa render (primer render completo)
   ajuste render -> etapa render (SOLO modifica lo pedido en prompt guardado)
-  aprueba render -> etapa cotizacion
+  aprueba render (o pide cotizar sin render) -> etapa cotizacion
   aprueba cotizacion -> OT
 
 JSON DISENO: {"etapa":"diseno","respuesta_texto":"confirmacion breve","diseno_actualizado":{"ancho_mm":2950,"alto_mm":2600,"prof_mm":600,"modulos":[{"nombre":"Escritorio","ancho_mm":1000,"alto_mm":2600,"material":"rovere natural","detalles":"escritorio tapa 750mm modulo superior 2 puertas 600mm 2 estantes intermedios fondo varillado paraiso"},{"nombre":"Placard","ancho_mm":1950,"alto_mm":2600,"material":"blanco mate","detalles":"4 puertas corredizas piso a techo 4 modulos interiores iguales: modulo 1 barral colgar, modulo 2 cajones 75cm estantes, modulo 3 cajones 75cm estantes, modulo 4 barral colgar zapatero"}]},"render_prompt":"descripcion tecnica COMPLETA Y DETALLADA en ingles con todos los modulos, medidas y materiales","datos_cliente":{"nombre":"","telefono":"","email":""}}
@@ -226,14 +269,30 @@ Deno.serve(async(req)=>{
   try{
     const body=await req.json();
     const{sesion_id,mensaje,imagenes_base64=[],origen="app",aprobar_svg=false,aprobar_cotizacion=false,canal="interno"}=body;
-    const canalSeguro=canal==="externo"?"externo":"interno";
+    // v51 (01/11/2026): sin empleado / x-kb-secret / service role el llamado es anonimo -> canal externo con topes.
+    const empleado=await autorizado(req,sb);
+    const canalSeguro=empleado&&canal!=="externo"?"interno":"externo";
+    const ip=empleado?null:await ipHash(req);
+    if(!empleado){
+      if(aprobar_cotizacion)return json({ok:false,error:"no autorizado"},401);
+      if(sesion_id){const{data:se}=await sb.from("cotizacion_sesiones").select("canal").eq("id",sesion_id).maybeSingle();if(!se||se.canal!=="externo")return json({ok:false,error:"no autorizado"},401);}
+      const tope=await topeExterno(sb,{sid:sesion_id,ip,mensaje,imagenes:imagenes_base64});
+      if(tope){
+        // Igual guardamos lo que escribio (truncado): suele traer nombre y contacto.
+        if(sesion_id&&mensaje)await sb.from("cotizacion_mensajes").insert({sesion_id,rol:"user",contenido:String(mensaje).slice(0,TOPES.largoMensaje),imagenes:[]});
+        return json({ok:true,sesion_id:sesion_id??null,respuesta:tope,etapa:"conv",limite:true,canal:"externo"});
+      }
+    }
+    const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
     const[{data:PR},{data:HR},{data:PIN}]=await Promise.all([sb.from("config_placas").select("*").eq("activo",true),sb.from("config_herrajes").select("*").eq("activo",true),sb.from("config_pintura").select("*").eq("activo",true)]);
     const pcfg={};
     for(const p of(PR??[]))pcfg[p.material]={largo_mm:p.largo_mm,ancho_mm:p.ancho_mm,precio_unidad:p.precio_unidad};
     const pstr=(PR??[]).map(p=>`- ${p.material}: ${p.largo_mm}x${p.ancho_mm}mm $${p.precio_unidad}/placa`).join("\n");
     const hstr=(HR??[]).map(h=>`- ${h.nombre}: $${h.precio_unit}/${h.unidad}`).join("\n");
     let sid=sesion_id??null;
-    if(!sid){const{data:ns,error:ne}=await sb.from("cotizacion_sesiones").insert({origen,estado:"iniciada",imagenes_urls:[]}).select("id").single();if(ne)return json({ok:false,error:`Error sesion: ${ne.message}`},500);sid=ns.id;}
+    if(!sid){const{data:ns,error:ne}=await sb.from("cotizacion_sesiones").insert({origen,canal:canalSeguro,estado:"iniciada",imagenes_urls:[]}).select("id").single();if(ne)return json({ok:false,error:`Error sesion: ${ne.message}`},500);sid=ns.id;}
+    const puedeRender=async()=>canalSeguro==="interno"||(await rendersDeSesion(sb,sid))<TOPES.rendersSesion;
+    const SIN_RENDER="Ya generamos los renders disponibles para esta consulta. Si querés avanzar, dejanos tu nombre y un teléfono o email y te escribimos.";
     const{data:da}=await sb.from("cotizacion_diseno").select("*").eq("sesion_id",sid).maybeSingle();
     const disenoStr=da?`Version ${da.version}. Ancho:${da.ancho_mm}mm Alto:${da.alto_mm}mm Prof:${da.prof_mm}mm. Modulos: ${JSON.stringify(da.modulos)}. SVG aprobado: ${da.svg_aprobado?"SI":"NO"}.`:"Sin diseno. Primera sesion.";
     const renderPromptActual=da?.render_prompt_actual||"";
@@ -268,7 +327,7 @@ Deno.serve(async(req)=>{
       // prospecto -> cotizado -> sena_pagada -> en_fabricacion -> entregado/cancelado).
       // Pasa a "en_fabricacion" mas adelante quien gestione el proyecto - eso es lo que
       // hace que despues aparezca tambien en /produccion.
-      const{data:proy,error:proyErr}=await sb.from("proyectos").insert({nombre:nombreProyecto,descripcion:s?.ambiente?`${tipoTrabajo} - ${s.ambiente}`:tipoTrabajo,tipo_trabajo:normTipoTrabajoProyecto(tipoTrabajo),estado:"cotizado",cliente_id:clienteId,valor_estimado:resumen?.precio_sugerido??null,fecha_creacion:hoy,fecha_cotizado:hoy}).select("id").single();
+      const{data:proy,error:proyErr}=await sb.from("proyectos").insert({nombre:nombreProyecto,descripcion:s?.ambiente?`${tipoTrabajo} - ${s.ambiente}`:tipoTrabajo,tipo_trabajo:normTipoTrabajoProyecto(tipoTrabajo),estado:"cotizado",cliente_id:clienteId,valor_estimado:resumen?.precio_sugerido??null,fecha_creacion:hoy,fecha_cotizado:hoy,origen_cotizacion:"agente"}).select("id").single();
       if(proyErr){return json({ok:false,sesion_id:sid,error:`No se pudo crear el proyecto: ${proyErr.message}`},500);}
       // La OT lleva todo el detalle de fabricacion (diseno, render, modulos y despiece) pero NUNCA el precio de venta
       const notasOT=[`Generada por el Cotizador AI (sesion ${String(sid).slice(0,8)}).`,
@@ -294,7 +353,7 @@ Deno.serve(async(req)=>{
       await sb.from("cotizacion_sesiones").update({estado:"aprobada"}).eq("id",sid);
       return json({ok:true,sesion_id:sid,respuesta:`Orden ${nOT} creada con el diseño${nPiezas?` y ${nPiezas} líneas de despiece propuestas por el agente`:""} (sin precio de venta). Está en Órdenes y despiece; el proyecto figura en Proyectos como "Cotizado".`,ot_creada:true,numero_ot:nOT,proyecto_id:proy.id});
     }
-    if(aprobar_svg&&sid&&da){const{url:ru,error:re}=await renderFoto(da.render_prompt_actual??"");await sb.from("cotizacion_diseno").update({svg_aprobado:true,svg_aprobado_at:new Date().toISOString(),render_fotorrealista_url:ru,render_generado_at:ru?new Date().toISOString():null}).eq("sesion_id",sid);if(ru)await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:ru,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});const txt=ru?"Render listo. Lo aprobas para calcular el presupuesto?":`No pude generar el render (${re}).`;await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:ru?[ru]:[]});return json({ok:true,sesion_id:sid,respuesta:txt,render_url:ru,svg_aprobado:true,render_error:re});}
+    if(aprobar_svg&&sid&&da){if(!(await puedeRender()))return json({ok:true,sesion_id:sid,respuesta:SIN_RENDER,limite:true,canal:canalSeguro});const{url:ru,error:re,modelo:rm}=await renderFoto(sb,da.render_prompt_actual??"");await reg({sesion_id:sid,modelo:rm??"render-error",renders:ru?1:0});await sb.from("cotizacion_diseno").update({svg_aprobado:true,svg_aprobado_at:new Date().toISOString(),render_fotorrealista_url:ru,render_generado_at:ru?new Date().toISOString():null}).eq("sesion_id",sid);if(ru)await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:ru,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});const txt=ru?"Render listo. Lo aprobas para calcular el presupuesto?":`No pude generar el render (${re}). Igual podemos seguir: decime "cotizá" y calculo el presupuesto con el diseño aprobado.`;await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:ru?[ru]:[]});return json({ok:true,sesion_id:sid,respuesta:txt,render_url:ru,svg_aprobado:true,render_error:re});}
     const iu=[];
     for(let i=0;i<imagenes_base64.length;i++){try{const b=Uint8Array.from(atob(imagenes_base64[i]),c=>c.charCodeAt(0));const pt=`sesiones/${sid}/img_${Date.now()}_${i}.jpg`;const{error}=await sb.storage.from("zebrano-proyectos").upload(pt,b,{contentType:"image/jpeg",upsert:true});if(!error){const{data:u}=sb.storage.from("zebrano-proyectos").getPublicUrl(pt);iu.push(u.publicUrl);}}catch{}}
     if(mensaje||iu.length>0){await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"user",contenido:mensaje??"(imagenes)",imagenes:iu});if(iu.length>0){const{data:s}=await sb.from("cotizacion_sesiones").select("imagenes_urls").eq("id",sid).single();await sb.from("cotizacion_sesiones").update({imagenes_urls:[...(s?.imagenes_urls??[]),...iu]}).eq("id",sid);}}
@@ -313,14 +372,15 @@ Deno.serve(async(req)=>{
     for(const m of(hist??[])){if(m.rol==="system")continue;const role=m.rol==="agent"?"assistant":"user";const last=msgs[msgs.length-1];if(last&&last.role===role&&typeof last.content==="string")last.content+="\n\n"+m.contenido;else msgs.push({role,content:m.contenido});}
     if(imagenes_base64.length>0){const c=imagenes_base64.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));if(mensaje)c.push({type:"text",text:mensaje});const last=msgs[msgs.length-1];if(last&&last.role==="user")last.content=c;else msgs.push({role:"user",content:c});}
     if(msgs.length===0)msgs.push({role:"user",content:mensaje??"Hola"});
-    const{raw,parsed,apiError,truncado,modelo}=await callLLM(msgs,sysNogal(pstr,hstr,disenoStr,renderPromptActual,canalSeguro,ejemplos));
+    const{raw,parsed,apiError,truncado,modelo,usage}=await callLLM(msgs,sysNogal(pstr,hstr,disenoStr,renderPromptActual,canalSeguro,ejemplos));
+    await reg({sesion_id:sid,modelo:usage?.modelo??modelo??"error",tokens_in:usage?.tokens_in??null,tokens_out:usage?.tokens_out??null});
     if(apiError){return json({ok:false,sesion_id:sid,error:apiError},502);}
     if(!parsed&&truncado){const txt="La respuesta se corto por longitud. Proba de nuevo o pedi el presupuesto de forma mas resumida.";await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:[]});return json({ok:true,sesion_id:sid,respuesta:txt,etapa:"conv",truncado:true});}
     const etapa=parsed?.etapa??"conv";
     let texto=String(parsed?.respuesta_texto??raw);
     let svgGenerado=null,renderUrl=null,resumenCot=null;
     if(etapa==="diseno"&&parsed?.diseno_actualizado){const du=parsed.diseno_actualizado;const version=(da?.version??0)+1;svgGenerado=await generarSVG(du);await sb.from("cotizacion_diseno").upsert({sesion_id:sid,version,ancho_mm:Number(du.ancho_mm)||null,alto_mm:Number(du.alto_mm)||null,prof_mm:Number(du.prof_mm)||null,modulos:du.modulos??[],render_prompt_actual:String(parsed.render_prompt??""),svg_tecnico:svgGenerado,svg_aprobado:false,updated_at:new Date().toISOString()},{onConflict:"sesion_id"});if(parsed.datos_cliente){const dc=parsed.datos_cliente;await sb.from("cotizacion_sesiones").update({cliente_nombre:String(dc.nombre||"")||null,cliente_telefono:String(dc.telefono||"")||null,cliente_email:String(dc.email||"")||null,estado:"procesando"}).eq("id",sid);}texto+=svgGenerado?"\n\nPlano tecnico generado. Aproba el diseno para ver el render.":"\n\nNo pude generar el plano.";}
-    if(etapa==="render"&&parsed?.render_prompt){const newPrompt=String(parsed.render_prompt);await sb.from("cotizacion_diseno").update({render_prompt_actual:newPrompt}).eq("sesion_id",sid);const{url,error:re}=await renderFoto(newPrompt);renderUrl=url;if(renderUrl){await sb.from("cotizacion_diseno").update({render_fotorrealista_url:renderUrl,render_generado_at:new Date().toISOString()}).eq("sesion_id",sid);await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:renderUrl,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});texto+="\n\nRender listo. Lo aprobas para calcular el presupuesto?";}else{texto+=`\n\nNo pude generar el render (${re}).`;}}
+    if(etapa==="render"&&parsed?.render_prompt){const newPrompt=String(parsed.render_prompt);await sb.from("cotizacion_diseno").update({render_prompt_actual:newPrompt}).eq("sesion_id",sid);if(!(await puedeRender())){texto+="\n\n"+SIN_RENDER;}else{const{url,error:re,modelo:rm}=await renderFoto(sb,newPrompt);await reg({sesion_id:sid,modelo:rm??"render-error",renders:url?1:0});renderUrl=url;if(renderUrl){await sb.from("cotizacion_diseno").update({render_fotorrealista_url:renderUrl,render_generado_at:new Date().toISOString()}).eq("sesion_id",sid);await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:renderUrl,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});texto+="\n\nRender listo. Lo aprobas para calcular el presupuesto?";}else{texto+=`\n\nNo pude generar el render (${re}). Igual podemos seguir: decime "cotizá" y calculo el presupuesto con el diseño aprobado.`;}}}
     if(etapa==="cotizacion"&&parsed?.listo_para_cotizar&&parsed?.datos){const dat=parsed.datos;const piezas=dat.piezas??[];await sb.from("cotizacion_sesiones").update({tipo_trabajo:String(dat.tipo_trabajo??"custom"),ambiente:String(dat.ambiente??""),estado:"borrador",procesado_at:new Date().toISOString()}).eq("id",sid);if(piezas.length>0){await sb.from("cotizacion_piezas").delete().eq("sesion_id",sid);await sb.from("cotizacion_piezas").insert(piezas.map((p,i)=>({sesion_id:sid,modulo_nombre:String(p.modulo??"General"),nombre_pieza:String(p.nombre??""),material:String(p.material??"Melamina blanco mate 18mm"),largo_mm:Number(p.largo_mm)||0,ancho_mm:Number(p.ancho_mm)||0,cantidad:Number(p.cantidad)||1,con_canto_largo:Boolean(p.canto_largo),con_canto_ancho:Boolean(p.canto_ancho),orden:i+1})));}
     const hojas=calcHojas(piezas,pcfg);await sb.from("cotizacion_hojas").delete().eq("sesion_id",sid);await sb.from("cotizacion_hojas").insert(Object.entries(hojas).map(([mat,hh])=>({sesion_id:sid,material:mat,m2_neto:hh.m2_neto,hojas_teoricas:hh.m2_neto/((pcfg[mat]?.largo_mm??2800)/1000*(pcfg[mat]?.ancho_mm??1600)/1000),hojas_reales:hh.hojas_reales,precio_hoja:hh.precio_hoja,subtotal:hh.subtotal})));const herrajes=dat.herrajes??[];if(herrajes.length>0){await sb.from("cotizacion_herrajes").delete().eq("sesion_id",sid);await sb.from("cotizacion_herrajes").insert(herrajes.map(h=>({sesion_id:sid,nombre:String(h.nombre??"."),cantidad:Number(h.cantidad)||1,precio_unit:Number(h.precio_unit)||0,subtotal:(Number(h.cantidad)||1)*(Number(h.precio_unit)||0)})));}
     const mo=dat.mano_obra??[];if(mo.length>0){await sb.from("cotizacion_mano_obra").delete().eq("sesion_id",sid);await sb.from("cotizacion_mano_obra").insert(mo.map(m=>({sesion_id:sid,operacion:String(m.operacion??"."),horas_estimadas:Number(m.horas_estimadas)||0,operarios:Number(m.operarios)||1,costo_hora_ref:Number(m.costo_hora_ref)||2500,subtotal:(Number(m.horas_estimadas)||0)*(Number(m.operarios)||1)*(Number(m.costo_hora_ref)||2500)})));}

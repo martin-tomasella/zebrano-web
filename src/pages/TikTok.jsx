@@ -41,8 +41,12 @@ export default function TikTok() {
 
   useEffect(() => { cargar(); }, []);
 
-  const conectar = () => {
-    window.open(`${SUPABASE_URL}/functions/v1/tiktok-oauth-callback`, '_blank', 'width=600,height=700');
+  const conectar = async () => {
+    // La conexión la inicia un empleado con sesión: la función devuelve el enlace de TikTok (válido 15 min).
+    const ini = await fetch(`${SUPABASE_URL}/functions/v1/tiktok-oauth-callback`, { method:'POST' });
+    const di = await ini.json().catch(() => ({}));
+    if (!di.url) { flash(di.error || 'No se pudo iniciar la conexión con TikTok', 'error'); return; }
+    window.open(di.url, '_blank', 'width=600,height=700');
     const interval = setInterval(async () => {
       const r = await fetch(`${SUPABASE_URL}/functions/v1/tiktok-manager`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ANON_KEY}`}, body:JSON.stringify({accion:'status'}) });
       const d = await r.json();

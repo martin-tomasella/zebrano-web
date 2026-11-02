@@ -1,30 +1,33 @@
 // google-oauth-callback — conecta la cuenta de Google del negocio.
-// Abrir esta URL en el navegador inicia la autorización; Google vuelve acá con el código y se guardan los tokens.
+// v3 (02/11/2026): la conexión se inicia desde el ERP (POST con sesión de empleado, devuelve la URL de Google).
+// Google vuelve acá con code + state; sin un state válido no se guarda nada.
 // Permisos: Google Fotos (lectura) + Google Drive (lectura y escritura, para archivar facturas en la carpeta del año).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { empleado, nuevoEstado, consumirEstado, CORS } from "./comun.ts";
 
 const CLIENT_ID = Deno.env.get("GOOGLE_ID_de_Cliente") || Deno.env.get("GOOGLE_CLIENT_ID") || "";
 const CLIENT_SECRET = Deno.env.get("GOOGLE_Secreto_de_Cliente") || Deno.env.get("GOOGLE_CLIENT_SECRET") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth-callback`;
+const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
 // Supabase sirve las funciones como texto plano (no permite páginas HTML en su dominio): se responde texto legible.
-const HTML = (body: string) => new Response(
+const HTML = (body: string, status = 200) => new Response(
   body.replace(/<br>/g, "\n").replace(/<\/(h2|p)>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').trim(),
-  { headers: { "Content-Type": "text/plain; charset=utf-8" } },
+  { status, headers: { "Content-Type": "text/plain; charset=utf-8" } },
 );
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const error = url.searchParams.get("error");
   if (url.searchParams.get("check")) return Response.json({ client_id: !!CLIENT_ID, client_secret: !!CLIENT_SECRET });
-  if (!CLIENT_ID || !CLIENT_SECRET) return HTML(`<h2>Falta configuración</h2><p>Faltan las credenciales de Google en los secrets de Supabase.</p>`);
-  if (error) return HTML(`<h2>Error de autorización</h2><p>${esc(error)}</p>`);
+  if (!CLIENT_ID || !CLIENT_SECRET) return HTML(`<h2>Falta configuración</h2><p>Faltan las credenciales de Google en los secrets de Supabase.</p>`, 500);
 
-  if (!code) {
+  if (req.method === "POST") {
+    const uid = await empleado(req, sb);
+    if (!uid) return Response.json({ ok: false, error: "no autorizado" }, { status: 401, headers: CORS });
     const a = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     a.searchParams.set("client_id", CLIENT_ID);
     a.searchParams.set("redirect_uri", REDIRECT_URI);
@@ -36,7 +39,16 @@ Deno.serve(async (req) => {
     ].join(" "));
     a.searchParams.set("access_type", "offline");
     a.searchParams.set("prompt", "consent select_account");
-    return Response.redirect(a.toString(), 302);
+    a.searchParams.set("state", await nuevoEstado(sb, "google", uid));
+    return Response.json({ ok: true, url: a.toString() }, { headers: CORS });
+  }
+
+  const code = url.searchParams.get("code");
+  const error = url.searchParams.get("error");
+  if (error) return HTML(`<h2>Error de autorización</h2><p>${esc(error)}</p>`, 400);
+  if (!code) return HTML(`<h2>Iniciá la conexión desde el ERP</h2><p>Por seguridad, la conexión con Google la inicia un usuario del ERP.</p>`, 400);
+  if (!(await consumirEstado(sb, "google", url.searchParams.get("state")))) {
+    return HTML(`<h2>Enlace vencido o inválido</h2><p>Volvé a iniciar la conexión desde el ERP (el enlace dura 15 minutos y sirve una sola vez).</p>`, 401);
   }
 
   const r = await fetch("https://oauth2.googleapis.com/token", {
@@ -44,9 +56,9 @@ Deno.serve(async (req) => {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: REDIRECT_URI, grant_type: "authorization_code" }),
   });
-  if (!r.ok) return HTML(`<h2>Error obteniendo token</h2><p>${esc((await r.text()).slice(0, 400))}</p>`);
+  if (!r.ok) return HTML(`<h2>Error obteniendo token</h2><p>${esc((await r.text()).slice(0, 400))}</p>`, 502);
   const t = await r.json();
-  if (!t.refresh_token) return HTML(`<h2>Falta el permiso permanente</h2><p>Google no devolvió el token de renovación. Quitá el acceso de la app en tu cuenta de Google y volvé a abrir este enlace.</p>`);
+  if (!t.refresh_token) return HTML(`<h2>Falta el permiso permanente</h2><p>Google no devolvió el token de renovación. Quitá el acceso de la app en tu cuenta de Google y volvé a iniciar la conexión.</p>`, 400);
 
   let email = "";
   try {
@@ -54,14 +66,13 @@ Deno.serve(async (req) => {
     email = (await u.json()).email || "";
   } catch (_) { /* opcional */ }
 
-  const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   // Se guarda el token nuevo primero; recién después se quitan los anteriores (si falla el guardado, el viejo sigue sirviendo).
   const { data: nuevo, error: e1 } = await sb.from("google_oauth_tokens").insert({
     access_token: t.access_token, refresh_token: t.refresh_token,
     expires_at: new Date(Date.now() + t.expires_in * 1000).toISOString(), scope: t.scope, token_type: email || t.token_type,
   }).select("id").single();
-  if (e1) return HTML(`<h2>Error guardando token</h2><p>${esc(e1.message)}</p>`);
+  if (e1) return HTML(`<h2>Error guardando token</h2><p>${esc(e1.message)}</p>`, 500);
   await sb.from("google_oauth_tokens").delete().neq("id", nuevo.id);
 
-  return HTML(`<h2>Google conectado ✓</h2><p>${email ? `Cuenta: <b>${esc(email)}</b><br>` : ""}Permisos: Drive y Fotos.<br>Las facturas que cargues en Compras se van a archivar en tu carpeta de Drive, dentro del año.</p><p style="color:#999;font-size:12px">Podés cerrar esta ventana.</p>`);
+  return HTML(`<h2>Google conectado ✓</h2><p>${email ? `Cuenta: <b>${esc(email)}</b><br>` : ""}Permisos: Drive y Fotos.<br>Las facturas que cargues en Compras se van a archivar en tu carpeta de Drive, dentro del año.</p><p>Podés cerrar esta ventana.</p>`);
 });

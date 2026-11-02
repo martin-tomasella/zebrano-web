@@ -1,6 +1,7 @@
 // Cerebro del Cotizador AI: prueba proveedores en orden y salta al siguiente si uno falla o se queda sin cupo.
 // 1) llm-gateway propio (gratis, modelo "agente")  2) Google Gemini (capa gratis)  3) Claude  4) OpenAI.
 // Cada proveedor se activa solo si su clave/URL existe en los secrets de Supabase.
+// Devuelve también los tokens usados (usage) para registrar el consumo.
 // @ts-nocheck
 const AK = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const OK = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -31,19 +32,22 @@ async function openaiCompat(url, key, model, msgs, system, extra = {}) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok || d.error) throw new Error(`${model} ${r.status}: ${d.error?.message ?? JSON.stringify(d).slice(0, 200)}`);
   const raw = d.choices?.[0]?.message?.content ?? "";
-  return { raw, parsed: parse(raw), truncado: d.choices?.[0]?.finish_reason === "length" };
+  return { raw, parsed: parse(raw), truncado: d.choices?.[0]?.finish_reason === "length",
+    usage: { modelo: d.model || model, tokens_in: d.usage?.prompt_tokens ?? null, tokens_out: d.usage?.completion_tokens ?? null } };
 }
 
 async function claude(msgs, system) {
+  const model = Deno.env.get("COTIZADOR_CLAUDE_MODEL") || "claude-sonnet-5";
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": AK, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: Deno.env.get("COTIZADOR_CLAUDE_MODEL") || "claude-sonnet-5", max_tokens: 8192, system, messages: msgs }),
+    body: JSON.stringify({ model, max_tokens: 8192, system, messages: msgs }),
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || d.error) throw new Error(`Claude ${r.status}: ${d.error?.message ?? ""}`);
   const raw = (d.content || []).find((c) => c.type === "text")?.text ?? "";
-  return { raw, parsed: parse(raw), truncado: d.stop_reason === "max_tokens" };
+  return { raw, parsed: parse(raw), truncado: d.stop_reason === "max_tokens",
+    usage: { modelo: d.model || model, tokens_in: d.usage?.input_tokens ?? null, tokens_out: d.usage?.output_tokens ?? null } };
 }
 
 export async function callLLM(msgs, system) {

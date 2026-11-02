@@ -8,6 +8,7 @@ const BADGE_MAP = {
   // proyectos.estado: prospecto → cotizado → sena_pagada → en_fabricacion → entregado / cancelado
   prospecto:        ['neutral', 'Prospecto'],
   cotizado:         ['orange',  'Cotizado'],
+  aprobado:         ['info',    'Aprobado'],
   sena_pagada:      ['gold',    'Seña pagada'],
   'seña pagada':    ['gold',    'Seña pagada'],
   en_fabricacion:   ['info',    'En fabricación'],

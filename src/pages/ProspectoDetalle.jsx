@@ -280,7 +280,16 @@ function ModalCompra({ prospecto_id, onClose, onSave }) {
   const guardar = async () => {
     if (!form.descripcion) return;
     setSaving(true);
-    const { error } = await supabase.from('historial_compras').insert({ prospecto_id, ...form, monto_cotizado:form.monto_cotizado?parseFloat(form.monto_cotizado):null, monto_final:form.monto_final?parseFloat(form.monto_final):null });
+    // Una compra es una venta aceptada: crea también el proyecto aprobado (con su OT) para que llegue a Proyectos, Taller y rentabilidad.
+    const { data: pr } = await supabase.from('prospectos').select('cliente_id, nombre, apellido, telefono, email').eq('id', prospecto_id).single();
+    const monto = parseFloat(form.monto_final || form.monto_cotizado) || null;
+    const { data: nuevo, error: eProy } = await supabase.rpc('crear_cotizacion_manual', {
+      p_cliente_id: pr?.cliente_id || null, p_cliente_nombre: [pr?.nombre, pr?.apellido].filter(Boolean).join(' '), p_telefono: pr?.telefono, p_email: pr?.email,
+      p_nombre: form.descripcion, p_descripcion: form.notas || null, p_tipo: form.tipo_trabajo, p_monto: monto, p_fecha: null, p_estado: 'aprobado',
+    });
+    if (eProy) { setSaving(false); alert('No se pudo crear el proyecto: ' + eProy.message); return; }
+    if (!pr?.cliente_id) await supabase.from('prospectos').update({ convertido_a_cliente: true, cliente_id: nuevo.cliente_id }).eq('id', prospecto_id);
+    const { error } = await supabase.from('historial_compras').insert({ prospecto_id, ...form, cliente_id: nuevo.cliente_id, proyecto_id: nuevo.proyecto_id, monto_cotizado:form.monto_cotizado?parseFloat(form.monto_cotizado):null, monto_final:form.monto_final?parseFloat(form.monto_final):null });
     setSaving(false);
     if (error) { alert('No se pudo guardar la compra: ' + error.message); return; }
     onSave();
@@ -317,7 +326,7 @@ function ModalPago({ compras, cliente_id, onClose, onSave }) {
   const guardar = async () => {
     if (!form.monto) return;
     setSaving(true);
-    const { error } = await supabase.from('pagos').insert({ ...form, monto:parseFloat(form.monto), cliente_id });
+    const { error } = await supabase.from('pagos').insert({ ...form, monto:parseFloat(form.monto), cliente_id, proyecto_id: compras.find(c => c.id === form.historial_compra_id)?.proyecto_id || null });
     setSaving(false);
     if (error) { alert('No se pudo registrar el pago: ' + error.message); return; }
     onSave();

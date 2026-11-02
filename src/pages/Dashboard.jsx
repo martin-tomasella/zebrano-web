@@ -9,6 +9,7 @@ import { Badge, Avatar, EmptyState } from '../components/ui'
 const ETAPAS = [
   { id: 'prospecto',      label: 'Prospecto',      desde: p => p.fecha_creacion || p.created_at },
   { id: 'cotizado',       label: 'Cotizado',       desde: p => p.fecha_cotizado },
+  { id: 'aprobado',       label: 'Aprobado',       desde: p => p.fecha_aprobado },
   { id: 'sena_pagada',    label: 'Seña pagada',    desde: p => p.fecha_sena_pagada },
   { id: 'en_fabricacion', label: 'En fabricación', desde: p => p.fecha_inicio_fabricacion },
   { id: 'entregado',      label: 'Entregado',      desde: p => p.fecha_entrega_real },
@@ -55,7 +56,7 @@ export default function Dashboard() {
   useEffect(() => {
     let vivo = true
     Promise.all([
-      supabase.from('proyectos').select('id, nombre, estado, tipo_trabajo, fecha_creacion, created_at, fecha_cotizado, fecha_sena_pagada, fecha_inicio_fabricacion, fecha_entrega_estimada, fecha_entrega_real, valor_final, valor_estimado, clientes(nombre)'),
+      supabase.from('proyectos').select('id, nombre, estado, tipo_trabajo, fecha_creacion, created_at, fecha_cotizado, fecha_aprobado, fecha_sena_pagada, fecha_inicio_fabricacion, fecha_entrega_estimada, fecha_entrega_real, valor_final, valor_estimado, clientes(nombre)'),
       supabase.from('prospectos').select('id, nombre, apellido, canal_origen, estado, created_at, proximo_seguimiento, presupuesto_estimado').eq('activo', true).order('created_at', { ascending: false }).limit(200),
     ]).then(([pr, ps]) => {
       if (!vivo) return
@@ -89,7 +90,7 @@ export default function Dashboard() {
     const entregadosPeriodo = conDias.filter(p => p.estado === 'entregado' && enPeriodo(p.fecha_entrega_real, desde))
 
     const cotizadosAlguna = conDias.filter(p => p.fecha_cotizado)
-    const avanzaron = cotizadosAlguna.filter(p => ETAPA_IDX[p.estado] >= ETAPA_IDX.sena_pagada)
+    const avanzaron = cotizadosAlguna.filter(p => ETAPA_IDX[p.estado] >= ETAPA_IDX.aprobado)
     const tasa = cotizadosAlguna.length ? avanzaron.length / cotizadosAlguna.length : null
     const ciclos = conDias.filter(p => p.fecha_cotizado && p.fecha_sena_pagada)
       .map(p => (new Date(p.fecha_sena_pagada) - new Date(p.fecha_cotizado)) / DAY)

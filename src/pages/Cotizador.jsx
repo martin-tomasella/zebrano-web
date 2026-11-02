@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { authFetch as fetch } from '../lib/authFetch'
 import { Layout, Topbar } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 

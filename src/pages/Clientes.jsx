@@ -9,6 +9,7 @@ const fechaFmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—';
 const ESTADO_CHIP = {
   prospecto:        { cls: 'bg-z-ink-3/15 text-z-ink-3 border-z-ink-3/30',  dot: 'bg-z-ink-3' },
   cotizado:         { cls: 'bg-z-warning/15 text-z-warning border-z-warning/30',  dot: 'bg-z-warning' },
+  aprobado:         { cls: 'bg-z-primary/15 text-z-primary border-z-primary/30',  dot: 'bg-z-primary' },
   sena_pagada:      { cls: 'bg-z-success/15 text-z-success border-z-success/30',  dot: 'bg-z-success' },
   en_fabricacion:   { cls: 'bg-z-primary/15 text-z-primary border-z-primary/30',  dot: 'bg-z-primary' },
   entregado:        { cls: 'bg-z-primary/15 text-z-primary border-z-primary/30',  dot: 'bg-z-primary' },
@@ -16,7 +17,7 @@ const ESTADO_CHIP = {
 };
 const ESTADO_CHIP_DEFAULT = { cls: 'bg-z-ink-3/15 text-z-ink-3 border-z-ink-3/30', dot: 'bg-z-ink-3' };
 const ESTADO_LABEL = {
-  prospecto: 'Prospecto', cotizado: 'Cotizado', sena_pagada: 'Seña pagada',
+  prospecto: 'Prospecto', cotizado: 'Cotizado', aprobado: 'Aprobado', sena_pagada: 'Seña pagada',
   en_fabricacion: 'En fabricación', entregado: 'Entregado', cancelado: 'Cancelado',
 };
 
@@ -36,6 +37,15 @@ export default function Clientes() {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [seleccionadoId, setSeleccionadoId] = useState(null);
+  const [nuevo, setNuevo] = useState(null);
+  const [recarga, setRecarga] = useState(0);
+
+  async function crearCliente() {
+    if (!nuevo.nombre.trim()) return;
+    const { error } = await supabase.from('clientes').insert({ nombre: nuevo.nombre.trim(), telefono: nuevo.telefono || null, email: nuevo.email || null, direccion_obra: nuevo.direccion || null, origen_lead: nuevo.origen, activo: true });
+    if (error) { alert('No se pudo crear el cliente: ' + error.message); return; }
+    setNuevo(null); setRecarga(r => r + 1);
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -50,7 +60,7 @@ export default function Clientes() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [recarga]);
 
   // Agrupa proyectos por cliente_id para no repetir el join en cada render.
   const proyectosPorCliente = useMemo(() => {
@@ -93,7 +103,26 @@ export default function Clientes() {
 
   return (
     <Layout>
-      <Topbar title="Clientes" subtitle={`${clientes.length} registrados`} />
+      <Topbar title="Clientes" subtitle={`${clientes.length} registrados`}
+        actions={<button onClick={() => setNuevo({ nombre:'', telefono:'', email:'', direccion:'', origen:'referido' })} className="bg-z-primary text-z-on-primary px-3.5 py-1.5 rounded text-[12.5px] font-medium hover:brightness-110">+ Nuevo cliente</button>} />
+      {nuevo && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={() => setNuevo(null)}>
+          <div className="bg-z-surface border border-z-line rounded-xl p-6 w-[420px] grid gap-3" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-z-ink m-0">Nuevo cliente</h2>
+            {[['nombre','Nombre o razón social'],['telefono','Teléfono'],['email','Email'],['direccion','Dirección de la obra']].map(([k,l]) => (
+              <input key={k} placeholder={l} value={nuevo[k]} onChange={e => setNuevo(x => ({ ...x, [k]: e.target.value }))}
+                className="w-full px-3 py-2 rounded border border-z-line bg-z-inset text-z-ink text-[13px] outline-none focus:border-z-primary" />
+            ))}
+            <select value={nuevo.origen} onChange={e => setNuevo(x => ({ ...x, origen: e.target.value }))} className="w-full px-3 py-2 rounded border border-z-line bg-z-inset text-z-ink text-[13px]">
+              {[['referido','Referido'],['instagram','Instagram'],['whatsapp','WhatsApp'],['showroom','Showroom'],['otro','Otro']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setNuevo(null)} className="border border-z-line text-z-ink-2 px-4 py-2 rounded text-[12.5px] bg-transparent">Cancelar</button>
+              <button onClick={crearCliente} className="bg-z-primary text-z-on-primary px-4 py-2 rounded text-[12.5px] font-medium">Crear</button>
+            </div>
+          </div>
+        </div>
+      )}
       <PageContent>
         {loading ? (
           <div className="text-center py-12 text-z-ink-4">Cargando...</div>

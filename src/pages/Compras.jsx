@@ -294,6 +294,7 @@ function Revision({ id, onClose, onDone }) {
               </div>
               <p className="text-[12px] text-z-ink-3 mt-2">Al confirmar, Zebrano recuerda qué insumo es cada código de este proveedor y la próxima factura lo asigna sola.</p>
             </div>
+            <Imputaciones facturaId={id} items={items} />
             <div className="z-field"><label>Notas</label><textarea rows={2} value={f.notas || ''} onChange={e => setF({ ...f, notas: e.target.value })} /></div>
             {error && <div role="alert" className="text-[13px]" style={{ color: 'rgb(var(--z-danger-c))' }}>{error}</div>}
           </div>
@@ -350,13 +351,14 @@ function CostoOrdenes() {
     <div className="grid gap-3">
       <div className="card overflow-auto">
         <table className="w-full text-[13px]">
-          <thead><tr><th>Orden / proyecto</th><th>Estado</th><th className="text-right">Se cobra (sin IVA)</th><th className="text-right">Material (facturas)</th><th className="text-right">Horas</th><th className="text-right">Mano de obra</th><th className="text-right">Estructura</th><th className="text-right">Costo real</th><th className="text-right">Margen</th></tr></thead>
-          <tbody>{rows.length === 0 ? <tr><td colSpan={9}><EmptyState icon="assignment" title="Sin órdenes todavía">Cuando haya proyectos, vinculá cada factura a su orden y cargá las horas: acá ves el costo real contra lo que se cobra.</EmptyState></td></tr> : rows.map(r => (
+          <thead><tr><th>Orden / proyecto</th><th>Estado</th><th className="text-right">Se cobra (sin IVA)</th><th className="text-right">Material (facturas)</th><th className="text-right">Otros gastos</th><th className="text-right">Horas</th><th className="text-right">Mano de obra</th><th className="text-right">Estructura</th><th className="text-right">Costo real</th><th className="text-right">Margen</th></tr></thead>
+          <tbody>{rows.length === 0 ? <tr><td colSpan={10}><EmptyState icon="assignment" title="Sin órdenes todavía">Cuando haya proyectos, vinculá cada factura a su orden y cargá las horas: acá ves el costo real contra lo que se cobra.</EmptyState></td></tr> : rows.map(r => (
             <tr key={r.proyecto_id}>
               <td className="font-medium text-z-ink">{r.ots || 'Sin OT'} · {r.cliente || r.nombre}<div className="text-[11.5px] text-z-ink-3 font-normal">{r.facturas} factura(s){Number(r.material_a_nombre_cliente) ? ` · ${$(r.material_a_nombre_cliente)} a nombre del cliente` : ''}</div></td>
               <td><Badge value={r.estado} /></td>
               <td className="text-right tabular-nums">{$(r.facturacion_sin_iva)}</td>
               <td className="text-right tabular-nums">{$(r.material_real)}</td>
+              <td className="text-right tabular-nums">{$(r.otros_gastos_real)}</td>
               <td className="text-right tabular-nums">{Number(r.horas_reales).toLocaleString('es-AR')}</td>
               <td className="text-right tabular-nums">{$(r.mo_real)}</td>
               <td className="text-right tabular-nums">{$(r.estructura_real)}</td>
@@ -365,7 +367,70 @@ function CostoOrdenes() {
             </tr>))}</tbody>
         </table>
       </div>
-      <p className="text-[12px] text-z-ink-3 m-0">Costo real = facturas confirmadas vinculadas a la orden + horas cargadas × costo hora (mano de obra y gastos fijos de Personal y estructura).</p>
+      <p className="text-[12px] text-z-ink-3 m-0">Costo real = renglones de facturas confirmadas imputados a la orden (o la factura entera si se vinculó sin repartir) + gastos de caja chica y finanzas cargados a la orden + horas cargadas × costo hora (mano de obra y gastos fijos de Personal y estructura).</p>
+    </div>
+  );
+}
+
+// Reparte los renglones de la factura entre órdenes de trabajo. Lo no imputado queda como stock.
+function Imputaciones({ facturaId, items }) {
+  const [ots, setOts] = useState([]);
+  const [imps, setImps] = useState([]);
+  const [otTodo, setOtTodo] = useState('');
+  const [nueva, setNueva] = useState({}); // itemId -> {ot, cant}
+  const [error, setError] = useState('');
+  const cargar = useCallback(async () => {
+    const ids = items.map(i => i.id);
+    const [{ data: o }, { data: im }] = await Promise.all([
+      supabase.from('ordenes_trabajo').select('id, numero_ot, estado, proyectos(nombre, clientes(nombre))').neq('estado', 'cancelada').order('numero_ot', { ascending: false }),
+      ids.length ? supabase.from('compra_imputaciones').select('id, item_id, ot_id, cantidad').in('item_id', ids) : Promise.resolve({ data: [] }),
+    ]);
+    setOts(o || []); setImps(im || []);
+  }, [items]);
+  useEffect(() => { cargar(); }, [cargar]);
+  const nombreOt = o => `${o.numero_ot} · ${o.proyectos?.clientes?.nombre || o.proyectos?.nombre || ''}`;
+  const run = async q => { setError(''); const { error } = await q; if (error) setError(error.message); await cargar(); };
+  const todo = () => otTodo && run(supabase.rpc('imputar_factura_completa', { p_factura: facturaId, p_ot: otTodo }));
+  const agregar = it => { const n = nueva[it.id] || {}; if (!n.ot || !Number(n.cant)) return; setNueva(x => ({ ...x, [it.id]: {} })); run(supabase.from('compra_imputaciones').upsert({ item_id: it.id, ot_id: n.ot, cantidad: Number(n.cant) }, { onConflict: 'item_id,ot_id' })); };
+  if (!items.length) return null;
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <h3 className="text-[14px] font-semibold flex-1">Imputación a órdenes de trabajo</h3>
+        <select value={otTodo} onChange={e => setOtTodo(e.target.value)} aria-label="Orden para toda la factura">
+          <option value="">Toda la factura a…</option>
+          {ots.map(o => <option key={o.id} value={o.id}>{nombreOt(o)}</option>)}
+        </select>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={todo} disabled={!otTodo}>Imputar completa</button>
+      </div>
+      <div className="overflow-auto border rounded-lg" style={{ borderColor: 'var(--z-line)' }}>
+        <table className="w-full text-[13px]">
+          <thead><tr><th>Renglón</th><th className="text-right">Cant.</th><th>Imputado a</th><th className="text-right">Stock</th><th>Agregar</th></tr></thead>
+          <tbody>{items.map(it => {
+            const mias = imps.filter(m => m.item_id === it.id);
+            const resto = Number(it.cantidad) - mias.reduce((s, m) => s + Number(m.cantidad), 0);
+            const n = nueva[it.id] || {};
+            return (
+              <tr key={it.id}>
+                <td className="min-w-[180px]">{it.descripcion}</td>
+                <td className="text-right tabular-nums">{it.cantidad} {it.unidad}</td>
+                <td>{mias.length === 0 ? <span className="text-z-ink-3">—</span> : mias.map(m => { const o = ots.find(x => x.id === m.ot_id); return (
+                  <div key={m.id} className="flex items-center gap-1 whitespace-nowrap">{m.cantidad} → {o ? nombreOt(o) : 'OT'}
+                    <button type="button" className="btn btn-quiet btn-icon" aria-label="Quitar imputación" onClick={() => run(supabase.from('compra_imputaciones').delete().eq('id', m.id))}><Icon name="close" size={14} /></button></div>); })}</td>
+                <td className="text-right tabular-nums">{resto}</td>
+                <td><div className="flex gap-1 items-center">
+                  <select value={n.ot || ''} onChange={e => setNueva(x => ({ ...x, [it.id]: { ...n, ot: e.target.value, cant: n.cant ?? resto } }))} aria-label="Orden">
+                    <option value="">OT…</option>{ots.map(o => <option key={o.id} value={o.id}>{nombreOt(o)}</option>)}
+                  </select>
+                  <input type="number" min="0" step="any" className="w-[70px] text-right" value={n.cant ?? ''} onChange={e => setNueva(x => ({ ...x, [it.id]: { ...n, cant: e.target.value } }))} aria-label="Cantidad" />
+                  <button type="button" className="btn btn-quiet btn-icon" aria-label="Imputar" onClick={() => agregar(it)}><Icon name="add" /></button>
+                </div></td>
+              </tr>);
+          })}</tbody>
+        </table>
+      </div>
+      {error && <div role="alert" className="text-[13px] mt-2" style={{ color: 'rgb(var(--z-danger-c))' }}>{error}</div>}
+      <p className="text-[12px] text-z-ink-3 mt-2">Ejemplo: 20 placas → 4 a una OT y 16 a otra. Lo que no se imputa queda como stock. Solo cuentan en la rentabilidad las facturas confirmadas.</p>
     </div>
   );
 }

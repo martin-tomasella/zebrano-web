@@ -5,7 +5,7 @@ import { KpiCard, SectionTitle, Table, Spinner } from '../components/ui'
 
 const dias = n => n != null ? `${Number(n).toFixed(1)} días` : '—'
 
-const ESTADO_LABEL = { prospecto:'Prospecto', cotizado:'Cotizado', sena_pagada:'Seña pagada', en_fabricacion:'En fabricación', entregado:'Entregado', cancelado:'Cancelado' }
+const ESTADO_LABEL = { prospecto:'Prospecto', cotizado:'Cotizado', aprobado:'Aprobado', sena_pagada:'Seña pagada', en_fabricacion:'En fabricación', entregado:'Entregado', cancelado:'Cancelado' }
 
 export default function Metricas() {
   const [promedio, setPromedio] = useState(null)

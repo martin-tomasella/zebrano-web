@@ -7,17 +7,19 @@ import { Avatar } from '../components/ui';
 
 const COLUMNAS = [
   { id:'cotizado',       label:'Cotizado',        color:'#B07418' },
+  { id:'aprobado',       label:'Aprobado',        color:'#2563D6' },
   { id:'sena_pagada',    label:'Seña pagada',     color:'#B07418' },
   { id:'en_fabricacion', label:'En fabricación',  color:'#1A854A' },
   { id:'entregado',      label:'Entregado',       color:'#0D7665' },
 ];
-const ESTADO_LABEL = { prospecto:'Prospecto', cotizado:'Cotizado', sena_pagada:'Seña pagada', en_fabricacion:'En fabricación', entregado:'Entregado', cancelado:'Cancelado' };
+const ESTADO_LABEL = { prospecto:'Prospecto', cotizado:'Cotizado', aprobado:'Aprobado', sena_pagada:'Seña pagada', en_fabricacion:'En fabricación', entregado:'Entregado', cancelado:'Cancelado' };
 
 // Mismos colores que BADGE_MAP en components/ui.jsx, pero como estilos literales
 // (esta página ya no importa Badge de ui.jsx, sólo reutiliza su paleta de estado).
 const BADGE_STYLE = {
   prospecto:      { bg:'rgb(var(--z-ink-3-c) / 0.15)', color:'#687482', border:'rgb(var(--z-ink-3-c) / 0.3)' },
   cotizado:       { bg:'rgb(var(--z-warning-c) / 0.15)',  color:'#B4700E', border:'rgb(var(--z-warning-c) / 0.3)' },
+  aprobado:       { bg:'rgb(37 99 214 / 0.15)', color:'#2563D6', border:'rgb(37 99 214 / 0.3)' },
   sena_pagada:    { bg:'rgb(var(--z-success-c) / 0.15)', color:'#1A854A', border:'rgb(var(--z-success-c) / 0.3)' },
   en_fabricacion: { bg:'rgb(var(--z-primary-c) / 0.15)', color:'#0D7665', border:'rgb(var(--z-primary-c) / 0.3)' },
   entregado:      { bg:'rgb(var(--z-success-c) / 0.18)',  color:'#1A854A', border:'rgb(var(--z-success-c) / 0.32)' },
@@ -26,7 +28,8 @@ const BADGE_STYLE = {
 
 // Mapa de avance: desde qué estado se puede pasar a cuál, y qué fecha real se sella.
 const SIGUIENTE = {
-  cotizado:       { estado:'sena_pagada',    label:'Marcar seña pagada',   campoFecha:'fecha_sena_pagada' },
+  cotizado:       { estado:'aprobado',       label:'Aprobar (genera la OT)', campoFecha:'fecha_aprobado' },
+  aprobado:       { estado:'sena_pagada',    label:'Marcar seña pagada',   campoFecha:'fecha_sena_pagada' },
   sena_pagada:    { estado:'en_fabricacion', label:'Iniciar fabricación',  campoFecha:'fecha_inicio_fabricacion' },
   en_fabricacion: { estado:'entregado',      label:'Marcar entregado',     campoFecha:'fecha_entrega_real' },
 };
@@ -34,9 +37,10 @@ const SIGUIENTE = {
 // Mismo umbral que Dashboard.jsx usa para "proyecto estancado en Cotizado".
 const DIAS_ESTANCADO = 7;
 
-const STAGE_PCT = { cotizado:15, sena_pagada:40, en_fabricacion:70, entregado:100 };
+const STAGE_PCT = { cotizado:15, aprobado:25, sena_pagada:40, en_fabricacion:70, entregado:100 };
 
 function fechaEntradaEtapa(p) {
+  if (p.estado === 'aprobado') return p.fecha_aprobado;
   if (p.estado === 'sena_pagada') return p.fecha_sena_pagada;
   if (p.estado === 'en_fabricacion') return p.fecha_inicio_fabricacion;
   if (p.estado === 'entregado') return p.fecha_entrega_real;
@@ -111,6 +115,7 @@ export default function Proyectos() {
   const [cargandoSugerencia, setCargandoSugerencia] = useState(false);
   const [arrastrado, setArrastrado] = useState(null);
   const [destino, setDestino] = useState(null);
+  const [nueva, setNueva] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -139,10 +144,12 @@ export default function Proyectos() {
     const paso = SIGUIENTE[proyecto.estado];
     if (!paso) return;
     setAvanzando(true);
-    const { error } = await supabase.from('proyectos').update({
-      estado: paso.estado,
-      [paso.campoFecha]: new Date().toISOString().slice(0,10),
-    }).eq('id', proyecto.id);
+    const { error } = paso.estado === 'aprobado'
+      ? await supabase.rpc('aprobar_proyecto', { p_proyecto: proyecto.id })
+      : await supabase.from('proyectos').update({
+          estado: paso.estado,
+          [paso.campoFecha]: new Date().toISOString().slice(0,10),
+        }).eq('id', proyecto.id);
     setAvanzando(false);
     if (error) { alert('No se pudo avanzar el estado: ' + error.message); return; }
     await cargar();
@@ -235,6 +242,8 @@ export default function Proyectos() {
         title="Proyectos"
         subtitle={`${activos.length} activos · ${fmt(valorPipeline)} abiertos · ${entregadosMes} entregados este mes · Arrastrá una tarjeta a la etapa siguiente para avanzarla`}
         actions={
+          <div className="flex items-center gap-2">
+          <button onClick={() => setNueva(true)} className="bg-z-primary text-z-on-primary px-3.5 py-1.5 rounded text-[12.5px] font-medium hover:brightness-110 inline-flex items-center gap-1"><Icon name="add" size={16} />Nueva cotización</button>
           <div className="z-seg" role="group" aria-label="Filtro">
             {[['activos','Activos'],['cancelados',`Cancelados (${cancelados.length})`]].map(([v,l]) => (
               <button
@@ -245,6 +254,7 @@ export default function Proyectos() {
                 {l}
               </button>
             ))}
+          </div>
           </div>
         }
       />
@@ -352,6 +362,8 @@ export default function Proyectos() {
         )}
       </PageContent>
 
+      {nueva && <NuevaCotizacion onClose={() => setNueva(false)} onCreada={() => { setNueva(false); cargar(); }} />}
+
       {seleccionado && (
         <DetalleModal
           proyecto={seleccionado}
@@ -399,6 +411,7 @@ function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia,
   }
   const timeline = [
     { label:'Cotizado',       fecha: p.fecha_cotizado },
+    { label:'Aprobado',       fecha: p.fecha_aprobado },
     { label:'Seña pagada',    fecha: p.fecha_sena_pagada },
     { label:'En fabricación', fecha: p.fecha_inicio_fabricacion },
     { label:'Entregado',      fecha: p.fecha_entrega_real },
@@ -457,6 +470,8 @@ function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia,
             <div className="text-[12.5px] text-z-ink-2 whitespace-pre-wrap">{p.notas_internas}</div>
           </div>
         )}
+
+        <FichaCostos p={p} />
 
         {p.estado !== 'cancelado' && (
           <div className="bg-z-inset border border-z-line rounded-xl p-4 mb-[18px]">
@@ -582,6 +597,219 @@ function DetalleModal({ proyecto: p, avanzando, formTiempos, cargandoSugerencia,
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Nueva cotización manual (o trabajo histórico) ─────────────────────────────
+const TIPOS = [['cocina','Cocina'],['dormitorio','Dormitorio / placard'],['vestidor','Vestidor'],['living','Living'],['home_office','Home office'],['bano','Baño'],['custom','Otro']];
+const RUBROS = [['material','Material (placas)'],['herraje','Herrajes'],['mano_obra','Mano de obra'],['flete','Flete'],['colocacion','Colocación'],['otro','Otro']];
+const inputCls = 'w-full px-3 py-2 rounded border border-z-line bg-z-inset text-z-ink text-[13px] outline-none focus:border-z-primary transition-colors placeholder:text-z-ink-4';
+const renglonVacio = () => ({ rubro:'material', descripcion:'', insumo_id:'', cantidad:'1', unidad:'placa', precio_unit:'' });
+
+function NuevaCotizacion({ onClose, onCreada }) {
+  const hoy = new Date().toISOString().slice(0,10);
+  const [clientes, setClientes] = useState([]);
+  const [insumos, setInsumos] = useState([]);
+  const [f, setF] = useState({ clienteId:'', clienteNombre:'', telefono:'', email:'', nombre:'', tipo:'cocina', monto:'', fecha:hoy, estado:'cotizado', historico:false, descripcion:'' });
+  const [renglones, setRenglones] = useState([renglonVacio()]);
+  const [archivo, setArchivo] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    supabase.from('clientes').select('id, nombre').eq('activo', true).order('nombre').then(({ data }) => setClientes(data || []));
+    supabase.from('insumos_resumen').select('insumo_id, nombre, unidad, precio_neto').order('nombre').then(({ data }) => setInsumos(data || []));
+  }, []);
+
+  const set = (k, v) => setF(x => ({ ...x, [k]: v }));
+  const setR = (i, k, v) => setRenglones(rs => rs.map((r, j) => {
+    if (j !== i) return r;
+    const n = { ...r, [k]: v };
+    if (k === 'insumo_id' && v) { const ins = insumos.find(x => x.insumo_id === v); if (ins) { n.descripcion = ins.nombre; n.unidad = ins.unidad || n.unidad; n.precio_unit = ins.precio_neto ?? n.precio_unit; } }
+    return n;
+  }));
+  const costo = renglones.reduce((s, r) => s + Number(r.cantidad || 0) * Number(r.precio_unit || 0), 0);
+  const margen = Number(f.monto) > 0 && costo > 0 ? Math.round((1 - costo / Number(f.monto)) * 100) : null;
+
+  async function guardar() {
+    if (!f.clienteId && !f.clienteNombre.trim()) { setError('Elegí o escribí el cliente.'); return; }
+    if (!f.nombre.trim()) { setError('Poné un nombre al trabajo (ej: Cocina y lavadero).'); return; }
+    if (!Number(f.monto)) { setError('Falta el monto sin IVA.'); return; }
+    setGuardando(true); setError('');
+    let path = null;
+    if (archivo) {
+      path = `presupuestos/${Date.now()}_${archivo.name.replace(/[^\w.-]/g, '_')}`;
+      const { error: eu } = await supabase.storage.from('zebrano-proyectos').upload(path, archivo);
+      if (eu) { setGuardando(false); setError('No se pudo subir el archivo: ' + eu.message); return; }
+    }
+    const { error: e } = await supabase.rpc('crear_cotizacion_manual', {
+      p_cliente_id: f.clienteId || null, p_cliente_nombre: f.clienteNombre, p_telefono: f.telefono, p_email: f.email,
+      p_nombre: f.nombre, p_descripcion: f.descripcion || null, p_tipo: f.tipo, p_monto: Number(f.monto), p_fecha: f.fecha,
+      p_estado: f.estado, p_historico: f.historico, p_presupuesto_url: path,
+      p_renglones: renglones.filter(r => r.descripcion.trim()).map(r => ({ ...r, cantidad: Number(r.cantidad || 0), precio_unit: Number(r.precio_unit || 0) })),
+    });
+    setGuardando(false);
+    if (e) { setError(e.message); return; }
+    onCreada();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={onClose}>
+      <div className="bg-z-surface border border-z-line rounded-xl p-7 w-[760px] max-w-[95vw] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-z-ink m-0">Nueva cotización</h2>
+            <div className="text-xs text-z-ink-3 mt-0.5">Montos sin IVA. Si el trabajo ya se hizo, elegí el estado y marcá "histórico".</div>
+          </div>
+          <button onClick={onClose} className="bg-transparent border-none text-z-ink-3 hover:text-z-ink cursor-pointer text-lg leading-none">✕</button>
+        </div>
+
+        <div className="font-mono text-[11.5px] text-z-ink-3 mb-1.5">Cliente</div>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <select className={inputCls} value={f.clienteId} onChange={e => set('clienteId', e.target.value)}>
+            <option value="">+ Cliente nuevo</option>
+            {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+          {!f.clienteId && <input className={inputCls} placeholder="Nombre del cliente" value={f.clienteNombre} onChange={e => set('clienteNombre', e.target.value)} />}
+          {!f.clienteId && <input className={inputCls} placeholder="Teléfono" value={f.telefono} onChange={e => set('telefono', e.target.value)} />}
+          {!f.clienteId && <input className={inputCls} placeholder="Email" value={f.email} onChange={e => set('email', e.target.value)} />}
+        </div>
+
+        <div className="font-mono text-[11.5px] text-z-ink-3 mb-1.5">Trabajo</div>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <input className={inputCls} placeholder="Nombre (ej: Cocina y lavadero)" value={f.nombre} onChange={e => set('nombre', e.target.value)} />
+          <select className={inputCls} value={f.tipo} onChange={e => set('tipo', e.target.value)}>{TIPOS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <input className={inputCls} type="number" placeholder="Monto cotizado sin IVA" value={f.monto} onChange={e => set('monto', e.target.value)} />
+          <input className={inputCls} type="date" value={f.fecha} onChange={e => set('fecha', e.target.value)} />
+          <select className={inputCls} value={f.estado} onChange={e => set('estado', e.target.value)}>
+            {[['cotizado','Cotizado (esperando respuesta)'],['aprobado','Aprobado por el cliente'],['en_fabricacion','En fabricación'],['entregado','Entregado'],['cancelado','No se hizo']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <label className="flex items-center gap-2 text-[12.5px] text-z-ink-2"><input type="checkbox" className="w-auto" checked={f.historico} onChange={e => set('historico', e.target.checked)} />Trabajo histórico (cargado después)</label>
+        </div>
+        <textarea className={inputCls + ' mb-3'} rows={2} placeholder="Descripción / notas (opcional)" value={f.descripcion} onChange={e => set('descripcion', e.target.value)} />
+        <label className="block text-[12.5px] text-z-ink-2 mb-4">Presupuesto (PDF, Excel o foto): <input type="file" className="ml-2 text-[12px]" onChange={e => setArchivo(e.target.files?.[0] || null)} /></label>
+
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="font-mono text-[11.5px] text-z-ink-3">Renglones de costo (opcional: sirven para saber qué comprar y comparar con lo real)</div>
+          <div className="text-[12px] text-z-ink-2">Costo {fmt(costo)}{margen != null ? ` · margen ${margen}%` : ''}</div>
+        </div>
+        <div className="flex flex-col gap-2 mb-2">
+          {renglones.map((r, i) => (
+            <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns:'130px 1fr 70px 70px 100px 24px' }}>
+              <select className={inputCls} value={r.rubro} onChange={e => setR(i, 'rubro', e.target.value)}>{RUBROS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+              {(r.rubro === 'material' || r.rubro === 'herraje') && insumos.length > 0 ? (
+                <select className={inputCls} value={r.insumo_id} onChange={e => setR(i, 'insumo_id', e.target.value)}>
+                  <option value="">{r.descripcion || 'Elegir material…'}</option>
+                  {insumos.map(x => <option key={x.insumo_id} value={x.insumo_id}>{x.nombre}</option>)}
+                </select>
+              ) : (
+                <input className={inputCls} placeholder="Descripción" value={r.descripcion} onChange={e => setR(i, 'descripcion', e.target.value)} />
+              )}
+              <input className={inputCls} type="number" placeholder="Cant." value={r.cantidad} onChange={e => setR(i, 'cantidad', e.target.value)} />
+              <input className={inputCls} placeholder="Unidad" value={r.unidad} onChange={e => setR(i, 'unidad', e.target.value)} />
+              <input className={inputCls} type="number" placeholder="$ unit." value={r.precio_unit} onChange={e => setR(i, 'precio_unit', e.target.value)} />
+              <button onClick={() => setRenglones(rs => rs.filter((_, j) => j !== i))} className="bg-transparent border-none text-z-ink-3 hover:text-z-danger cursor-pointer">✕</button>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setRenglones(rs => [...rs, renglonVacio()])} className="bg-transparent border border-z-line text-z-ink-2 px-3.5 py-1.5 rounded text-[12px] hover:border-z-primary hover:text-z-ink mb-4">+ Agregar renglón</button>
+
+        {error && <div className="text-[12px] text-z-danger mb-3">{error}</div>}
+        <div className="flex gap-2.5 justify-end">
+          <button onClick={onClose} className="bg-transparent border border-z-line text-z-ink-2 px-[18px] py-2 rounded text-[12.5px]">Cancelar</button>
+          <button onClick={guardar} disabled={guardando} className="bg-z-primary text-z-on-primary px-[18px] py-2 rounded text-[12.5px] font-medium hover:brightness-110 disabled:opacity-40">{guardando ? 'Guardando...' : 'Guardar'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ficha de costos: cotizado vs real, cobros y materiales ─────────────────────
+function FichaCostos({ p }) {
+  const [c, setC] = useState(null);
+  const [mats, setMats] = useState([]);
+  const [cobro, setCobro] = useState({ concepto:'Seña', monto:'' });
+  const [gasto, setGasto] = useState({ categoria:'flete', descripcion:'', monto:'' });
+  const [msg, setMsg] = useState('');
+  const cargar = useCallback(() => {
+    supabase.from('proyecto_costos').select('*').eq('proyecto_id', p.id).maybeSingle().then(({ data }) => setC(data));
+    supabase.from('proyecto_materiales').select('*').eq('proyecto_id', p.id).then(({ data }) => setMats(data || []));
+  }, [p.id]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  async function verPresupuesto() {
+    const { data, error } = await supabase.storage.from('zebrano-proyectos').createSignedUrl(p.presupuesto_url, 300);
+    if (error) { setMsg('No se pudo abrir el archivo: ' + error.message); return; }
+    window.open(data.signedUrl, '_blank');
+  }
+  async function registrarCobro() {
+    if (!Number(cobro.monto)) return;
+    const { error } = await supabase.from('pagos').insert({ proyecto_id: p.id, cliente_id: p.cliente_id, concepto: cobro.concepto, monto: Number(cobro.monto), estado:'recibido', fecha_recibido: new Date().toISOString().slice(0,10) });
+    if (error) { setMsg('No se pudo registrar el cobro: ' + error.message); return; }
+    setCobro({ concepto:'Saldo', monto:'' }); setMsg('Cobro registrado.'); cargar();
+  }
+  async function registrarGasto() {
+    if (!Number(gasto.monto) || !gasto.descripcion.trim()) { setMsg('Completá descripción y monto del gasto.'); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    const [{ data: emp }, { data: ot }] = await Promise.all([
+      supabase.from('empleados').select('id').eq('auth_user_id', user.id).maybeSingle(),
+      supabase.from('ordenes_trabajo').select('id').eq('proyecto_id', p.id).order('created_at').limit(1).maybeSingle(),
+    ]);
+    if (!ot) { setMsg('Primero aprobá el proyecto: los gastos se cargan a su orden de trabajo.'); return; }
+    const { error } = await supabase.from('caja_chica').insert({ ot_id: ot.id, categoria: gasto.categoria, descripcion: gasto.descripcion, monto: Number(gasto.monto), creado_por: emp?.id || null, estado:'pendiente' });
+    if (error) { setMsg('No se pudo registrar el gasto: ' + error.message); return; }
+    setGasto({ categoria:'flete', descripcion:'', monto:'' }); setMsg('Gasto cargado a la obra.'); cargar();
+  }
+  if (!c) return null;
+  const n = v => Number(v || 0);
+  const filas = [
+    ['Materiales y herrajes', n(c.cot_material) + n(c.cot_herrajes), n(c.material_real)],
+    ['Mano de obra', n(c.cot_mano_obra), n(c.mo_real)],
+    ['Flete, colocación y otros', n(c.cot_otros), n(c.otros_gastos_real)],
+    ['Estructura (gastos fijos)', null, n(c.estructura_real)],
+  ];
+  return (
+    <div className="bg-z-inset border border-z-line rounded-xl p-4 mb-[18px]">
+      <div className="flex justify-between items-center mb-2.5">
+        <div className="font-mono text-[11.5px] text-z-ink-3">Rentabilidad (sin IVA)</div>
+        {p.presupuesto_url && <button onClick={verPresupuesto} className="bg-transparent border-none text-z-primary text-[12px] cursor-pointer">Ver presupuesto</button>}
+      </div>
+      <table className="w-full text-[12.5px] mb-2">
+        <thead><tr className="text-z-ink-3"><th className="text-left font-normal">Rubro</th><th className="text-right font-normal">Cotizado</th><th className="text-right font-normal">Real</th></tr></thead>
+        <tbody>
+          {filas.map(([l, cot, real]) => <tr key={l}><td className="text-z-ink-2">{l}</td><td className="text-right">{cot != null && cot > 0 ? fmt(cot) : '—'}</td><td className="text-right">{fmt(real)}</td></tr>)}
+          <tr className="font-semibold text-z-ink"><td>Costo total</td><td className="text-right">{n(c.cot_total) > 0 ? fmt(c.cot_total) : '—'}</td><td className="text-right">{fmt(c.costo_real)}</td></tr>
+          <tr className="font-semibold" style={{ color: n(c.margen) < 0 ? 'rgb(var(--z-danger-c))' : 'rgb(var(--z-success-c))' }}><td>Margen</td><td></td><td className="text-right">{fmt(c.margen)}{c.margen_pct != null ? ` · ${c.margen_pct}%` : ''}</td></tr>
+        </tbody>
+      </table>
+      <div className="text-[11.5px] text-z-ink-3 mb-3">{n(c.horas_reales)} h cargadas · {c.facturas} factura(s) imputada(s)</div>
+
+      {mats.length > 0 && (
+        <div className="mb-3">
+          <div className="font-mono text-[11.5px] text-z-ink-3 mb-1.5">Materiales: necesario vs comprado para esta obra</div>
+          {mats.map((m, i) => { const falta = n(m.necesario) - n(m.imputado); return (
+            <div key={i} className="flex justify-between text-[12.5px]"><span className="text-z-ink-2">{m.material}</span><span className={falta > 0 ? 'text-z-warning' : 'text-z-ink-3'}>{n(m.imputado)} / {n(m.necesario)} {m.unidad || ''}{falta > 0 ? ` · faltan ${falta}` : ' ✓'}</span></div>
+          ); })}
+        </div>
+      )}
+
+      <div className="flex justify-between text-[12.5px] mb-2"><span className="text-z-ink-2">Cobrado {fmt(c.cobrado)}</span><span className="font-semibold text-z-ink">Saldo {fmt(c.saldo_pendiente)}</span></div>
+      <div className="flex gap-2">
+        <input className={inputCls} placeholder="Concepto" value={cobro.concepto} onChange={e => setCobro(x => ({ ...x, concepto:e.target.value }))} />
+        <input className={inputCls} type="number" placeholder="Monto cobrado" value={cobro.monto} onChange={e => setCobro(x => ({ ...x, monto:e.target.value }))} />
+        <button onClick={registrarCobro} className="bg-transparent border border-z-line text-z-ink-2 px-3 rounded text-[12px] whitespace-nowrap hover:border-z-primary hover:text-z-ink">Registrar cobro</button>
+      </div>
+      <div className="font-mono text-[11.5px] text-z-ink-3 mt-3 mb-1.5">Gasto de la obra (flete, herrajes en efectivo, colocación…)</div>
+      <div className="flex gap-2">
+        <select className={inputCls} style={{ maxWidth:130 }} value={gasto.categoria} onChange={e => setGasto(x => ({ ...x, categoria:e.target.value }))}>
+          {[['flete','Flete'],['herrajes','Herrajes'],['colocacion','Colocación'],['viaticos','Viáticos'],['otro','Otro']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <input className={inputCls} placeholder="Descripción" value={gasto.descripcion} onChange={e => setGasto(x => ({ ...x, descripcion:e.target.value }))} />
+        <input className={inputCls} style={{ maxWidth:120 }} type="number" placeholder="Monto" value={gasto.monto} onChange={e => setGasto(x => ({ ...x, monto:e.target.value }))} />
+        <button onClick={registrarGasto} className="bg-transparent border border-z-line text-z-ink-2 px-3 rounded text-[12px] whitespace-nowrap hover:border-z-primary hover:text-z-ink">Cargar gasto</button>
+      </div>
+      {msg && <div className="text-[11.5px] text-z-ink-3 mt-2">{msg}</div>}
     </div>
   );
 }

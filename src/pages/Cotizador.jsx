@@ -58,6 +58,7 @@ function etapaActual(estado) {
 
 export default function Cotizador() {
   const { user } = useAuth()
+  const [estadoFactura, setEstadoFactura] = useState(null)
   const [messages, setMessages]   = useState([MENSAJE_INICIAL])
   const [input, setInput]         = useState('')
   const [loading, setLoading]     = useState(false)
@@ -227,13 +228,37 @@ export default function Cotizador() {
     setMessages([{ role:'assistant', text:'Nueva sesión iniciada. ¿Qué necesita cotizar el cliente?' }])
   }
 
+  // Facturas de compra desde el cotizador: mismo circuito que Compras (Storage privado + lectura con zebrano-facturas).
+  // Quedan "por revisar" en Compras; al confirmarlas, sus precios pasan a ser los vigentes para cotizar.
+  async function subirFacturas(files) {
+    files = [...(files || [])]; if (!files.length) return
+    let ok = 0; const errores = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      setEstadoFactura(`Leyendo factura ${i + 1} de ${files.length}…`)
+      const path = `erp/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${file.name.normalize('NFD').replace(/[^\w.-]+/g, '_')}`
+      const { error: eUp } = await supabase.storage.from('facturas').upload(path, file, { contentType: file.type })
+      if (eUp) { errores.push(`${file.name}: ${eUp.message}`); continue }
+      const { data, error } = await supabase.functions.invoke('zebrano-facturas', { body: { archivo_path: path } })
+      if (error || !data?.ok) errores.push(`${file.name}: ${data?.error || error?.message}`); else ok++
+    }
+    setEstadoFactura(errores.length ? `Error: ${errores.join(' · ')}` : `${ok} factura(s) leída(s): revisalas y confirmalas en Compras para actualizar precios.`)
+  }
+
   const sesionActiva = sesiones.find(s => s.id === sesionId)
   const etapa = sesionActiva ? etapaActual(sesionActiva.estado) : null
 
   return (
     <Layout>
       <Topbar title="Cotizador AI" subtitle="Texto, fotos, PDF o planos → diseño, render, cotización y despiece" actions={
-        <button className="btn btn-ghost btn-sm" onClick={nuevaSesion}>+ Nueva sesión</button>
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+          {estadoFactura && <span style={{ fontSize:12, color:'var(--z-text-3)' }}>{estadoFactura}</span>}
+          <label className="btn btn-ghost btn-sm" style={{ cursor:'pointer' }} title="La factura se lee y, al confirmarla en Compras, actualiza los precios que usa el cotizador">
+            Subir factura de compra
+            <input type="file" accept="application/pdf,image/*" multiple hidden onChange={e => { subirFacturas(e.target.files); e.target.value = '' }} />
+          </label>
+          <button className="btn btn-ghost btn-sm" onClick={nuevaSesion}>+ Nueva sesión</button>
+        </div>
       } />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>

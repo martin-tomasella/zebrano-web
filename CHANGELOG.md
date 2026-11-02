@@ -1,5 +1,12 @@
 # Changelog
 
+## 02/11/2026 (tarde)
+- Cotizador v53: precios reales. Placas y herrajes salen de `cotizador_catalogo` (última factura confirmada, llevada a hoy por dólar BCRA; si no hay factura, precio de lista marcado como desactualizado). El modelo ya no ve precios: el sistema calcula y escribe el precio.
+- Mano de obra por etapa (corte, canteado, armado, terminación, instalación) con horas y personas; corte siempre 2 personas. Costo = horas × personas × costo hora MO de Personal. Precio con la fórmula del Excel (`precio_venta`, `cotiz_parametros`).
+- Catálogo único: las placas y herrajes de `config_placas`/`config_herrajes` pasaron a `insumos` (con medidas de placa).
+- Compras: al confirmar una factura, si un insumo ya tiene precio de otro proveedor pregunta cuál tomar (`insumos.proveedor_preferido_id`, función `conflictos_proveedor`).
+- Cotizador: botón "Subir factura de compra" (mismo circuito que Compras).
+
 ## 02/11/2026
 - Seguridad: `zebrano-leader` v22 cerrada (antes abierta: resumen operativo, avance de OT y gasto de Claude sin credenciales).
 - Cotizador v52: render con varios proveedores (gpt-image-1 → dall-e-3 → Gemini Image → Pollinations) y guardado en Storage; se puede cotizar sin render. Antes fallaba siempre (gpt-image-1 no habilitado en la cuenta de OpenAI).

@@ -167,6 +167,7 @@ function Revision({ id, onClose, onDone }) {
   const [url, setUrl] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [conflictos, setConflictos] = useState(null); // mismo insumo con precio de otro proveedor: preguntar cuál tomar
 
   useEffect(() => {
     (async () => {
@@ -182,7 +183,7 @@ function Revision({ id, onClose, onDone }) {
   }, [id]);
   useEffect(() => { const k = e => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
 
-  const setItem = (i, k, v) => setItems(xs => xs.map((x, j) => j === i ? { ...x, [k]: v } : x));
+  const setItem = (i, k, v) => { if (k === 'insumo_id') setConflictos(null); setItems(xs => xs.map((x, j) => j === i ? { ...x, [k]: v } : x)); };
   const nuevoInsumo = async i => {
     const it = items[i];
     const nombre = window.prompt('Nombre del insumo nuevo', it.descripcion); if (!nombre) return;
@@ -207,7 +208,15 @@ function Revision({ id, onClose, onDone }) {
     const res = await Promise.all(items.map(it => supabase.from('facturas_compra_items').update({ insumo_id: it.insumo_id || null, precio_neto_unit: it.precio_neto_unit, cantidad: it.cantidad }).eq('id', it.id)));
     const e2 = res.find(r => r.error)?.error;
     let e3 = null;
-    if (!e1 && !e2 && confirmar) ({ error: e3 } = await supabase.rpc('confirmar_factura', { p_factura: id }));
+    if (!e1 && !e2 && confirmar && conflictos === null) {
+      const { data: cs } = await supabase.rpc('conflictos_proveedor', { p_factura: id });
+      if (cs?.length) { setSaving(false); setConflictos(cs.map(c => ({ ...c, eleccion: 'nuevo' }))); return; }
+    }
+    if (!e1 && !e2 && confirmar && conflictos?.length) {
+      const r2 = await Promise.all(conflictos.map(c => supabase.from('insumos').update({ proveedor_preferido_id: c.eleccion === 'nuevo' ? f.proveedor_id : c.eleccion === 'vigente' ? c.proveedor_vigente_id : null }).eq('id', c.insumo_id)));
+      e3 = r2.find(r => r.error)?.error || null;
+    }
+    if (!e1 && !e2 && !e3 && confirmar) ({ error: e3 } = await supabase.rpc('confirmar_factura', { p_factura: id }));
     setSaving(false);
     const err = e1 || e2 || e3;
     if (err) { setError(err.message); return; }
@@ -296,6 +305,20 @@ function Revision({ id, onClose, onDone }) {
             </div>
             <Imputaciones facturaId={id} items={items} />
             <div className="z-field"><label>Notas</label><textarea rows={2} value={f.notas || ''} onChange={e => setF({ ...f, notas: e.target.value })} /></div>
+            {conflictos?.length > 0 && (
+              <div className="rounded-lg px-4 py-3 text-[13px] grid gap-3" style={{ background: 'rgb(var(--z-warning-c) / 0.1)', border: '1px solid rgb(var(--z-warning-c) / 0.3)' }}>
+                <div className="font-semibold text-z-ink">Estos insumos ya tienen precio de otro proveedor. ¿Cuál toma el cotizador?</div>
+                {conflictos.map((c, i) => (
+                  <div key={c.insumo_id} className="grid gap-1">
+                    <div className="text-z-ink">{c.insumo}</div>
+                    {[['nuevo', `${c.proveedor_nuevo || 'Este proveedor'}: ${$(c.precio_nuevo)} (esta factura)`], ['vigente', `${c.proveedor_vigente || 'Proveedor anterior'}: ${$(c.precio_vigente)} (${fecha(c.fecha_vigente)})`], ['ultimo', 'Siempre la última factura, sea del proveedor que sea']].map(([v, l]) => (
+                      <label key={v} className="flex items-center gap-2 text-z-ink-2"><input type="radio" className="w-auto" checked={c.eleccion === v} onChange={() => setConflictos(xs => xs.map((x, j) => j === i ? { ...x, eleccion: v } : x))} />{l}</label>
+                    ))}
+                  </div>
+                ))}
+                <div className="text-[12px] text-z-ink-3">Si es otro producto (otro color o medida), cancelá y elegí otro insumo en el renglón. Después tocá "Confirmar factura" otra vez.</div>
+              </div>
+            )}
             {error && <div role="alert" className="text-[13px]" style={{ color: 'rgb(var(--z-danger-c))' }}>{error}</div>}
           </div>
           <div className="z-drawer-foot">

@@ -12,6 +12,13 @@ function diasRestantes(fecha) {
   return Math.ceil((new Date(fecha) - new Date()) / 86400000)
 }
 
+// Tiempo corrido desde el OK de "Iniciar fabricación"
+function transcurrido(desde) {
+  if (!desde) return null
+  const h = Math.max(0, Math.floor((Date.now() - new Date(desde)) / 3600000))
+  return { texto: `${Math.floor(h / 24)} d ${h % 24} h`, horas: h }
+}
+
 function colorDias(dias) {
   if (dias === null) return '#96A1AD'
   if (dias < 0)  return '#C43428'
@@ -52,6 +59,8 @@ export default function Produccion() {
   const [tab, setTab] = useState('lista')
   const [proyectos, setProyectos] = useState([])
   const [ordenes, setOrdenes] = useState([])
+  const [cola, setCola] = useState([])
+  const [avanceForm, setAvanceForm] = useState('')
   const [loading, setLoading] = useState(true)
   const [seleccionado, setSeleccionado] = useState(null)
   const [guardando, setGuardando] = useState(false)
@@ -61,6 +70,14 @@ export default function Produccion() {
 
   async function load() {
     setLoading(true)
+    const { data: c, error: ec } = await supabase
+      .from('ordenes_trabajo')
+      .select('id, numero_ot, prioridad, created_at, horas_estimadas, horas_fabricacion_estimadas, proyectos(nombre, tipo_trabajo, valor_final, valor_estimado, clientes(nombre))')
+      .eq('estado', 'pendiente').eq('historica', false)
+      .order('prioridad', { ascending: true, nullsFirst: false })
+      .order('created_at')
+    if (ec) console.error('Error cargando cola:', ec)
+    setCola(c || [])
     const { data: p, error: ep } = await supabase
       .from('proyectos')
       .select('*, clientes(nombre, telefono, email)')
@@ -73,7 +90,7 @@ export default function Produccion() {
     if (proyectosData.length > 0) {
       const { data: o, error: eo } = await supabase
         .from('ordenes_trabajo')
-        .select('proyecto_id, horas_fabricacion_estimadas, horas_instalacion_estimadas, tramos_instalacion')
+        .select('id, numero_ot, estado, proyecto_id, iniciada_at, avance_pct, horas_estimadas, horas_reales, horas_fabricacion_estimadas, horas_instalacion_estimadas, tramos_instalacion')
         .in('proyecto_id', proyectosData.map(x => x.id))
       if (eo) console.error('Error cargando ordenes:', eo)
       setOrdenes(o || [])
@@ -85,13 +102,42 @@ export default function Produccion() {
 
   async function marcarEntregado(p) {
     setGuardando(true)
-    const { error } = await supabase.from('proyectos').update({
-      estado: 'entregado',
-      fecha_entrega_real: new Date().toISOString().slice(0,10),
-    }).eq('id', p.id)
+    const ot = otPorProyecto[p.id]
+    const { error } = ot?.estado === 'en_proceso'
+      ? await supabase.rpc('ot_entregar', { p_ot: ot.id })
+      : await supabase.from('proyectos').update({
+          estado: 'entregado',
+          fecha_entrega_real: new Date().toISOString().slice(0,10),
+        }).eq('id', p.id)
     setGuardando(false)
     if (error) { alert('No se pudo marcar como entregado: ' + error.message); return }
     setSeleccionado(null)
+    load()
+  }
+
+  async function iniciar(ot) {
+    if (!window.confirm(`¿Iniciar la fabricación de ${ot.numero_ot}? Desde ahora corre el tiempo.`)) return
+    setGuardando(true)
+    const { error } = await supabase.rpc('ot_iniciar', { p_ot: ot.id })
+    setGuardando(false)
+    if (error) { alert('No se pudo iniciar: ' + error.message); return }
+    load()
+  }
+
+  async function mover(i, delta) {
+    const j = i + delta
+    if (j < 0 || j >= cola.length) return
+    const nueva = [...cola]; [nueva[i], nueva[j]] = [nueva[j], nueva[i]]
+    setCola(nueva)
+    const { error } = await supabase.rpc('ot_reordenar', { p_ids: nueva.map(o => o.id) })
+    if (error) { alert('No se pudo reordenar: ' + error.message); load() }
+  }
+
+  async function guardarAvance(ot) {
+    setGuardando(true)
+    const { error } = await supabase.rpc('ot_avance', { p_ot: ot.id, p_pct: Number(avanceForm) })
+    setGuardando(false)
+    if (error) { alert('No se pudo guardar el avance: ' + error.message); return }
     load()
   }
 
@@ -143,6 +189,28 @@ export default function Produccion() {
           </div>
         )}
 
+        {!loading && cola.length > 0 && (
+          <div className="mb-6">
+            <div className="font-mono text-[11.5px] text-z-ink-3 mb-2">En cola · {cola.length} OT esperando el OK (la primera es la próxima)</div>
+            <div className="flex flex-col gap-2">
+              {cola.map((o, i) => (
+                <div key={o.id} className="flex items-center gap-3 bg-z-surface border border-z-line rounded px-3.5 py-2.5">
+                  <span className="font-mono text-[13px] font-bold text-z-primary w-6 text-center">{i + 1}</span>
+                  <div className="flex flex-col">
+                    <button onClick={() => mover(i, -1)} disabled={i === 0} className="text-z-ink-3 hover:text-z-ink disabled:opacity-25 leading-none" title="Subir">▲</button>
+                    <button onClick={() => mover(i, 1)} disabled={i === cola.length - 1} className="text-z-ink-3 hover:text-z-ink disabled:opacity-25 leading-none" title="Bajar">▼</button>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13.5px] font-semibold text-z-ink truncate">{o.proyectos?.clientes?.nombre || o.proyectos?.nombre || 'Sin nombre'}</div>
+                    <div className="font-mono text-[11.5px] text-z-ink-3">{o.numero_ot} · {o.proyectos?.tipo_trabajo || '—'} · {o.horas_fabricacion_estimadas || o.horas_estimadas || '—'} h estimadas · aprobada {fechaFmt(o.created_at)}</div>
+                  </div>
+                  <button onClick={() => iniciar(o)} disabled={guardando} className="bg-z-primary text-z-on-primary px-3.5 py-1.5 rounded text-[12px] font-medium hover:brightness-110 disabled:opacity-40">Iniciar fabricación</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-6 mb-5 border-b border-z-line">
           {[['lista','Lista'],['gantt','Gantt'],['calendario','Calendario']].map(([v,l]) => (
             <button
@@ -187,7 +255,7 @@ export default function Produccion() {
                   return (
                     <div
                       key={p.id}
-                      onClick={() => setSeleccionado(p)}
+                      onClick={() => { setSeleccionado(p); setAvanceForm('') }}
                       className="bg-z-subtle/80 backdrop-blur-sm border border-z-line rounded p-3.5 cursor-pointer hover:border-z-primary hover:-translate-y-0.5 transition-all duration-200"
                     >
                       <div className="flex justify-between items-start mb-2.5">
@@ -197,6 +265,11 @@ export default function Produccion() {
                         </div>
                         <EstadoBadge />
                       </div>
+                      {otPorProyecto[p.id]?.iniciada_at && (
+                        <div className="font-mono text-[11.5px] text-z-ink-3">
+                          ⏱ {transcurrido(otPorProyecto[p.id].iniciada_at).texto} · est. {otPorProyecto[p.id].horas_fabricacion_estimadas || otPorProyecto[p.id].horas_estimadas || '—'} h · avance {otPorProyecto[p.id].avance_pct ?? 0}%
+                        </div>
+                      )}
                       <div className="flex justify-between items-center mt-3">
                         <span className="font-mono text-xs text-z-primary">{fmt(p.valor_final || p.valor_estimado)}</span>
                         <RiskChip dias={dias} />
@@ -266,6 +339,14 @@ export default function Produccion() {
             {seleccionado.fecha_inicio_fabricacion && (
               <div className="text-[12.5px] text-z-ink-2 mb-[18px]">
                 En fabricación desde {fechaFmt(seleccionado.fecha_inicio_fabricacion)}
+              </div>
+            )}
+
+            {otPorProyecto[seleccionado.id]?.estado === 'en_proceso' && (
+              <div className="flex items-center gap-2 mb-[18px] text-[12.5px] text-z-ink-2">
+                <span>Avance {otPorProyecto[seleccionado.id].avance_pct ?? 0}% →</span>
+                <input type="number" min="0" max="100" value={avanceForm} onChange={e => setAvanceForm(e.target.value)} placeholder="%" className="w-16 bg-z-inset border border-z-line rounded px-2 py-1 text-z-ink" />
+                <button onClick={() => guardarAvance(otPorProyecto[seleccionado.id])} disabled={guardando || avanceForm === ''} className="border border-z-line rounded px-2.5 py-1 hover:border-z-primary disabled:opacity-40">Guardar</button>
               </div>
             )}
 

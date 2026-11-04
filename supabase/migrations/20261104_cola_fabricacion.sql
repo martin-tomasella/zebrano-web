@@ -77,3 +77,15 @@ drop policy if exists ordenes_trabajo_select on public.ordenes_trabajo;
 create policy ordenes_trabajo_select on public.ordenes_trabajo for select using (
   (select es_admin()) or (select es_ventas()) or (select es_taller()) or (select get_mi_rol()) = 'gestion'
   or (select auth.role()) = 'service_role');
+
+-- La OT en cola nunca nace con fecha de inicio (el cotizador v63 la mandaba con el día de aprobación).
+create or replace function public.ot_en_cola_sin_fecha() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.estado = 'pendiente' then new.fecha_inicio := null; new.iniciada_at := null; end if;
+  return new;
+end $$;
+revoke all on function public.ot_en_cola_sin_fecha() from public, anon;
+drop trigger if exists ot_en_cola_sin_fecha on public.ordenes_trabajo;
+create trigger ot_en_cola_sin_fecha before insert on public.ordenes_trabajo
+  for each row execute function public.ot_en_cola_sin_fecha();

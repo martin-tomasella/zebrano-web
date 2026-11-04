@@ -332,6 +332,7 @@ Deno.serve(async(req)=>{
       }
     }
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
+    // v64 (04/11/2026, pendiente de deploy; mientras tanto lo hace el trigger ot_en_cola_sin_fecha): la OT nace en cola sin fecha_inicio; la pone ot_iniciar.
     // v63 (04/11/2026): hora hombre de cotizacion (cotiz_parametros.hora_hombre_cotizacion, calibrada contra el modelo viejo); el fibro de fondos sin desperdicio del 80%.
     // v62 (04/11/2026): herrajes con precios de la planilla del taller; suma cantos (rollos), tiradores y varios como el computo; bisagra cierre suave y pata de cocina por defecto.
     // v60 (04/11/2026): datos del cliente en cualquier etapa, tipologias de placard solo en placares, no repregunta lo ya dicho, plano de cocina en dos filas.
@@ -401,7 +402,7 @@ Deno.serve(async(req)=>{
         da?`Medidas generales: ${da.ancho_mm??"?"} x ${da.alto_mm??"?"} x ${da.prof_mm??"?"} mm.`:"",
         ...((da?.modulos)??[]).map(m=>`- ${m.nombre}: ${m.ancho_mm??"?"} x ${m.alto_mm??"?"} mm, ${m.material??""}. ${m.detalles??""}`),
         da?.render_fotorrealista_url&&!String(da.render_fotorrealista_url).startsWith("data:")?`Render: ${da.render_fotorrealista_url}`:""].filter(Boolean).join("\n");
-      const{data:otRow,error:otErr}=await sb.from("ordenes_trabajo").insert({numero_ot:nOT,sesion_cotizacion_id:sid,proyecto_id:proy.id,tipo_trabajo:tipoTrabajo,estado:"pendiente",avance_pct:0,horas_reales:0,historica:false,presupuesto:`AI-${String(sid).slice(0,6)}`,notas:notasOT,fecha_inicio:hoy,horas_estimadas:resumen?.horas_totales_est??null}).select("id").single();
+      const{data:otRow,error:otErr}=await sb.from("ordenes_trabajo").insert({numero_ot:nOT,sesion_cotizacion_id:sid,proyecto_id:proy.id,tipo_trabajo:tipoTrabajo,estado:"pendiente",avance_pct:0,horas_reales:0,historica:false,presupuesto:`AI-${String(sid).slice(0,6)}`,notas:notasOT,horas_estimadas:resumen?.horas_totales_est??null}).select("id").single();
       if(otErr){return json({ok:false,sesion_id:sid,error:`No se pudo crear la orden de trabajo: ${otErr.message}`},500);}
       await sb.from("proyectos").update({notas_internas:notasOT}).eq("id",proy.id);
       // Modulos + despiece del agente (origen 'agente'): el taller despues carga el suyo y se comparan

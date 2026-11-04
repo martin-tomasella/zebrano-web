@@ -186,7 +186,7 @@ export default function Proyectos() {
       const { count } = await supabase.from('ordenes_trabajo').select('id', { count:'exact', head:true });
       const numero_ot = `OT-${new Date().getFullYear()}-${String((count||0)+1).padStart(3,'0')}`;
       const { data: nuevaOt, error: eOt } = await supabase.from('ordenes_trabajo').insert({
-        proyecto_id: proyecto.id, tipo_trabajo: proyecto.tipo_trabajo, numero_ot, estado:'en_progreso',
+        proyecto_id: proyecto.id, tipo_trabajo: proyecto.tipo_trabajo, numero_ot, estado:'pendiente',
       }).select('id').single();
       if (eOt) { setAvanzando(false); alert('No se pudo crear la orden de trabajo: ' + eOt.message); return; }
       otId = nuevaOt.id;
@@ -210,10 +210,8 @@ export default function Proyectos() {
       validado_por_usuario: true,
     });
 
-    const { error: eProy } = await supabase.from('proyectos').update({
-      estado: 'en_fabricacion',
-      fecha_inicio_fabricacion: new Date().toISOString().slice(0,10),
-    }).eq('id', proyecto.id);
+    // Mismo camino que "Iniciar fabricación" en Producción: OT en proceso, corre el tiempo, proyecto en fabricación.
+    const { error: eProy } = await supabase.rpc('ot_iniciar', { p_ot: otId });
     setAvanzando(false);
     if (eProy) { alert('No se pudo avanzar el proyecto: ' + eProy.message); return; }
     setFormTiempos(null);

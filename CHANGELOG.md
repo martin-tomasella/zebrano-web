@@ -1,6 +1,7 @@
 # Changelog
 
 ## 03/11/2026
+- Cotizador v57: despiece por reglas del taller (`despiece.ts`). El agente describe los módulos (familia, ancho, alto, profundidad de casco, puertas, cajones, estantes, frentes, zócalo/patas) y el sistema calcula piezas, bisagras y correderas: base y techo sobre/bajo laterales, travesaños en bajos, fondo fibro 3 mm clavado, luz 3 mm, frentes superpuestos (o embutidos si se indica), bisagras 2/3/4 según alto de puerta, cajones en 18 mm con fondo fibro y lateral según el frente. Si no se dijo, pregunta frentes superpuestos/embutidos y zócalo/patas.
 - Tabla `tipologias_taller`: las 57 tipologías de la planilla de cómputo (Int A–L, Vest, PC, frentes, módulos, escritorios, etc.) con sus cantidades (placas blancas, preencolado, fondo, herrajes) y 3 coeficientes de placas blancas por ml de frente (cocina, placard, vanitory) sacados de 58 presupuestos 2026.
 - Cotizador v55: el agente ve las tipologías y marca cuál usa (`tipologias_ref`); en canal interno avisa "Control del taller" si el despiece se aparta más de 30% de la tipología o sale del rango de placas por ml de 2026. Las horas y personas que indica el usuario mandan sobre la estimación del agente.
 - Cotizador v56: la tipología se elige por el ancho medido (dentro del mismo grupo y variante abrir/corrediza), no por el nombre que propone el modelo. En canal interno muestra qué tipología usó y cuántas placas tiene en la planilla.

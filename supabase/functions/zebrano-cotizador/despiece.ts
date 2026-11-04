@@ -5,7 +5,7 @@
 // los bajos llevan dos travesaños en lugar de techo; fondo de fibro 3 mm clavado atrás; luz de 3 mm;
 // puertas y frentes superpuestos al casco (casco 55 + puerta 2 = 57) salvo que se indique "embutidos";
 // bisagras: 2 hasta 900 mm de alto, 3 hasta 1600, 4 más; cajones con laterales y frente en 18 mm, fondo fibro 3 mm,
-// lateral según el alto del frente; zócalo o patas solo si se indican.
+// lateral según el alto del frente; zócalo o patas solo si se indican; laterales de terminación y regrueso de mesada opcionales.
 const T = 18, LUZ = 3, FIBRO = 3, TRAV = 100, COR_LADO = 13;
 
 const bisagrasPorPuerta = (alto) => (alto <= 900 ? 2 : alto <= 1600 ? 3 : 4);
@@ -41,6 +41,9 @@ export function despiece(modulos, mat) {
     add("Estante", W - 2 * T, P - 10, Number(m.estantes) || 0, placa, true);
     add("Fondo (clavado)", W, H, 1, mat.fondo);
     if (Number(m.zocalo_mm) > 0) add("Zócalo", W, Number(m.zocalo_mm), 1, placa, true);
+    // Laterales de terminación a la vista: cubren casco + puerta superpuesta (+ zócalo) y llevan canto en todo el borde visible.
+    add("Lateral de terminación", H + (Number(m.zocalo_mm) || 0), P + (emb ? 0 : 20), Math.min(2, Number(m.terminaciones) || 0), placa, true, true);
+    if (m.regrueso && bajo) add("Regrueso de mesada", W, 60, 1, placa, true);
     herr.patas += (Number(m.patas) || 0) * n;
 
     // Frentes: superpuestos cubren todo el casco; embutidos van dentro del hueco.

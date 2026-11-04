@@ -1,0 +1,9 @@
+-- Auditoría 04/11/2026 (aplicada en producción con el MCP de Supabase; copia de referencia).
+-- 1) es_empleado(): empleado activo con sesión.
+-- 2) 51 políticas de public y 4 de storage que solo pedían "usuario con sesión" ahora exigen es_empleado()
+--    (respaldo de las definiciones anteriores en public._policies_backup_20261104).
+-- 3) prospector_correr, relevar_mercado_ahora, prosp_descubrir_pedir/procesar y la vista personal_nombres exigen empleado
+--    (el cron, sin usuario, sigue funcionando).
+-- 4) search_path fijo en cotizar_modulos, cotizar_proyecto, sumar_dias_habiles, tc_usd, facturas_vencimiento.
+-- 5) Herrajes con precios de la planilla del taller (08/10/2026) y cotiz_parametros.hora_hombre_cotizacion = 16200.
+-- Funciones supabase-secrets-setter y vercel-env-updater desactivadas (410).

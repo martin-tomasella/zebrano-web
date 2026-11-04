@@ -1,6 +1,9 @@
 # Changelog
 
 ## 04/11/2026
+- Seguridad: el registro de usuarios de Supabase estaba abierto y 51 políticas (más 4 de storage) solo pedían "usuario con sesión": cualquiera podía crearse una cuenta con la clave pública y leer clientes, proyectos, facturas, costos y márgenes. Ahora exigen empleado activo (`es_empleado()`). Lo mismo para las funciones del prospector y del relevamiento de mercado y la vista `personal_nombres`. Desactivadas `supabase-secrets-setter` y `vercel-env-updater` (pasarelas abiertas sin uso).
+- Cotizador v63: hora hombre de cotización $16.200 (`cotiz_parametros.hora_hombre_cotizacion`), calibrada para que la Cocina A de FORNES (6039) dé el precio de la planilla vieja ($1.988.000). El fibro de fondos no lleva el 80% de aprovechamiento.
+- Cotizador v62: herrajes con los precios de la planilla del taller (octubre); suma cantos (rollos de preencolado por metro de canto), tiradores (uno por puerta y cajón) y varios (placas + 1) como el cómputo; bisagra cierre suave y pata de cocina por defecto. Validado contra la Cocina A de 6039: placas, preencolado, bisagras, correderas, patas y tiradores iguales al cómputo real.
 - Cotizador v60: el nombre y contacto del cliente se guardan en cualquier etapa y un paso sin datos ya no los borra (la OT salía como "Cliente cotizador OT-…"). Las tipologías de placard/vestidor solo se usan en placares, vestidores y dormitorios (no en cocinas ni baños). No vuelve a preguntar frentes, zócalo/patas, terminaciones o regrueso si el usuario ya lo dijo. El plano de una cocina se dibuja en dos filas: alacenas arriba y bajos abajo.
 - Cotizador (web): botones "Presupuesto (PDF)" y "Hoja de taller (PDF)" con link firmado, links del chat clickeables y "Ver plano técnico" abre el SVG.
 

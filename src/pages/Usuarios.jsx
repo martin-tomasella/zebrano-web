@@ -15,6 +15,7 @@ export default function Usuarios() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ nombre:'', email:'', password:'', rol:'gestion', costo_hora_ars:'' })
   const [tab, setTab] = useState('usuarios') // usuarios | permisos
+  const [pw, setPw] = useState(null) // { emp, password, error, saving, ok }
 
   useEffect(() => { load() }, [])
 
@@ -55,6 +56,22 @@ export default function Usuarios() {
       load()
     } catch(err) { setError(err.message || 'Error al crear usuario') }
     setSaving(false)
+  }
+
+  async function cambiarPassword(e) {
+    e.preventDefault()
+    setPw(p => ({ ...p, saving: true, error: '' }))
+    const resp = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/crear-usuario-admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+      },
+      body: JSON.stringify({ accion: 'cambiar_password', auth_user_id: pw.emp.auth_user_id, password: pw.password }),
+    })
+    const data = await resp.json().catch(() => ({}))
+    setPw(p => ({ ...p, saving: false, ok: !!data.ok, error: data.ok ? '' : (data.error || 'No se pudo cambiar la contraseña') }))
   }
 
   async function toggleActivo(emp) {
@@ -142,11 +159,16 @@ export default function Usuarios() {
                   </span>
                 )},
                 { key:'acciones', label:'', render: r => (
-                  esAdmin && r.auth_user_id !== profile?.auth_user_id ? (
-                    <Btn variant="ghost" small onClick={() => toggleActivo(r)}>{r.activo ? 'Desactivar' : 'Activar'}</Btn>
-                  ) : r.auth_user_id === profile?.auth_user_id ? (
-                    <span style={{ fontSize:11, color:'var(--z-text-3)', fontFamily:'var(--font-mono)' }}>Tu cuenta</span>
-                  ) : null
+                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                    {esAdmin && r.auth_user_id !== profile?.auth_user_id ? (
+                      <Btn variant="ghost" small onClick={() => toggleActivo(r)}>{r.activo ? 'Desactivar' : 'Activar'}</Btn>
+                    ) : r.auth_user_id === profile?.auth_user_id ? (
+                      <span style={{ fontSize:11, color:'var(--z-text-3)', fontFamily:'var(--font-mono)' }}>Tu cuenta</span>
+                    ) : null}
+                    {esAdmin && r.auth_user_id && (
+                      <Btn variant="ghost" small onClick={() => setPw({ emp: r, password: '' })}>Cambiar clave</Btn>
+                    )}
+                  </div>
                 )},
               ]}
               rows={empleados}
@@ -157,6 +179,31 @@ export default function Usuarios() {
           <MatrizPermisos />
         )}
       </PageContent>
+
+      {pw && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}
+          onClick={e => e.target === e.currentTarget && setPw(null)}>
+          <Card style={{ width:400, padding:'28px 32px' }}>
+            <h2 style={{ fontFamily:'var(--font-display)', margin:'0 0 6px', fontSize:18, color:'var(--z-text)' }}>Cambiar contrase&ntilde;a</h2>
+            <p style={{ fontSize:12, color:'var(--z-text-3)', margin:'0 0 18px' }}>{pw.emp.nombre} &middot; {pw.emp.email}</p>
+            {pw.ok ? (
+              <>
+                <p style={{ fontSize:13, color:'#0D7665', marginBottom:18 }}>Listo. Pasale la nueva contrase&ntilde;a por un canal privado.</p>
+                <div style={{ display:'flex', justifyContent:'flex-end' }}><Btn onClick={() => setPw(null)}>Cerrar</Btn></div>
+              </>
+            ) : (
+              <form onSubmit={cambiarPassword}>
+                <Input label="Nueva contrase&ntilde;a" type="password" value={pw.password} onChange={e => setPw({ ...pw, password: e.target.value })} placeholder="M&iacute;nimo 8 caracteres" required />
+                {pw.error && <div style={{ background:'rgb(var(--z-danger-c) / 0.1)', color:'#C43428', padding:'8px 12px', borderRadius:'var(--radius-sm)', fontSize:13, marginBottom:14 }}>{pw.error}</div>}
+                <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+                  <Btn variant="ghost" onClick={() => setPw(null)}>Cancelar</Btn>
+                  <Btn disabled={pw.saving}>{pw.saving ? 'Guardando...' : 'Guardar'}</Btn>
+                </div>
+              </form>
+            )}
+          </Card>
+        </div>
+      )}
 
       {modal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}

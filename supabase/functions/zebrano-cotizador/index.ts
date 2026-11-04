@@ -145,7 +145,7 @@ Lo unico que compartis con el cliente: el diseno, el render, y el PRECIO FINAL y
 Estas hablando con un empleado de Zebrano armando una cotizacion para un cliente. Podes razonar sobre costos y margen si el empleado los pide explicitamente, pero el campo respuesta_texto que se muestra en el chat igual debe ser breve (Regla 6) - el desglose de costos ya queda guardado en la base de datos, no hace falta repetirlo en el texto.`;
 }
 
-function sysNogal(placas,herrajes,disenoStr,renderPromptActual,canal,ejemplos){
+function sysNogal(placas,herrajes,disenoStr,renderPromptActual,canal,ejemplos,tipologias){
   const tieneRender=renderPromptActual&&renderPromptActual.length>10;
   return `Sos NOGAL, agente de diseno y cotizacion de Zebrano carpinteria premium argentina.
 Espanol rioplatense. Profesional y preciso.
@@ -220,6 +220,13 @@ Cada linea: horas_estimadas = duracion en horas de reloj (jornada de 7 h) y oper
 - Instalacion: normalmente 2 personas.
 Referencia real del taller: cocina con 4 ml de bajo mesada + 2 ml de alacena = corte 3,5 h con 2 personas (medio dia) y armado 14 h con 2 personas (dos dias). Escala proporcional a los metros lineales y a la complejidad.
 
+REGLA 12 - TIPOLOGIAS DEL TALLER (cantidades reales de la planilla de computo de Zebrano):
+${tipologias||"(sin tipologias cargadas)"}
+Si el mueble (o una parte) coincide con una tipologia, pone su nombre EXACTO en datos.tipologias_ref (lista de {"nombre","cantidad"}) y usa sus cantidades como guia del despiece y los herrajes.
+
+REGLA 13 - HORAS DEL TALLER:
+Si el usuario dice cuanto tarda el taller (horas o dias por etapa, o cuantas personas), usas EXACTAMENTE esos valores en mano_obra; tu estimacion es solo una propuesta cuando no los dio.
+
 REGLA 11 - PRECIOS:
 Nunca escribas montos ni precios en respuesta_texto: el sistema calcula el precio con los costos reales y lo agrega al mensaje. En herrajes usa el nombre EXACTO de la lista HERRAJES (si no esta, el nombre mas descriptivo posible).
 
@@ -234,7 +241,7 @@ JSON DISENO: {"etapa":"diseno","respuesta_texto":"confirmacion breve","diseno_ac
 
 JSON RENDER: {"etapa":"render","respuesta_texto":"confirmo exactamente QUE cambie y que NO cambie","render_prompt":"PROMPT GUARDADO con SOLO el cambio pedido - mismo numero de modulos, mismas medidas, mismo escritorio"}
 
-JSON COTIZACION: {"etapa":"cotizacion","respuesta_texto":"resumen breve del trabajo cotizado, SIN montos","listo_para_cotizar":true,"datos":{"tipo_trabajo":"placard","ambiente":"dormitorio","piezas":[{"modulo":"Escritorio","nombre":"Lateral","material":"Melamina rovere natural 18mm","largo_mm":2600,"ancho_mm":580,"cantidad":2,"canto_largo":true,"canto_ancho":false}],"herrajes":[{"nombre":"Bisagra cazoleta 35mm soft-close","cantidad":8}],"mano_obra":[{"etapa":"corte","horas_estimadas":3.5,"operarios":2},{"etapa":"canteado","horas_estimadas":2,"operarios":1},{"etapa":"armado","horas_estimadas":14,"operarios":2},{"etapa":"instalacion","horas_estimadas":4,"operarios":2}],"laqueado_m2":0}}
+JSON COTIZACION: {"etapa":"cotizacion","respuesta_texto":"resumen breve del trabajo cotizado, SIN montos","listo_para_cotizar":true,"datos":{"tipo_trabajo":"placard","ambiente":"dormitorio","piezas":[{"modulo":"Escritorio","nombre":"Lateral","material":"Melamina rovere natural 18mm","largo_mm":2600,"ancho_mm":580,"cantidad":2,"canto_largo":true,"canto_ancho":false}],"herrajes":[{"nombre":"Bisagra cazoleta 35mm soft-close","cantidad":8}],"mano_obra":[{"etapa":"corte","horas_estimadas":3.5,"operarios":2},{"etapa":"canteado","horas_estimadas":2,"operarios":1},{"etapa":"armado","horas_estimadas":14,"operarios":2},{"etapa":"instalacion","horas_estimadas":4,"operarios":2}],"laqueado_m2":0,"tipologias_ref":[{"nombre":"Int E 2,20m/2,40mx2,00m","cantidad":1}]}}
 ${bloqueGuardrail(canal)}`;
 }
 
@@ -294,10 +301,15 @@ Deno.serve(async(req)=>{
       }
     }
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
+    // v55 (03/11/2026): tipologias del taller y control de placas; horas que indica el usuario mandan.
     // v54 (02/11/2026): base melamina blanca + adicional por color.
     // v53 (02/11/2026): placas y herrajes salen del catalogo con el precio de la ultima factura (cotizador_catalogo).
     // El modelo solo ve nombres: el precio lo calcula el sistema (costos reales + formula del Excel en precio_venta).
     const[{data:CAT},{data:PIN},{data:CH},{data:PRM}]=await Promise.all([sb.from("cotizador_catalogo").select("*").in("categoria",["placa","herraje"]),sb.from("config_pintura").select("*").eq("activo",true),sb.from("costo_hora").select("*").maybeSingle(),sb.from("cotiz_parametros").select("clave,valor").eq("clave","iva_compra_factor").maybeSingle()]);
+    // v55 (03/11/2026): tipologias y coeficientes del taller (planilla de computo + 58 presupuestos 2026) como control del despiece.
+    const{data:TIP}=await sb.from("tipologias_taller").select("nombre,grupo,cantidades").eq("activo",true);
+    const TIPOS=(TIP??[]).filter(t=>!t.grupo.startsWith("coeficiente:")),COEF=(TIP??[]).filter(t=>t.grupo.startsWith("coeficiente:"));
+    const tipstr=TIPOS.map(t=>{const c=t.cantidades||{};return `- ${t.nombre}: ${c["hojas blancas"]??0} placas blancas, ${c["preencolado 22mm"]??0} preencolado, ${c["fondo fibro"]??0} fondo`+(c["cajones chicos"]?`, ${c["cajones chicos"]} cajones`:"")+(c["bisagras comun"]||c["B. c/suave con push"]?`, ${(c["bisagras comun"]||0)+(c["B. c/suave con push"]||0)} bisagras`:"");}).join("\n");
     const PLACAS=(CAT??[]).filter(c=>c.categoria==="placa"),HERR=(CAT??[]).filter(c=>c.categoria==="herraje");
     const pcfg={};
     for(const p of PLACAS)pcfg[p.nombre]={largo_mm:p.largo_mm||2750,ancho_mm:p.ancho_mm||1830,precio_unidad:Number(p.precio_hoy)||0,fuente:p.fuente,al_dia:!!p.precio_al_dia};
@@ -389,7 +401,7 @@ Deno.serve(async(req)=>{
     for(const m of(hist??[])){if(m.rol==="system")continue;const role=m.rol==="agent"?"assistant":"user";const last=msgs[msgs.length-1];if(last&&last.role===role&&typeof last.content==="string")last.content+="\n\n"+m.contenido;else msgs.push({role,content:m.contenido});}
     if(imagenes_base64.length>0){const c=imagenes_base64.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));if(mensaje)c.push({type:"text",text:mensaje});const last=msgs[msgs.length-1];if(last&&last.role==="user")last.content=c;else msgs.push({role:"user",content:c});}
     if(msgs.length===0)msgs.push({role:"user",content:mensaje??"Hola"});
-    const{raw,parsed,apiError,truncado,modelo,usage}=await callLLM(msgs,sysNogal(pstr,hstr,disenoStr,renderPromptActual,canalSeguro,ejemplos));
+    const{raw,parsed,apiError,truncado,modelo,usage}=await callLLM(msgs,sysNogal(pstr,hstr,disenoStr,renderPromptActual,canalSeguro,ejemplos,tipstr));
     await reg({sesion_id:sid,modelo:usage?.modelo??modelo??"error",tokens_in:usage?.tokens_in??null,tokens_out:usage?.tokens_out??null});
     if(apiError){return json({ok:false,sesion_id:sid,error:apiError},502);}
     if(!parsed&&truncado){const txt="La respuesta se corto por longitud. Proba de nuevo o pedi el presupuesto de forma mas resumida.";await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:[]});return json({ok:true,sesion_id:sid,respuesta:txt,etapa:"conv",truncado:true});}
@@ -410,8 +422,16 @@ Deno.serve(async(req)=>{
     if(adicionalColor>0){texto+=`\n\nPrecio base en melamina blanca: ${fmt(precioBase)} sin IVA.\nAdicional por color (${colores.filter(c=>c.dif>0).map(c=>`${c.material}, ${c.placas} placa${c.placas>1?"s":""}`).join("; ")}): +${fmt(adicionalColor)}.\nTotal sin IVA: ${fmt(precioSugerido)} (con IVA ${fmt(precioSugerido*1.21)}).`;}
     else texto+=`\n\nPrecio sin IVA: ${fmt(precioSugerido)} (con IVA ${fmt(precioSugerido*1.21)}).`;
     if(canalSeguro==="interno"&&colores.some(c=>c.barato))texto+=`\nOjo: ${colores.filter(c=>c.barato).map(c=>c.material).join(", ")} figura más barato que la blanca (precio viejo): lo cotizo al precio de la blanca, sin adicional.`;
-    if(mo.length)texto+=`\nTiempo estimado: ${mo.map(m=>`${m.etapa} ${m.horas} h con ${m.personas} persona${m.personas>1?"s":""}`).join(", ")}.`;
-    if(canalSeguro==="interno"){texto+=`\nCosto directo ${fmt(costoTotal)}: material ${fmt(costoMat)} (blanca a ${fmt(pBlanca)}/placa), herrajes ${fmt(costoHerr)}, mano de obra ${fmt(costoMO)} (${horasPersona} h-persona a ${fmt(costoHoraMO)}).`;if(sinFactura.length)texto+=`\nOjo: sin precio de factura (usa precio de lista viejo o no tiene precio): ${sinFactura.join(", ")}. Subí la factura de compra para actualizarlos.`;}const{data:re}=await sb.from("cotizacion_resumen").select("render_url").eq("sesion_id",sid).single();await sb.from("cotizacion_resumen").upsert({sesion_id:sid,costo_materiales:costoMat,costo_herrajes:costoHerr,costo_mano_obra:costoMO,costo_laqueado:costoLaq,costo_total_interno:costoTotal,margen_pct:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):0,precio_sugerido:precioSugerido,horas_totales_est:horasPersona||null,render_url:re?.render_url??null},{onConflict:"sesion_id"});resumenCot={costoTotal,precioSugerido,precioBase,adicionalColor,margen:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):null,sin_factura:sinFactura,listo_para_aprobar:true};}
+    if(mo.length)texto+=`\nTiempo estimado: ${mo.map(m=>`${m.etapa} ${m.horas} h con ${m.personas} persona${m.personas>1?"s":""}`).join(", ")}.`+(canalSeguro==="interno"?" Si el taller tarda otra cosa, decime las horas y personas por etapa y recalculo.":"");
+    // Control contra lo que hizo el taller: placas de melamina del despiece vs tipologias de referencia y vs placas por ml de 2026.
+    const placasMel=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
+    const ctrl=[];
+    const refs=(dat.tipologias_ref??[]).map(r=>({t:TIPOS.find(t=>t.nombre.toLowerCase()===String(r.nombre??"").toLowerCase()),n:Number(r.cantidad)||1})).filter(r=>r.t);
+    if(refs.length){const pr=refs.reduce((a,r)=>a+(Number(r.t.cantidades?.["hojas blancas"])||0)*r.n,0);if(pr&&Math.abs(placasMel-pr)/pr>0.3)ctrl.push(`el despiece da ${placasMel} placas y la planilla del taller (${refs.map(r=>r.t.nombre).join(", ")}) usa ${pr}`);}
+    const mlDis=((da?.modulos)??[]).reduce((a,m)=>a+(Number(m.ancho_mm)||0)/1000,0);
+    const tt=String(dat.tipo_trabajo??"").toLowerCase(),cf=COEF.find(c=>tt.includes(c.grupo.split(":")[1].split("/")[0]))?.cantidades?.placas_blancas_por_ml;
+    if(cf&&mlDis>0){const r=placasMel/mlDis;if(r<cf.p25*0.8||r>cf.p75*1.2)ctrl.push(`${placasMel} placas para ${mlDis.toFixed(2)} ml de frente (${r.toFixed(2)} por ml); en los trabajos 2026 de este tipo fue entre ${cf.p25} y ${cf.p75} por ml`);}
+    if(canalSeguro==="interno"){texto+=`\nCosto directo ${fmt(costoTotal)}: material ${fmt(costoMat)} (blanca a ${fmt(pBlanca)}/placa), herrajes ${fmt(costoHerr)}, mano de obra ${fmt(costoMO)} (${horasPersona} h-persona a ${fmt(costoHoraMO)}).`;if(ctrl.length)texto+=`\nControl del taller: ${ctrl.join("; ")}. Revisá el despiece.`;if(sinFactura.length)texto+=`\nOjo: sin precio de factura (usa precio de lista viejo o no tiene precio): ${sinFactura.join(", ")}. Subí la factura de compra para actualizarlos.`;}const{data:re}=await sb.from("cotizacion_resumen").select("render_url").eq("sesion_id",sid).single();await sb.from("cotizacion_resumen").upsert({sesion_id:sid,costo_materiales:costoMat,costo_herrajes:costoHerr,costo_mano_obra:costoMO,costo_laqueado:costoLaq,costo_total_interno:costoTotal,margen_pct:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):0,precio_sugerido:precioSugerido,horas_totales_est:horasPersona||null,render_url:re?.render_url??null},{onConflict:"sesion_id"});resumenCot={costoTotal,precioSugerido,precioBase,adicionalColor,margen:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):null,sin_factura:sinFactura,listo_para_aprobar:true};}
     if(canalSeguro==="externo"){
       // Blindaje adicional independiente del prompt: aunque el modelo fallara y filtrara
       // numeros de costo interno en el texto, para canal externo nunca se los devolvemos

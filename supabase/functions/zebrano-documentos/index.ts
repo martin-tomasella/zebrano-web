@@ -14,6 +14,7 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const $ = (n) => "$" + Math.round(Number(n) || 0).toLocaleString("es-AR");
 const cm = (mm) => (Number(mm) / 10).toLocaleString("es-AR") + " cm";
 const MARRON = [91, 70, 54];
+let avisos = []; // problemas no fatales (ej. render que no se pudo embeber); vuelven en la respuesta
 
 async function autorizado(req, sb) {
   const tok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -36,10 +37,10 @@ function moduloTexto(m) {
 
 // Imagen del render, escalada al ancho útil; si no se puede bajar, se omite.
 async function imagen(doc, url, y, maxH = 95) {
-  if (!url) return y;
+  if (!url) { avisos.push("sin render"); return y; }
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
-    if (!r.ok) return y;
+    if (!r.ok) { avisos.push(`render HTTP ${r.status}`); console.error("render", url, r.status); return y; }
     const b = new Uint8Array(await r.arrayBuffer());
     let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
     const tipo = (r.headers.get("content-type") || "").includes("png") ? "PNG" : "JPEG";
@@ -49,7 +50,7 @@ async function imagen(doc, url, y, maxH = 95) {
     if (h > maxH) { h = maxH; w = (p.width * h) / p.height; }
     doc.addImage(data, tipo, 15 + (180 - w) / 2, y, w, h);
     return y + h + 4;
-  } catch { return y; }
+  } catch (e) { avisos.push(`render: ${e?.message ?? e}`); console.error("render", url, e?.message ?? e); return y; }
 }
 
 function cabecera(doc, titulo, derecha) {
@@ -118,12 +119,13 @@ Deno.serve(async (req) => {
   try {
     const d = await req.json();
     if (!d?.sesion_id || !["presupuesto", "ot"].includes(d.tipo)) return Response.json({ ok: false, error: "tipo y sesion_id requeridos" }, { status: 400, headers: CORS });
+    avisos = [];
     const doc = d.tipo === "presupuesto" ? await presupuesto(d) : await hojaOT(d);
     const path = d.tipo === "presupuesto" ? `presupuestos/${d.sesion_id}-v${Number(d.version) || 1}.pdf` : `ot/${d.numero_ot || d.sesion_id}.pdf`;
     const { error } = await sb.storage.from("documentos").upload(path, new Uint8Array(doc.output("arraybuffer")), { contentType: "application/pdf", upsert: true });
     if (error) return Response.json({ ok: false, error: error.message }, { status: 500, headers: CORS });
     const { data: s } = await sb.storage.from("documentos").createSignedUrl(path, 7 * 86400);
-    return Response.json({ ok: true, path, url: s?.signedUrl ?? null }, { headers: CORS });
+    return Response.json({ ok: true, path, url: s?.signedUrl ?? null, avisos }, { headers: CORS });
   } catch (e) {
     return Response.json({ ok: false, error: String(e?.message ?? e) }, { status: 500, headers: CORS });
   }

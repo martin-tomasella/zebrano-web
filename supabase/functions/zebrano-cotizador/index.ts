@@ -70,51 +70,57 @@ async function renderFoto(sb, prompt) {
 
 async function generarSVG(diseno){
   try{
-    const anchoMm=Number(diseno.ancho_mm)||2500;
-    const altoMm=Number(diseno.alto_mm)||2600;
+    // Cocina: alacenas en la fila de arriba y bajos abajo (600 mm entre mesada y alacena), como un alzado.
+    const modulos=(diseno.modulos||[]).map(m=>({...m,fila:m.fila||(/alacena|a[eé]reo/i.test(`${m.nombre??""} ${m.detalles??""}`)?"alto":"bajo")}));
+    const dosFilas=modulos.some(m=>m.fila==="alto")&&modulos.some(m=>m.fila!=="alto");
+    const fila=f=>modulos.filter(m=>(m.fila==="alto")===(f==="alto"));
+    const topH=dosFilas?Math.max(...fila("alto").map(m=>Number(m.alto_mm)||0)):0,botH=dosFilas?Math.max(...fila("bajo").map(m=>Number(m.alto_mm)||0)):0;
+    const sumW=f=>fila(f).reduce((a,m)=>a+(Number(m.ancho_mm)||0),0);
+    const anchoMm=Math.max(Number(diseno.ancho_mm)||2500,dosFilas?Math.max(sumW("alto"),sumW("bajo")):0);
+    const altoMm=Math.max(Number(diseno.alto_mm)||2600,dosFilas?topH+600+botH:0);
     const profMm=Number(diseno.prof_mm)||600;
-    const modulos=diseno.modulos||[];
     const AREA_W=680,AREA_H=420,OFFSET_X=110,OFFSET_Y=55;
     const escala=Math.min(AREA_W/anchoMm,AREA_H/altoMm);
-    let xActual=OFFSET_X,modulosSVG="",cotasModulos="";
+    let xA=OFFSET_X,xB=OFFSET_X,modulosSVG="",cotasModulos="";
     for(const mod of modulos){
+      const enAlto=dosFilas&&mod.fila==="alto",x0=enAlto?xA:xB,y0=dosFilas&&!enAlto?OFFSET_Y+Math.round((topH+600)*escala):OFFSET_Y;
       const w=Math.round(Number(mod.ancho_mm)*escala);
       const h=Math.round(Number(mod.alto_mm||altoMm)*escala);
       const detalles=(mod.detalles||"").toLowerCase();
-      const cx=xActual+w/2;
-      modulosSVG+=`<rect x="${xActual}" y="${OFFSET_Y}" width="${w}" height="${h}" fill="#f5f2ee" stroke="#333" stroke-width="1.5"/>`;
-      modulosSVG+=`<text x="${cx}" y="${OFFSET_Y+16}" text-anchor="middle" font-size="11" font-weight="bold" fill="#222" font-family="Arial">${mod.nombre||""}</text>`;
-      if(mod.material)modulosSVG+=`<text x="${cx}" y="${OFFSET_Y+28}" text-anchor="middle" font-size="9" fill="#888" font-family="Arial">${mod.material}</text>`;
+      const cx=x0+w/2;
+      modulosSVG+=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#f5f2ee" stroke="#333" stroke-width="1.5"/>`;
+      modulosSVG+=`<text x="${cx}" y="${y0+16}" text-anchor="middle" font-size="11" font-weight="bold" fill="#222" font-family="Arial">${mod.nombre||""}</text>`;
+      if(mod.material)modulosSVG+=`<text x="${cx}" y="${y0+28}" text-anchor="middle" font-size="9" fill="#888" font-family="Arial">${mod.material}</text>`;
       if(detalles.includes("escritorio")||detalles.includes("tapa")){
-        const tapaPx=OFFSET_Y+h-Math.round(750*escala);
-        modulosSVG+=`<rect x="${xActual+2}" y="${tapaPx}" width="${w-4}" height="${Math.round(18*escala)}" fill="#e8dfd0" stroke="#555" stroke-width="1"/>`;
+        const tapaPx=y0+h-Math.round(750*escala);
+        modulosSVG+=`<rect x="${x0+2}" y="${tapaPx}" width="${w-4}" height="${Math.round(18*escala)}" fill="#e8dfd0" stroke="#555" stroke-width="1"/>`;
         modulosSVG+=`<text x="${cx}" y="${tapaPx+Math.round(12*escala)}" text-anchor="middle" font-size="8" fill="#555" font-family="Arial">tapa</text>`;
         const modSupH=Math.round(600*escala);
-        modulosSVG+=`<rect x="${xActual+2}" y="${OFFSET_Y+2}" width="${w-4}" height="${modSupH}" fill="#ede8e0" stroke="#555" stroke-width="0.8"/>`;
-        modulosSVG+=`<line x1="${cx}" y1="${OFFSET_Y+2}" x2="${cx}" y2="${OFFSET_Y+modSupH}" stroke="#666" stroke-width="0.6" stroke-dasharray="3,2"/>`;
-        modulosSVG+=`<text x="${cx}" y="${OFFSET_Y+modSupH/2+4}" text-anchor="middle" font-size="8" fill="#666" font-family="Arial">2p 600mm</text>`;
-        const espacioY=OFFSET_Y+modSupH,espacioH=tapaPx-espacioY;
+        modulosSVG+=`<rect x="${x0+2}" y="${y0+2}" width="${w-4}" height="${modSupH}" fill="#ede8e0" stroke="#555" stroke-width="0.8"/>`;
+        modulosSVG+=`<line x1="${cx}" y1="${y0+2}" x2="${cx}" y2="${y0+modSupH}" stroke="#666" stroke-width="0.6" stroke-dasharray="3,2"/>`;
+        modulosSVG+=`<text x="${cx}" y="${y0+modSupH/2+4}" text-anchor="middle" font-size="8" fill="#666" font-family="Arial">2p 600mm</text>`;
+        const espacioY=y0+modSupH,espacioH=tapaPx-espacioY;
         if(espacioH>10){
           const nLineas=Math.floor(w/8);
-          for(let i=0;i<nLineas;i++)modulosSVG+=`<line x1="${xActual+4+i*8}" y1="${espacioY+4}" x2="${xActual+4+i*8}" y2="${tapaPx-4}" stroke="#c4a882" stroke-width="0.5"/>`;
+          for(let i=0;i<nLineas;i++)modulosSVG+=`<line x1="${x0+4+i*8}" y1="${espacioY+4}" x2="${x0+4+i*8}" y2="${tapaPx-4}" stroke="#c4a882" stroke-width="0.5"/>`;
           const step=Math.round(espacioH/3);
-          modulosSVG+=`<line x1="${xActual+2}" y1="${espacioY+step}" x2="${xActual+w-2}" y2="${espacioY+step}" stroke="#777" stroke-width="1.2"/>`;
-          modulosSVG+=`<line x1="${xActual+2}" y1="${espacioY+step*2}" x2="${xActual+w-2}" y2="${espacioY+step*2}" stroke="#777" stroke-width="1.2"/>`;
+          modulosSVG+=`<line x1="${x0+2}" y1="${espacioY+step}" x2="${x0+w-2}" y2="${espacioY+step}" stroke="#777" stroke-width="1.2"/>`;
+          modulosSVG+=`<line x1="${x0+2}" y1="${espacioY+step*2}" x2="${x0+w-2}" y2="${espacioY+step*2}" stroke="#777" stroke-width="1.2"/>`;
         }
       }
       if(detalles.includes("corrediza")){
         const nPuertas=detalles.includes("4")?4:detalles.includes("3")?3:2;
         const wP=w/nPuertas;
-        for(let i=1;i<nPuertas;i++)modulosSVG+=`<line x1="${xActual+wP*i}" y1="${OFFSET_Y}" x2="${xActual+wP*i}" y2="${OFFSET_Y+h}" stroke="#555" stroke-width="0.8" stroke-dasharray="5,3"/>`;
-        for(let i=0;i<nPuertas;i++){const puerX=xActual+wP*i+wP/2;modulosSVG+=`<rect x="${puerX-3}" y="${OFFSET_Y+h/2-12}" width="6" height="24" rx="2" fill="#aaa"/>`;}
-        modulosSVG+=`<text x="${cx}" y="${OFFSET_Y+h-10}" text-anchor="middle" font-size="9" fill="#666" font-family="Arial">${nPuertas} puertas corredizas</text>`;
+        for(let i=1;i<nPuertas;i++)modulosSVG+=`<line x1="${x0+wP*i}" y1="${y0}" x2="${x0+wP*i}" y2="${y0+h}" stroke="#555" stroke-width="0.8" stroke-dasharray="5,3"/>`;
+        for(let i=0;i<nPuertas;i++){const puerX=x0+wP*i+wP/2;modulosSVG+=`<rect x="${puerX-3}" y="${y0+h/2-12}" width="6" height="24" rx="2" fill="#aaa"/>`;}
+        modulosSVG+=`<text x="${cx}" y="${y0+h-10}" text-anchor="middle" font-size="9" fill="#666" font-family="Arial">${nPuertas} puertas corredizas</text>`;
       }
-      const cotaY=OFFSET_Y-16;
-      cotasModulos+=`<line x1="${xActual}" y1="${cotaY}" x2="${xActual+w}" y2="${cotaY}" stroke="#2196F3" stroke-width="0.7"/>`;
-      cotasModulos+=`<line x1="${xActual}" y1="${cotaY-3}" x2="${xActual}" y2="${cotaY+3}" stroke="#2196F3" stroke-width="0.7"/>`;
-      cotasModulos+=`<line x1="${xActual+w}" y1="${cotaY-3}" x2="${xActual+w}" y2="${cotaY+3}" stroke="#2196F3" stroke-width="0.7"/>`;
+      const cotaY=y0-16;
+      cotasModulos+=`<line x1="${x0}" y1="${cotaY}" x2="${x0+w}" y2="${cotaY}" stroke="#2196F3" stroke-width="0.7"/>`;
+      cotasModulos+=`<line x1="${x0}" y1="${cotaY-3}" x2="${x0}" y2="${cotaY+3}" stroke="#2196F3" stroke-width="0.7"/>`;
+      cotasModulos+=`<line x1="${x0+w}" y1="${cotaY-3}" x2="${x0+w}" y2="${cotaY+3}" stroke="#2196F3" stroke-width="0.7"/>`;
       cotasModulos+=`<text x="${cx}" y="${cotaY-5}" text-anchor="middle" font-size="10" fill="#2196F3" font-family="Arial">${mod.ancho_mm}mm</text>`;
-      xActual+=w;
+      if(enAlto)xA+=w;else xB+=w;
     }
     const totalW=Math.round(anchoMm*escala),totalH=Math.round(altoMm*escala);
     const cotaAnchoY=OFFSET_Y+totalH+28,cotaAltoX=OFFSET_X-38;
@@ -249,7 +255,7 @@ JSON DISENO: {"etapa":"diseno","respuesta_texto":"confirmacion breve","diseno_ac
 
 JSON RENDER: {"etapa":"render","respuesta_texto":"confirmo exactamente QUE cambie y que NO cambie","render_prompt":"PROMPT GUARDADO con SOLO el cambio pedido - mismo numero de modulos, mismas medidas, mismo escritorio"}
 
-JSON COTIZACION: {"etapa":"cotizacion","respuesta_texto":"resumen breve del trabajo cotizado, SIN montos","listo_para_cotizar":true,"datos":{"tipo_trabajo":"placard","ambiente":"dormitorio","piezas":[{"modulo":"Escritorio","nombre":"Lateral","material":"Melamina rovere natural 18mm","largo_mm":2600,"ancho_mm":580,"cantidad":2,"canto_largo":true,"canto_ancho":false}],"herrajes":[{"nombre":"Bisagra cazoleta 35mm soft-close","cantidad":8}],"mano_obra":[{"etapa":"corte","horas_estimadas":3.5,"operarios":2},{"etapa":"canteado","horas_estimadas":2,"operarios":1},{"etapa":"armado","horas_estimadas":14,"operarios":2},{"etapa":"instalacion","horas_estimadas":4,"operarios":2}],"laqueado_m2":0,"modulos":[{"nombre":"Bajo bacha","familia":"bajo","ancho_mm":800,"alto_mm":720,"prof_mm":550,"puertas":2,"cajones":0,"estantes":1,"frentes":"superpuestos","zocalo_mm":0,"patas":4,"cantidad":1,"material":"Melamina blanco mate 18mm","terminaciones":1,"regrueso":false}],"tipologias_ref":[{"nombre":"Int E 2,20m/2,40mx2,00m","cantidad":1,"ancho_m":2.3}]}}
+JSON COTIZACION: {"etapa":"cotizacion","respuesta_texto":"resumen breve del trabajo cotizado, SIN montos","listo_para_cotizar":true,"datos":{"tipo_trabajo":"placard","ambiente":"dormitorio","piezas":[{"modulo":"Escritorio","nombre":"Lateral","material":"Melamina rovere natural 18mm","largo_mm":2600,"ancho_mm":580,"cantidad":2,"canto_largo":true,"canto_ancho":false}],"herrajes":[{"nombre":"Bisagra cazoleta 35mm soft-close","cantidad":8}],"mano_obra":[{"etapa":"corte","horas_estimadas":3.5,"operarios":2},{"etapa":"canteado","horas_estimadas":2,"operarios":1},{"etapa":"armado","horas_estimadas":14,"operarios":2},{"etapa":"instalacion","horas_estimadas":4,"operarios":2}],"laqueado_m2":0,"modulos":[{"nombre":"Bajo bacha","familia":"bajo","ancho_mm":800,"alto_mm":720,"prof_mm":550,"puertas":2,"cajones":0,"estantes":1,"frentes":"superpuestos","zocalo_mm":0,"patas":4,"cantidad":1,"material":"Melamina blanco mate 18mm","terminaciones":1,"regrueso":false}],"tipologias_ref":[{"nombre":"Int E 2,20m/2,40mx2,00m","cantidad":1,"ancho_m":2.3}]},"datos_cliente":{"nombre":"","telefono":"","email":""}}
 ${bloqueGuardrail(canal)}`;
 }
 
@@ -325,6 +331,7 @@ Deno.serve(async(req)=>{
       }
     }
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
+    // v60 (04/11/2026): datos del cliente en cualquier etapa, tipologias de placard solo en placares, no repregunta lo ya dicho, plano de cocina en dos filas.
     // v59 (03/11/2026): sin plano aprobado no cotiza (plano -> render -> presupuesto); presupuesto en PDF numerado desde v1.
     // v58 (03/11/2026): aprovechamiento de placa (80%), placa 2750x1830, laterales de terminacion/regrueso, presupuesto versionado y hoja de taller.
     // v57 (03/11/2026): despiece por reglas del taller (despiece.ts) a partir de los modulos que describe el agente.
@@ -438,15 +445,18 @@ Deno.serve(async(req)=>{
     if(apiError){return json({ok:false,sesion_id:sid,error:apiError},502);}
     if(!parsed&&truncado){const txt="La respuesta se corto por longitud. Proba de nuevo o pedi el presupuesto de forma mas resumida.";await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:[]});return json({ok:true,sesion_id:sid,respuesta:txt,etapa:"conv",truncado:true});}
     const etapa=parsed?.etapa??"conv";
+    // Datos del cliente en cualquier etapa, solo los campos que vienen con dato (antes un diseno sin nombre borraba el nombre).
+    const dcl=parsed?.datos_cliente??parsed?.datos?.datos_cliente;if(dcl){const upd={};if(String(dcl.nombre||"").trim())upd.cliente_nombre=String(dcl.nombre).trim();if(String(dcl.telefono||"").trim())upd.cliente_telefono=String(dcl.telefono).trim();if(String(dcl.email||"").trim())upd.cliente_email=String(dcl.email).trim();if(Object.keys(upd).length)await sb.from("cotizacion_sesiones").update(upd).eq("id",sid);}
     let texto=String(parsed?.respuesta_texto??raw);
     let svgGenerado=null,renderUrl=null,resumenCot=null;
-    if(etapa==="diseno"&&parsed?.diseno_actualizado){const du=parsed.diseno_actualizado;const version=(da?.version??0)+1;svgGenerado=await generarSVG(du);await sb.from("cotizacion_diseno").upsert({sesion_id:sid,version,ancho_mm:Number(du.ancho_mm)||null,alto_mm:Number(du.alto_mm)||null,prof_mm:Number(du.prof_mm)||null,modulos:du.modulos??[],render_prompt_actual:String(parsed.render_prompt??""),svg_tecnico:svgGenerado,svg_aprobado:false,updated_at:new Date().toISOString()},{onConflict:"sesion_id"});if(parsed.datos_cliente){const dc=parsed.datos_cliente;await sb.from("cotizacion_sesiones").update({cliente_nombre:String(dc.nombre||"")||null,cliente_telefono:String(dc.telefono||"")||null,cliente_email:String(dc.email||"")||null,estado:"procesando"}).eq("id",sid);}texto+=svgGenerado?"\n\nPlano tecnico generado. Aproba el diseno para ver el render.":"\n\nNo pude generar el plano.";}
+    if(etapa==="diseno"&&parsed?.diseno_actualizado){const du=parsed.diseno_actualizado;const version=(da?.version??0)+1;svgGenerado=await generarSVG(du);await sb.from("cotizacion_diseno").upsert({sesion_id:sid,version,ancho_mm:Number(du.ancho_mm)||null,alto_mm:Number(du.alto_mm)||null,prof_mm:Number(du.prof_mm)||null,modulos:du.modulos??[],render_prompt_actual:String(parsed.render_prompt??""),svg_tecnico:svgGenerado,svg_aprobado:false,updated_at:new Date().toISOString()},{onConflict:"sesion_id"});await sb.from("cotizacion_sesiones").update({estado:"procesando"}).eq("id",sid);texto+=svgGenerado?"\n\nPlano tecnico generado. Aproba el diseno para ver el render.":"\n\nNo pude generar el plano.";}
     if(etapa==="render"&&parsed?.render_prompt){const newPrompt=String(parsed.render_prompt);await sb.from("cotizacion_diseno").update({render_prompt_actual:newPrompt}).eq("sesion_id",sid);if(!(await puedeRender())){texto+="\n\n"+SIN_RENDER;}else{const{url,error:re,modelo:rm}=await renderFoto(sb,newPrompt);await reg({sesion_id:sid,modelo:rm??"render-error",renders:url?1:0});renderUrl=url;if(renderUrl){await sb.from("cotizacion_diseno").update({render_fotorrealista_url:renderUrl,render_generado_at:new Date().toISOString()}).eq("sesion_id",sid);await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:renderUrl,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});texto+="\n\nRender listo. Lo aprobas para calcular el presupuesto?";}else{texto+=`\n\nNo pude generar el render (${re}). Igual podemos seguir: decime "cotizá" y calculo el presupuesto con el diseño aprobado.`;}}}
     // v59: el flujo es plano -> render -> presupuesto. Sin plano aprobado, los modulos que leyo el agente se muestran como plano primero.
     let etapaOut=etapa;
     if(etapa==="cotizacion"&&parsed?.datos?.modulos?.length&&!da?.svg_aprobado&&!/sin render/i.test(String(mensaje??""))){
-      const mods=parsed.datos.modulos.flatMap(m=>Array.from({length:Math.max(1,Number(m.cantidad)||1)},()=>({nombre:m.nombre,ancho_mm:Number(m.ancho_mm)||0,alto_mm:Number(m.alto_mm)||0,material:m.material,detalles:`${m.familia??""} ${m.puertas?m.puertas+" puertas ":""}${m.cajones?m.cajones+" cajones ":""}${m.estantes?m.estantes+" estantes":""}`.trim()})));
-      const du={ancho_mm:mods.reduce((a,m)=>a+m.ancho_mm,0),alto_mm:Math.max(...mods.map(m=>m.alto_mm)),prof_mm:Math.max(...parsed.datos.modulos.map(m=>Number(m.prof_mm)||0)),modulos:mods};
+      const mods=parsed.datos.modulos.flatMap(m=>Array.from({length:Math.max(1,Number(m.cantidad)||1)},()=>({nombre:m.nombre,ancho_mm:Number(m.ancho_mm)||0,alto_mm:Number(m.alto_mm)||0,material:m.material,fila:/alacena/i.test(String(m.familia??""))?"alto":"bajo",detalles:`${m.familia??""} ${m.puertas?m.puertas+" puertas ":""}${m.cajones?m.cajones+" cajones ":""}${m.estantes?m.estantes+" estantes":""}`.trim()})));
+      const sumF=f=>mods.filter(m=>m.fila===f).reduce((a,m)=>a+m.ancho_mm,0),maxF=f=>Math.max(0,...mods.filter(m=>m.fila===f).map(m=>m.alto_mm)),dos=maxF("alto")>0&&maxF("bajo")>0;
+      const du={ancho_mm:dos?Math.max(sumF("alto"),sumF("bajo")):mods.reduce((a,m)=>a+m.ancho_mm,0),alto_mm:dos?maxF("alto")+600+maxF("bajo"):Math.max(...mods.map(m=>m.alto_mm)),prof_mm:Math.max(...parsed.datos.modulos.map(m=>Number(m.prof_mm)||0)),modulos:mods};
       svgGenerado=await generarSVG(du);
       await sb.from("cotizacion_diseno").upsert({sesion_id:sid,version:(da?.version??0)+1,ancho_mm:du.ancho_mm,alto_mm:du.alto_mm,prof_mm:du.prof_mm,modulos:mods,render_prompt_actual:da?.render_prompt_actual||`Custom built-in ${parsed.datos.tipo_trabajo??"furniture"} in ${mods[0]?.material??"white melamine"}: `+mods.map(m=>`${m.nombre} ${m.ancho_mm}x${m.alto_mm}mm (${m.detalles})`).join("; "),svg_tecnico:svgGenerado,svg_aprobado:false,updated_at:new Date().toISOString()},{onConflict:"sesion_id"});
       texto=`Leí ${mods.length} módulos. Antes de cotizar, revisá el plano: si las medidas están bien, aprobalo y genero el render; después armo el presupuesto.`;
@@ -473,11 +483,16 @@ Deno.serve(async(req)=>{
     // Control contra lo que hizo el taller: placas de melamina del despiece vs tipologias de referencia y vs placas por ml de 2026.
     const placasMel=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
     const ctrl=[];
-    const refs=(dat.tipologias_ref??[]).map(r=>({t:tipPorAncho(TIPOS,r),n:Number(r.cantidad)||1})).filter(r=>r.t);
+    const esPlacard=/placard|vestidor|dormitorio|ropero/i.test(String(dat.tipo_trabajo??"")),grpPlacard=/placard|vestidor/i;
+    const refs=(dat.tipologias_ref??[]).map(r=>({t:tipPorAncho(TIPOS,r),n:Number(r.cantidad)||1})).filter(r=>r.t&&(esPlacard||!grpPlacard.test(r.t.grupo)));
     if(refs.length){const pr=refs.reduce((a,r)=>a+(Number(r.t.cantidades?.["hojas blancas"])||0)*r.n,0);if(canalSeguro==="interno")texto+=`\nTipología del taller: ${refs.map(r=>(r.n>1?r.n+" x ":"")+r.t.nombre).join(", ")} (${pr} placas blancas en la planilla).`;if(pr&&Math.abs(placasMel-pr)/pr>0.3)ctrl.push(`el despiece da ${placasMel} placas y la planilla del taller (${refs.map(r=>r.t.nombre).join(", ")}) usa ${pr}`);}
     const mlDis=(dsp?dat.modulos:((da?.modulos)??[])).reduce((a,m)=>a+(Number(m.ancho_mm)||0)*(dsp?(Number(m.cantidad)||1):1)/1000,0);
     if(dsp&&canalSeguro==="interno"){const mods=dat.modulos;texto+=`\nDespiece con las reglas del taller: ${dsp.piezas.reduce((a,p)=>a+p.cantidad,0)} piezas de ${mods.length} módulo${mods.length>1?"s":""}.`;if(dsp.avisos.length)texto+=` ${dsp.avisos.join("; ")}.`;}
-    if(dsp){const sup=dat.modulos.some(m=>m.frentes!=="embutidos");texto+=sup?`\nFrentes superpuestos al casco (casco + 2 cm de puerta). Si van embutidos o al ras del casco, decímelo y recalculo.`:`\nFrentes embutidos en el casco.`;if(dat.modulos.some(m=>/bajo|cajonera|vanitory|isla/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>Number(m.zocalo_mm)>0||Number(m.patas)>0))texto+=` No indicaste zócalo ni patas: no los incluí.`;if(!dat.modulos.some(m=>Number(m.terminaciones)>0))texto+=` Sugerencia: si algún lateral queda a la vista, sumo lateral de terminación.`;if(dat.modulos.some(m=>/bajo/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>m.regrueso))texto+=` Regrueso de mesada: opcional, decime si lo sumo.`;}
+    if(dsp){const dicho=rx=>(hist??[]).some(h=>h.rol==="user"&&rx.test(String(h.contenido??"")))||rx.test(String(mensaje??""));const sup=dat.modulos.some(m=>m.frentes!=="embutidos");
+      if(!dicho(/embutid|superpuest|al ras/i))texto+=sup?`\nFrentes superpuestos al casco (casco + 2 cm de puerta). Si van embutidos o al ras del casco, decímelo y recalculo.`:`\nFrentes embutidos en el casco.`;
+      if(dat.modulos.some(m=>/bajo|cajonera|vanitory|isla/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>Number(m.zocalo_mm)>0||Number(m.patas)>0)&&!dicho(/z[oó]calo|pata/i))texto+=` No indicaste zócalo ni patas: no los incluí.`;
+      if(!dat.modulos.some(m=>Number(m.terminaciones)>0)&&!dicho(/terminaci|a la vista/i))texto+=` Sugerencia: si algún lateral queda a la vista, sumo lateral de terminación.`;
+      if(dat.modulos.some(m=>/bajo/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>m.regrueso)&&!dicho(/regrueso/i))texto+=` Regrueso de mesada: opcional, decime si lo sumo.`;}
     const tt=String(dat.tipo_trabajo??"").toLowerCase(),cf=COEF.find(c=>tt.includes(c.grupo.split(":")[1].split("/")[0]))?.cantidades?.placas_blancas_por_ml;
     if(cf&&mlDis>0){const r=placasMel/mlDis;if(r<cf.p25*0.8||r>cf.p75*1.2)ctrl.push(`${placasMel} placas para ${mlDis.toFixed(2)} ml de frente (${r.toFixed(2)} por ml); en los trabajos 2026 de este tipo fue entre ${cf.p25} y ${cf.p75} por ml`);}
     if(canalSeguro==="interno"){texto+=`\nCosto directo ${fmt(costoTotal)}: material ${fmt(costoMat)} (blanca a ${fmt(pBlanca)}/placa), herrajes ${fmt(costoHerr)}, mano de obra ${fmt(costoMO)} (${horasPersona} h-persona a ${fmt(costoHoraMO)}).`;if(ctrl.length)texto+=`\nControl del taller: ${ctrl.join("; ")}. Revisá el despiece.`;if(sinFactura.length)texto+=`\nOjo: sin precio de factura (usa precio de lista viejo o no tiene precio): ${sinFactura.join(", ")}. Subí la factura de compra para actualizarlos.`;}const{data:re}=await sb.from("cotizacion_resumen").select("render_url,pdf_presupuesto_url").eq("sesion_id",sid).maybeSingle();await sb.from("cotizacion_resumen").upsert({sesion_id:sid,costo_materiales:costoMat,costo_herrajes:costoHerr,costo_mano_obra:costoMO,costo_laqueado:costoLaq,costo_total_interno:costoTotal,margen_pct:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):0,precio_sugerido:precioSugerido,horas_totales_est:horasPersona||null,render_url:re?.render_url??null},{onConflict:"sesion_id"});const{data:ses}=await sb.from("cotizacion_sesiones").select("version,cliente_nombre,cliente_telefono").eq("id",sid).single();const version=re?.pdf_presupuesto_url?(Number(ses?.version)||1)+1:1;await sb.from("cotizacion_sesiones").update({version}).eq("id",sid);

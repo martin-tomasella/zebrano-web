@@ -1,5 +1,9 @@
 # Changelog
 
+## 04/11/2026
+- Cotizador v60: el nombre y contacto del cliente se guardan en cualquier etapa y un paso sin datos ya no los borra (la OT salía como "Cliente cotizador OT-…"). Las tipologías de placard/vestidor solo se usan en placares, vestidores y dormitorios (no en cocinas ni baños). No vuelve a preguntar frentes, zócalo/patas, terminaciones o regrueso si el usuario ya lo dijo. El plano de una cocina se dibuja en dos filas: alacenas arriba y bajos abajo.
+- Cotizador (web): botones "Presupuesto (PDF)" y "Hoja de taller (PDF)" con link firmado, links del chat clickeables y "Ver plano técnico" abre el SVG.
+
 ## 03/11/2026
 - Cotizador v59: el flujo se respeta en código: si el agente quiere cotizar sin plano aprobado, primero muestra el plano con los módulos leídos; aprobado el plano se genera el render y recién después el presupuesto (se puede saltear diciendo "sin render"). Presupuesto numerado desde v1. `zebrano-documentos` v2: presupuesto y hoja de taller en PDF (Storage mostraba el HTML como texto).
 - Cotizador v58: aprovechamiento de placa 80% (`cotiz_parametros.aprovechamiento_placa`) y placas de melamina 18 mm en 2750x1830. Despiece: laterales de terminación (por lateral a la vista) y regrueso de mesada opcional; el agente los sugiere.

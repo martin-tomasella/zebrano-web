@@ -124,6 +124,13 @@ export default function Cotizador() {
     setResumen(r || null)
   }
 
+  // Presupuesto y hoja de taller viven en el bucket privado "documentos": se abren con un link firmado de 10 minutos.
+  async function abrirDoc(path) {
+    const { data, error } = await supabase.storage.from('documentos').createSignedUrl(path, 600)
+    if (error || !data?.signedUrl) { alert('No se pudo abrir el documento.'); return }
+    window.open(data.signedUrl, '_blank', 'noopener')
+  }
+
   function seleccionarSesion(id) {
     if (id === sesionId) return
     setSesionId(id)
@@ -325,10 +332,16 @@ export default function Cotizador() {
           {sesionId && (diseno?.svg_tecnico || resumen?.precio_sugerido > 0) && (
             <div style={{ padding:'12px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
               {diseno?.svg_tecnico && (
-                <a href={diseno.svg_tecnico} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver plano técnico</a>
+                <a href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(diseno.svg_tecnico)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver plano técnico</a>
               )}
               {diseno?.render_fotorrealista_url && (
                 <a href={diseno.render_fotorrealista_url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver render</a>
+              )}
+              {resumen?.pdf_presupuesto_url && (
+                <button className="btn btn-sm" onClick={() => abrirDoc(resumen.pdf_presupuesto_url)}>Presupuesto (PDF)</button>
+              )}
+              {resumen?.pdf_ot_url && (
+                <button className="btn btn-sm" onClick={() => abrirDoc(resumen.pdf_ot_url)}>Hoja de taller (PDF)</button>
               )}
               {diseno?.svg_tecnico && !diseno?.svg_aprobado && (
                 <button className="btn btn-primary btn-sm" onClick={aprobarDiseno} disabled={aprobando}>
@@ -369,7 +382,9 @@ export default function Cotizador() {
                   borderRadius: m.role==='user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                   whiteSpace:'pre-wrap',
                 }}>
-                  {m.text}
+                  {String(m.text ?? '').split(/(https?:\/\/\S+)/g).map((t, j) => /^https?:\/\//.test(t)
+                    ? <a key={j} href={t} target="_blank" rel="noreferrer" style={{ color:'inherit', textDecoration:'underline' }}>{/\/documentos\/ot\//.test(t) ? 'Abrir hoja de taller' : /\/documentos\//.test(t) ? 'Abrir presupuesto' : 'Abrir link'}</a>
+                    : t)}
                   {m.imgs?.length > 0 && (
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>
                       {m.imgs.map((u, j) => <a key={j} href={u} target="_blank" rel="noreferrer"><img src={u} alt="Adjunto" style={{ height:72, borderRadius:6, border:'1px solid var(--z-border)', background:'#fff' }} /></a>)}

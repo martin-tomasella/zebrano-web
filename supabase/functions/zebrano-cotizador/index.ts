@@ -222,7 +222,7 @@ Referencia real del taller: cocina con 4 ml de bajo mesada + 2 ml de alacena = c
 
 REGLA 12 - TIPOLOGIAS DEL TALLER (cantidades reales de la planilla de computo de Zebrano):
 ${tipologias||"(sin tipologias cargadas)"}
-Si el mueble (o una parte) coincide con una tipologia, pone su nombre EXACTO en datos.tipologias_ref (lista de {"nombre","cantidad"}) y usa sus cantidades como guia del despiece y los herrajes.
+Si el mueble (o una parte) coincide con una tipologia, pone su nombre EXACTO en datos.tipologias_ref (lista de {"nombre","cantidad","ancho_m"}) y usa sus cantidades como guia del despiece y los herrajes. Elegi la tipologia cuyo rango de ancho (primer numero del nombre, ej. "2,20m/2,40m") incluye el frente real del mueble, y en ancho_m pone ese frente en metros.
 
 REGLA 13 - HORAS DEL TALLER:
 Si el usuario dice cuanto tarda el taller (horas o dias por etapa, o cuantas personas), usas EXACTAMENTE esos valores en mano_obra; tu estimacion es solo una propuesta cuando no los dio.
@@ -241,8 +241,19 @@ JSON DISENO: {"etapa":"diseno","respuesta_texto":"confirmacion breve","diseno_ac
 
 JSON RENDER: {"etapa":"render","respuesta_texto":"confirmo exactamente QUE cambie y que NO cambie","render_prompt":"PROMPT GUARDADO con SOLO el cambio pedido - mismo numero de modulos, mismas medidas, mismo escritorio"}
 
-JSON COTIZACION: {"etapa":"cotizacion","respuesta_texto":"resumen breve del trabajo cotizado, SIN montos","listo_para_cotizar":true,"datos":{"tipo_trabajo":"placard","ambiente":"dormitorio","piezas":[{"modulo":"Escritorio","nombre":"Lateral","material":"Melamina rovere natural 18mm","largo_mm":2600,"ancho_mm":580,"cantidad":2,"canto_largo":true,"canto_ancho":false}],"herrajes":[{"nombre":"Bisagra cazoleta 35mm soft-close","cantidad":8}],"mano_obra":[{"etapa":"corte","horas_estimadas":3.5,"operarios":2},{"etapa":"canteado","horas_estimadas":2,"operarios":1},{"etapa":"armado","horas_estimadas":14,"operarios":2},{"etapa":"instalacion","horas_estimadas":4,"operarios":2}],"laqueado_m2":0,"tipologias_ref":[{"nombre":"Int E 2,20m/2,40mx2,00m","cantidad":1}]}}
+JSON COTIZACION: {"etapa":"cotizacion","respuesta_texto":"resumen breve del trabajo cotizado, SIN montos","listo_para_cotizar":true,"datos":{"tipo_trabajo":"placard","ambiente":"dormitorio","piezas":[{"modulo":"Escritorio","nombre":"Lateral","material":"Melamina rovere natural 18mm","largo_mm":2600,"ancho_mm":580,"cantidad":2,"canto_largo":true,"canto_ancho":false}],"herrajes":[{"nombre":"Bisagra cazoleta 35mm soft-close","cantidad":8}],"mano_obra":[{"etapa":"corte","horas_estimadas":3.5,"operarios":2},{"etapa":"canteado","horas_estimadas":2,"operarios":1},{"etapa":"armado","horas_estimadas":14,"operarios":2},{"etapa":"instalacion","horas_estimadas":4,"operarios":2}],"laqueado_m2":0,"tipologias_ref":[{"nombre":"Int E 2,20m/2,40mx2,00m","cantidad":1,"ancho_m":2.3}]}}
 ${bloqueGuardrail(canal)}`;
+}
+
+// La tipologia la decide el ancho medido: dentro del mismo grupo (y misma variante abrir/corr) gana la que contiene el ancho, o la mas cercana.
+function tipPorAncho(tipos,r){
+  const t0=tipos.find(t=>t.nombre.toLowerCase()===String(r.nombre??"").toLowerCase());
+  const a=Number(r.ancho_m);
+  if(!t0||!(a>0)||t0.ancho_min_m==null)return t0;
+  const variante=n=>(n.match(/\b(abrir|corr)\b/i)?.[1]??"").toLowerCase();
+  const cand=tipos.filter(t=>t.grupo===t0.grupo&&t.ancho_min_m!=null&&variante(t.nombre)===variante(t0.nombre));
+  const dist=t=>a<t.ancho_min_m?t.ancho_min_m-a:a>t.ancho_max_m?a-t.ancho_max_m:0;
+  return cand.sort((x,y)=>dist(x)-dist(y)||(x.ancho_max_m-x.ancho_min_m)-(y.ancho_max_m-y.ancho_min_m))[0]??t0;
 }
 
 function calcHojas(piezas,pcfg){
@@ -301,13 +312,14 @@ Deno.serve(async(req)=>{
       }
     }
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
+    // v56 (03/11/2026): la tipologia se elige por el ancho medido, no por el nombre que propone el modelo.
     // v55 (03/11/2026): tipologias del taller y control de placas; horas que indica el usuario mandan.
     // v54 (02/11/2026): base melamina blanca + adicional por color.
     // v53 (02/11/2026): placas y herrajes salen del catalogo con el precio de la ultima factura (cotizador_catalogo).
     // El modelo solo ve nombres: el precio lo calcula el sistema (costos reales + formula del Excel en precio_venta).
     const[{data:CAT},{data:PIN},{data:CH},{data:PRM}]=await Promise.all([sb.from("cotizador_catalogo").select("*").in("categoria",["placa","herraje"]),sb.from("config_pintura").select("*").eq("activo",true),sb.from("costo_hora").select("*").maybeSingle(),sb.from("cotiz_parametros").select("clave,valor").eq("clave","iva_compra_factor").maybeSingle()]);
     // v55 (03/11/2026): tipologias y coeficientes del taller (planilla de computo + 58 presupuestos 2026) como control del despiece.
-    const{data:TIP}=await sb.from("tipologias_taller").select("nombre,grupo,cantidades").eq("activo",true);
+    const{data:TIP}=await sb.from("tipologias_taller").select("nombre,grupo,cantidades,ancho_min_m,ancho_max_m").eq("activo",true);
     const TIPOS=(TIP??[]).filter(t=>!t.grupo.startsWith("coeficiente:")),COEF=(TIP??[]).filter(t=>t.grupo.startsWith("coeficiente:"));
     const tipstr=TIPOS.map(t=>{const c=t.cantidades||{};return `- ${t.nombre}: ${c["hojas blancas"]??0} placas blancas, ${c["preencolado 22mm"]??0} preencolado, ${c["fondo fibro"]??0} fondo`+(c["cajones chicos"]?`, ${c["cajones chicos"]} cajones`:"")+(c["bisagras comun"]||c["B. c/suave con push"]?`, ${(c["bisagras comun"]||0)+(c["B. c/suave con push"]||0)} bisagras`:"");}).join("\n");
     const PLACAS=(CAT??[]).filter(c=>c.categoria==="placa"),HERR=(CAT??[]).filter(c=>c.categoria==="herraje");
@@ -426,8 +438,8 @@ Deno.serve(async(req)=>{
     // Control contra lo que hizo el taller: placas de melamina del despiece vs tipologias de referencia y vs placas por ml de 2026.
     const placasMel=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
     const ctrl=[];
-    const refs=(dat.tipologias_ref??[]).map(r=>({t:TIPOS.find(t=>t.nombre.toLowerCase()===String(r.nombre??"").toLowerCase()),n:Number(r.cantidad)||1})).filter(r=>r.t);
-    if(refs.length){const pr=refs.reduce((a,r)=>a+(Number(r.t.cantidades?.["hojas blancas"])||0)*r.n,0);if(pr&&Math.abs(placasMel-pr)/pr>0.3)ctrl.push(`el despiece da ${placasMel} placas y la planilla del taller (${refs.map(r=>r.t.nombre).join(", ")}) usa ${pr}`);}
+    const refs=(dat.tipologias_ref??[]).map(r=>({t:tipPorAncho(TIPOS,r),n:Number(r.cantidad)||1})).filter(r=>r.t);
+    if(refs.length){const pr=refs.reduce((a,r)=>a+(Number(r.t.cantidades?.["hojas blancas"])||0)*r.n,0);if(canalSeguro==="interno")texto+=`\nTipología del taller: ${refs.map(r=>(r.n>1?r.n+" x ":"")+r.t.nombre).join(", ")} (${pr} placas blancas en la planilla).`;if(pr&&Math.abs(placasMel-pr)/pr>0.3)ctrl.push(`el despiece da ${placasMel} placas y la planilla del taller (${refs.map(r=>r.t.nombre).join(", ")}) usa ${pr}`);}
     const mlDis=((da?.modulos)??[]).reduce((a,m)=>a+(Number(m.ancho_mm)||0)/1000,0);
     const tt=String(dat.tipo_trabajo??"").toLowerCase(),cf=COEF.find(c=>tt.includes(c.grupo.split(":")[1].split("/")[0]))?.cantidades?.placas_blancas_por_ml;
     if(cf&&mlDis>0){const r=placasMel/mlDis;if(r<cf.p25*0.8||r>cf.p75*1.2)ctrl.push(`${placasMel} placas para ${mlDis.toFixed(2)} ml de frente (${r.toFixed(2)} por ml); en los trabajos 2026 de este tipo fue entre ${cf.p25} y ${cf.p75} por ml`);}

@@ -3,6 +3,7 @@
 ## 03/11/2026
 - Tabla `tipologias_taller`: las 57 tipologías de la planilla de cómputo (Int A–L, Vest, PC, frentes, módulos, escritorios, etc.) con sus cantidades (placas blancas, preencolado, fondo, herrajes) y 3 coeficientes de placas blancas por ml de frente (cocina, placard, vanitory) sacados de 58 presupuestos 2026.
 - Cotizador v55: el agente ve las tipologías y marca cuál usa (`tipologias_ref`); en canal interno avisa "Control del taller" si el despiece se aparta más de 30% de la tipología o sale del rango de placas por ml de 2026. Las horas y personas que indica el usuario mandan sobre la estimación del agente.
+- Cotizador v56: la tipología se elige por el ancho medido (dentro del mismo grupo y variante abrir/corrediza), no por el nombre que propone el modelo. En canal interno muestra qué tipología usó y cuántas placas tiene en la planilla.
 
 ## 02/11/2026 (tarde)
 - Cotizador v54: la melamina blanca (Melamina blanco mate 18mm, $54.564 al 02/11) es la base. Toda placa de melamina se calcula a precio de blanca; si el color es más caro, la diferencia va aparte como "Adicional por color" (pasada por la fórmula de precio). Si un color figura más barato que la blanca (precio viejo), se cobra como blanca y se avisa. `cotizador_catalogo.precio_al_dia`: factura o precio de lista cargado hace menos de 60 días.

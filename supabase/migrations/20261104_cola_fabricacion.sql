@@ -89,3 +89,6 @@ revoke all on function public.ot_en_cola_sin_fecha() from public, anon;
 drop trigger if exists ot_en_cola_sin_fecha on public.ordenes_trabajo;
 create trigger ot_en_cola_sin_fecha before insert on public.ordenes_trabajo
   for each row execute function public.ot_en_cola_sin_fecha();
+
+-- Foto del ticket de caja chica (bucket privado facturas, carpeta caja-chica/)
+alter table public.caja_chica add column if not exists comprobante_path text;

@@ -25,7 +25,7 @@ export default function CajaChica() {
     setLoading(true)
     const { data } = await supabase
       .from('caja_chica')
-      .select('*, creado_por_emp:empleados!caja_chica_creado_por_fkey(nombre), aprobado_por_emp:empleados!caja_chica_aprobado_por_fkey(nombre)')
+      .select('*, ordenes_trabajo(numero_ot), creado_por_emp:empleados!caja_chica_creado_por_fkey(nombre), aprobado_por_emp:empleados!caja_chica_aprobado_por_fkey(nombre)')
       .order('fecha', { ascending:false })
     setRegistros(data || [])
     setLoading(false)
@@ -62,6 +62,12 @@ export default function CajaChica() {
     }).eq('id', id)
     if (error) { alert('No se pudo actualizar el estado: ' + error.message); return }
     load()
+  }
+
+  async function verTicket(path) {
+    const { data, error } = await supabase.storage.from('facturas').createSignedUrl(path, 3600)
+    if (error) { alert('No se pudo abrir el ticket: ' + error.message); return }
+    window.open(data.signedUrl, '_blank')
   }
 
   const pendientes = registros.filter(r => r.estado === 'pendiente')
@@ -115,6 +121,8 @@ export default function CajaChica() {
               { key:'descripcion', label:'Descripción' },
               { key:'categoria', label:'Categoría', render:r => CAT_LABEL[r.categoria] || r.categoria || '—' },
               { key:'monto', label:'Monto', render:r => fmt(r.monto) },
+              { key:'ot', label:'OT', render:r => r.ordenes_trabajo?.numero_ot || '—' },
+              { key:'ticket', label:'Ticket', render:r => r.comprobante_path ? <Btn small variant="secondary" onClick={() => verTicket(r.comprobante_path)}>Ver foto</Btn> : '—' },
               { key:'creado_por', label:'Cargado por', render:r => r.creado_por_emp?.nombre || '—' },
               { key:'estado', label:'Estado', render:r => badgeEstado(r.estado) },
               { key:'acciones', label:'', render:r => (

@@ -204,6 +204,9 @@ Deno.serve(async (req) => {
       const token = (req.headers.get("authorization") || "").replace(/^Bearer /i, "");
       const { data: u } = await sb.auth.getUser(token);
       if (!u?.user) return json({ ok: false, error: "Iniciá sesión para cargar facturas" }, 401);
+      // Tener sesión no alcanza (el registro puede estar abierto): tiene que ser empleado activo
+      const { data: emp } = await sb.from("empleados").select("activo").eq("auth_user_id", u.user.id).maybeSingle();
+      if (!emp || emp.activo === false) return json({ ok: false, error: "Solo empleados" }, 401);
       userId = u.user.id;
     }
     if (!archivo_path) return json({ ok: false, error: "Falta archivo_path" }, 400);

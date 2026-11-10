@@ -1,5 +1,8 @@
 # Changelog
 
+## 10/11/2026
+- Diseño Glass v6: foto de fondo (cocina a medida, Unsplash), paneles de vidrio esmerilado, menú lateral y barra superior flotantes, contenido en un panel de vidrio, tarjetas que se elevan al pasar el mouse y el primer indicador del Inicio destacado. También en el login y en el tema oscuro.
+
 ## 04/11/2026
 - Usuarios: el administrador puede cambiar la contraseña de cualquier usuario (botón "Cambiar clave"; mínimo 8 caracteres). Lo hace `crear-usuario-admin` v4 con la acción `cambiar_password`, que valida que quien llama sea admin activo.
 - **Tickets desde la app.** Caja chica muestra la OT y la foto del ticket (`caja_chica.comprobante_path`, bucket privado `facturas`). `zebrano-facturas` v9 exige empleado activo (antes alcanzaba con tener sesión).

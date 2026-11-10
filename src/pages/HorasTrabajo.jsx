@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Layout, Topbar, PageContent } from '../components/Layout'
 import { Card, KpiCard, SectionTitle, Table, Spinner, Btn, Input } from '../components/ui'
+import PlanCola from '../components/PlanCola'
 
 export default function HorasTrabajo() {
   const [ots, setOts] = useState([])
@@ -70,6 +71,7 @@ export default function HorasTrabajo() {
         actions={<Btn small onClick={() => setShowForm(v => !v)}>{showForm ? 'Cancelar' : '+ Cargar horas'}</Btn>}
       />
       <PageContent>
+        <PlanCola />
         {loading ? <Spinner /> : <>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:12, marginBottom:20 }}>
             <KpiCard label="Horas cargadas este mes" value={totalHorasMes.toFixed(1)} accent />

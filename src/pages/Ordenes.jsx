@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
 import { Badge, Spinner, EmptyState } from '../components/ui';
+import { optimizarPorMaterial } from '../lib/corte';
+import { Necesidades } from '../components/StockCompras';
 
 const n = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: d });
 const fecha = d => d ? new Date(d + 'T12:00').toLocaleDateString('es-AR') : '—';
@@ -97,6 +99,7 @@ export default function Ordenes() {
 
 function Detalle({ ot, mods, onClose }) {
   const [piezas, setPiezas] = useState(null);
+  const [vista, setVista] = useState('despiece');
   useEffect(() => {
     supabase.from('ot_piezas').select('*').eq('orden_trabajo_id', ot.id).order('orden').then(({ data }) => setPiezas(data || []));
   }, [ot.id]);
@@ -134,7 +137,13 @@ function Detalle({ ot, mods, onClose }) {
         </div>
         <div className="z-drawer-body">
           {ot.proyectos?.notas_internas && <p className="text-[13px] text-z-ink-2 mb-4">{ot.proyectos.notas_internas}</p>}
-          {!piezas ? <Spinner /> : mods.map(m => {
+          <div className="z-seg mb-4" role="group" aria-label="Vista de la orden">
+            {[['despiece', 'Despiece'], ['corte', 'Corte de placas'], ['compras', 'Materiales y compras']].map(([k, l]) =>
+              <button key={k} aria-pressed={vista === k} onClick={() => setVista(k)}>{l}</button>)}
+          </div>
+          {vista === 'corte' && (piezas ? <Corte ot={ot} piezas={piezasDeCorte(mods, piezas)} /> : <Spinner />)}
+          {vista === 'compras' && <Necesidades otId={ot.id} />}
+          {vista !== 'despiece' ? null : !piezas ? <Spinner /> : mods.map(m => {
             const todas = piezas.filter(p => p.modulo_id === m.id);
             const taller = todas.filter(p => p.origen === 'taller'), agente = todas.filter(p => p.origen === 'agente');
             const ps = taller.length ? taller : agente;
@@ -170,5 +179,66 @@ function Detalle({ ot, mods, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Piezas que se cortan: las del taller si las cargó, si no las del agente (igual que el despiece de arriba).
+function piezasDeCorte(mods, piezas) {
+  return mods.flatMap(m => {
+    const todas = piezas.filter(p => p.modulo_id === m.id);
+    const ps = todas.some(p => p.origen === 'taller') ? todas.filter(p => p.origen === 'taller') : todas;
+    return ps.map(p => ({ nombre: p.nombre_pieza, modulo: m.nombre, largo_mm: p.largo_mm, ancho_mm: p.ancho_mm, cantidad: p.cantidad, material: p.material_nombre }));
+  });
+}
+
+const COLORES = ['#d9c3a5', '#c8d6c1', '#c9d3e3', '#e6c9c9', '#e3dcc0', '#d4c9e3'];
+function svgPlaca(pl, largo, ancho) {
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const mods = [...new Set(pl.piezas.map(p => p.modulo))];
+  const rects = pl.piezas.map(p => {
+    const fs = Math.max(28, Math.min(70, Math.min(p.w, p.h) / 4));
+    return `<g><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${COLORES[mods.indexOf(p.modulo) % COLORES.length]}" stroke="#333" stroke-width="4"/>` +
+      `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle" font-family="Arial" fill="#222">${p.rot ? p.h + '×' + p.w + ' ↻' : p.w + '×' + p.h}</text>` +
+      (p.h > fs * 3 && p.w > 300 ? `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2 + fs * 1.2}" font-size="${fs * 0.7}" text-anchor="middle" font-family="Arial" fill="#555">${esc(p.nombre)}</text>` : '') + '</g>';
+  }).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${largo + 20} ${ancho + 20}" style="width:100%;height:auto;background:#fff"><rect x="0" y="0" width="${largo}" height="${ancho}" fill="#f4f4f4" stroke="#000" stroke-width="6"/>${rects}</svg>`;
+}
+
+function Corte({ ot, piezas }) {
+  const [cfg, setCfg] = useState(null);
+  useEffect(() => { supabase.from('config_placas').select('material,largo_mm,ancho_mm').eq('activo', true).then(({ data }) => setCfg(data || [])); }, []);
+  if (!cfg) return <Spinner />;
+  if (!piezas.length) return <EmptyState icon="content_cut" title="Esta orden no tiene piezas para cortar" />;
+  const grupos = optimizarPorMaterial(piezas, cfg);
+  const pct = x => Math.round(x * 100) + '%';
+  const imprimir = () => {
+    const w = window.open('', '_blank');
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>Corte ${ot.numero_ot}</title><style>body{font:12px system-ui;margin:20px}h1{font-size:18px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 4px}.p{page-break-inside:avoid;margin:8px 0 16px}.s{color:#555}</style>
+      <h1>Hoja de corte ${ot.numero_ot}</h1><p class="s">Sierra 4 mm. Medidas largo × ancho en mm; ↻ = pieza girada. Las piezas del mismo color son del mismo módulo.</p>` +
+      grupos.map(g => `<h2>${g.material.replace(/[&<>"]/g, '')} — ${g.placas.length} placa${g.placas.length > 1 ? 's' : ''} de ${g.largo}×${g.ancho}${g.veta ? ' (con veta, sin girar)' : ''} · aprovechamiento ${pct(g.uso)}</h2>` +
+        g.placas.map((pl, i) => `<div class="p"><b>Placa ${i + 1}</b> · ${pct(pl.uso)} · ${pl.piezas.length} piezas${pl.retazos.length ? ` · retazos: ${pl.retazos.map(r => Math.round(r.w) + '×' + Math.round(r.h)).join(', ')}` : ''}${svgPlaca(pl, g.largo, g.ancho)}</div>`).join('')).join(''));
+    w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+  };
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-3">
+        <p className="text-[12.5px] text-z-ink-3 m-0 flex-1">Corte en guillotina, sierra de 4 mm. Las melaminas con veta no se giran. Los retazos de más de 30 × 30 cm quedan anotados.</p>
+        <button className="btn btn-secondary btn-sm" onClick={imprimir}><Icon name="print" /> Hoja de corte</button>
+      </div>
+      {grupos.map(g => (
+        <section key={g.material} className="mb-6">
+          <h3 className="text-[14.5px] font-semibold text-z-ink m-0">{g.material}</h3>
+          <p className="text-[12.5px] text-z-ink-3 mb-2">{g.placas.length} placa{g.placas.length > 1 ? 's' : ''} de {g.largo} × {g.ancho} · aprovechamiento {pct(g.uso)}{g.veta ? ' · con veta' : ''}{g.noEntran.length ? ` · ${g.noEntran.length} pieza(s) más grandes que la placa` : ''}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+            {g.placas.map((pl, i) => (
+              <figure key={i} style={{ margin: 0 }}>
+                <img alt={`Placa ${i + 1} de ${g.material}`} style={{ width: '100%', borderRadius: 6 }} src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgPlaca(pl, g.largo, g.ancho))}`} />
+                <figcaption className="text-[12px] text-z-ink-3">Placa {i + 1} · {pct(pl.uso)} · {pl.piezas.length} piezas</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
   );
 }

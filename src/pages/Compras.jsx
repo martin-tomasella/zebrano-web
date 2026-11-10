@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
 import { Badge, EmptyState, Spinner, KpiCard } from '../components/ui';
+import { Necesidades, Stock } from '../components/StockCompras';
 
 const $ = n => n == null ? '—' : '$' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
 const usd = n => n == null ? '—' : 'US$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -80,6 +81,8 @@ export default function Compras() {
             <button aria-pressed={tab === 'precios'} onClick={() => setTab('precios')}>Precios vigentes</button>
             <button aria-pressed={tab === 'resumen'} onClick={() => setTab('resumen')}>Totales e impuestos</button>
             <button aria-pressed={tab === 'ordenes'} onClick={() => setTab('ordenes')}>Costo por orden</button>
+            <button aria-pressed={tab === 'necesidades'} onClick={() => setTab('necesidades')}>Necesidades de OT</button>
+            <button aria-pressed={tab === 'stock'} onClick={() => setTab('stock')}>Stock</button>
           </div>
           {tab === 'facturas' && <button className="z-chip" aria-pressed={filtro === 'todas'} onClick={() => setFiltro('todas')}>Todas <span className="z-chip-count">{facturas.filter(f => f.estado !== 'descartada').length}</span></button>}
           {tab === 'facturas' && ESTADOS.map(([k, l]) => (
@@ -88,7 +91,7 @@ export default function Compras() {
           <input className="ml-auto max-w-[260px]" placeholder="Buscar…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
         </div>
 
-        {loading ? <Spinner /> : tab === 'resumen' ? <Resumen /> : tab === 'ordenes' ? <CostoOrdenes /> : tab === 'facturas' ? (
+        {loading ? <Spinner /> : tab === 'necesidades' ? <Necesidades /> : tab === 'stock' ? <Stock /> : tab === 'resumen' ? <Resumen /> : tab === 'ordenes' ? <CostoOrdenes /> : tab === 'facturas' ? (
           <div className="card overflow-auto">
             <table className="w-full">
               <thead><tr><th>Fecha</th><th>Proveedor</th><th>Comprobante</th><th>A nombre de</th><th>Orden</th><th>Estado</th><th className="text-right">Total</th><th>Alertas</th></tr></thead>

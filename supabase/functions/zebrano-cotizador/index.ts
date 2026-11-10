@@ -332,6 +332,7 @@ Deno.serve(async(req)=>{
       }
     }
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
+    // v65 (10/11/2026): flujo por pasos (leer, guardar_diseno, render, cotizar), precio en USD, trabajo agrupado en obra, cliente/prospecto elegidos.
     // v64 (04/11/2026, pendiente de deploy; mientras tanto lo hace el trigger ot_en_cola_sin_fecha): la OT nace en cola sin fecha_inicio; la pone ot_iniciar.
     // v63 (04/11/2026): hora hombre de cotizacion (cotiz_parametros.hora_hombre_cotizacion, calibrada contra el modelo viejo); el fibro de fondos sin desperdicio del 80%.
     // v62 (04/11/2026): herrajes con precios de la planilla del taller; suma cantos (rollos), tiradores y varios como el computo; bisagra cierre suave y pata de cocina por defecto.
@@ -358,18 +359,68 @@ Deno.serve(async(req)=>{
     const pstr=PLACAS.map(p=>`- ${p.nombre} (placa ${p.largo_mm||2750}x${p.ancho_mm||1830}mm)`).join("\n");
     const hstr=HERR.map(h=>`- ${h.nombre} (${h.unidad||"unidad"})`).join("\n");
     let sid=sesion_id??null;
-    if(!sid){const{data:ns,error:ne}=await sb.from("cotizacion_sesiones").insert({origen,canal:canalSeguro,estado:"iniciada",imagenes_urls:[]}).select("id").single();if(ne)return json({ok:false,error:`Error sesion: ${ne.message}`},500);sid=ns.id;}
+    if(!sid){const{data:ns,error:ne}=await sb.from("cotizacion_sesiones").insert({origen,canal:canalSeguro,estado:"iniciada",imagenes_urls:[],...(empleado?{cliente_id:body.cliente_id||null,prospecto_id:body.prospecto_id||null,contexto_extra:body.obra_id?{obra_id:body.obra_id}:null}:{})}).select("id").single();if(ne)return json({ok:false,error:`Error sesion: ${ne.message}`},500);sid=ns.id;}
     const puedeRender=async()=>canalSeguro==="interno"||(await rendersDeSesion(sb,sid))<TOPES.rendersSesion;
     const SIN_RENDER="Ya generamos los renders disponibles para esta consulta. Si querés avanzar, dejanos tu nombre y un teléfono o email y te escribimos.";
     const{data:da}=await sb.from("cotizacion_diseno").select("*").eq("sesion_id",sid).maybeSingle();
     const disenoStr=da?`Version ${da.version}. Ancho:${da.ancho_mm}mm Alto:${da.alto_mm}mm Prof:${da.prof_mm}mm. Modulos: ${JSON.stringify(da.modulos)}. SVG aprobado: ${da.svg_aprobado?"SI":"NO"}.`:"Sin diseno. Primera sesion.";
     const renderPromptActual=da?.render_prompt_actual||"";
+    // v65: el calculo de precio es una funcion: la usa el chat (etapa cotizacion) y la accion "cotizar" del flujo por pasos.
+    const cotizarDat=async(dat,hist,mensaje)=>{let texto="",resumenCot=null;
+    // v57: si el agente describio modulos, el despiece y los herrajes de armado salen de las reglas del taller.
+    const FONDO=(PLACAS.find(p=>/fondo|hdf|fibro|plus/i.test(p.nombre)&&p.fuente==="factura")||PLACAS.find(p=>/fondo|hdf|fibro|plus/i.test(p.nombre)))?.nombre||"HDF blanco 3mm (fondos)";
+    const dsp=Array.isArray(dat.modulos)&&dat.modulos.length?despiece(dat.modulos,{placa:BLANCA?.nombre||"Melamina blanco mate 18mm",fondo:FONDO}):null;
+    if(dsp){const hb=HERR.find(h=>/bisagra/i.test(h.nombre)&&/soft|suave/i.test(h.nombre))||HERR.find(h=>/bisagra/i.test(h.nombre)),hc=HERR.find(h=>/corredera/i.test(h.nombre)&&/telesc/i.test(h.nombre))||HERR.find(h=>/corredera/i.test(h.nombre)),hp=HERR.find(h=>/pata/i.test(h.nombre)&&/cocina/i.test(h.nombre))||HERR.find(h=>/pata/i.test(h.nombre));const pares=dsp.herrajes.correderas.reduce((a,c)=>a+c.pares,0);const calc=[];if(dsp.herrajes.bisagras)calc.push({nombre:hb?.nombre??"Bisagra cazoleta",cantidad:dsp.herrajes.bisagras});if(pares)calc.push({nombre:hc?.nombre??"Corredera telescópica",cantidad:pares});if(dsp.herrajes.patas)calc.push({nombre:hp?.nombre??"Pata regulable",cantidad:dsp.herrajes.patas});
+      const nTir=dat.modulos.reduce((a,m)=>a+((Number(m.puertas)||0)+(Number(m.cajones)||0))*Math.max(1,Number(m.cantidad)||1),0),ht=HERR.find(h=>/^tirador chico/i.test(h.nombre));
+      const sinTir=(dat.herrajes??[]).some(h=>/tirador|manij|gola|push/i.test(String(h.nombre??"")))||/push|gola|u[ñn]ero|sin tirador/i.test(String(mensaje??""));
+      if(nTir&&!sinTir)calc.push({nombre:ht?.nombre??"Tirador chico",cantidad:nTir});dat.herrajes=[...calc,...(dat.herrajes??[]).filter(h=>!/bisagra|corredera|pata|pie nivelador/i.test(String(h.nombre??"")))];}
+    const piezas=dsp?[...dsp.piezas,...(dat.piezas??[])]:(dat.piezas??[]);await sb.from("cotizacion_sesiones").update({tipo_trabajo:String(dat.tipo_trabajo??"custom"),ambiente:String(dat.ambiente??""),estado:"borrador",procesado_at:new Date().toISOString()}).eq("id",sid);if(piezas.length>0){await sb.from("cotizacion_piezas").delete().eq("sesion_id",sid);await sb.from("cotizacion_piezas").insert(piezas.map((p,i)=>({sesion_id:sid,modulo_nombre:String(p.modulo??"General"),nombre_pieza:String(p.nombre??""),material:String(p.material??"Melamina blanco mate 18mm"),largo_mm:Number(p.largo_mm)||0,ancho_mm:Number(p.ancho_mm)||0,cantidad:Number(p.cantidad)||1,con_canto_largo:Boolean(p.canto_largo),con_canto_ancho:Boolean(p.canto_ancho),orden:i+1})));}
+    const hojas=calcHojas(piezas,pcfg,aprov);
+    // Como la planilla del taller: rollos de preencolado (50 m) por metros de canto del despiece y "varios" (tornilleria, cola) = placas + 1.
+    // ponytail: canto blanco aunque la placa sea de color; agregar canto al tono cuando haya precio por color.
+    if(dsp){const mCanto=piezas.reduce((a,p)=>a+(Number(p.cantidad)||1)*((p.canto_largo?Number(p.largo_mm):0)+(p.canto_ancho?Number(p.ancho_mm):0))*(p.canto_largo&&p.canto_ancho?2:1),0)/1000;
+      const hcan=CANTO.find(c=>/preencolado/i.test(c.nombre)&&/blanc/i.test(c.nombre)),hv=HERR.find(h=>/^varios/i.test(h.nombre));
+      const nPl=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
+      dat.herrajes=[...(dat.herrajes??[]),...(mCanto>0?[{nombre:hcan?.nombre??"Preencolado 22mm (rollo 50 m)",cantidad:Math.ceil(mCanto/50)}]:[]),...(nPl?[{nombre:hv?.nombre??"Varios",cantidad:nPl+1}]:[])];}await sb.from("cotizacion_hojas").delete().eq("sesion_id",sid);await sb.from("cotizacion_hojas").insert(Object.entries(hojas).map(([mat,hh])=>({sesion_id:sid,material:mat,m2_neto:hh.m2_neto,hojas_teoricas:hh.m2_neto/((pcfg[mat]?.largo_mm??2800)/1000*(pcfg[mat]?.ancho_mm??1600)/1000),hojas_reales:hh.hojas_reales,precio_hoja:hh.precio_hoja,subtotal:hh.subtotal})));const herrajes=(dat.herrajes??[]).map(h=>{const c=[...HERR,...CANTO].find(x=>x.nombre.toLowerCase()===String(h.nombre??"").toLowerCase());return{...h,precio_unit:c?Math.round(Number(c.precio_hoy)*(c.categoria==="canto"?1:ivaCompra)):0,_aldia:!!c?.precio_al_dia};});if(herrajes.length>0){await sb.from("cotizacion_herrajes").delete().eq("sesion_id",sid);await sb.from("cotizacion_herrajes").insert(herrajes.map(h=>({sesion_id:sid,nombre:String(h.nombre??"."),cantidad:Number(h.cantidad)||1,precio_unit:h.precio_unit,subtotal:(Number(h.cantidad)||1)*h.precio_unit})));}
+    const mo=(dat.mano_obra??[]).map(m=>({etapa:String(m.etapa??m.operacion??"armado").toLowerCase(),horas:Number(m.horas_estimadas)||0,personas:String(m.etapa??"").toLowerCase()==="corte"?2:Math.max(1,Number(m.operarios)||1)}));if(mo.length>0){await sb.from("cotizacion_mano_obra").delete().eq("sesion_id",sid);await sb.from("cotizacion_mano_obra").insert(mo.map(m=>({sesion_id:sid,etapa:m.etapa,operacion:m.etapa,horas_estimadas:m.horas,operarios:m.personas,costo_hora_ref:costoHoraMO,subtotal:Math.round(m.horas*m.personas*costoHoraMO)})));}
+    const ppLaq=PIN?.[0]?.precio_m2_aplicado??8500;const costoLaq=(Number(dat.laqueado_m2)||0)*ppLaq;const pBlanca=Number(BLANCA?.precio_hoy)||0;const esColor=k=>/^melamina/i.test(k)&&pBlanca>0; // toda melamina se cuenta a precio de blanca; si la placa es mas cara, la diferencia es el adicional
+    const colores=Object.entries(hojas).filter(([k])=>esColor(k)).map(([k,h])=>({material:k,placas:h.hojas_reales,dif:Math.max(0,h.precio_hoja-pBlanca)*h.hojas_reales,barato:h.precio_hoja<pBlanca}));
+    const costoMatBase=Object.entries(hojas).reduce((a,[k,h])=>a+(esColor(k)?h.hojas_reales*pBlanca:h.subtotal),0);
+    const costoMat=costoMatBase+colores.reduce((a,c)=>a+c.dif,0);const costoHerr=herrajes.reduce((a,h)=>a+(Number(h.cantidad)||1)*h.precio_unit,0);const costoMO=Math.round(mo.reduce((a,m)=>a+m.horas*m.personas*costoHoraMO,0));const costoTotal=costoMat+costoHerr+costoMO+costoLaq;const costoBase=costoTotal-(costoMat-costoMatBase);const[{data:pv},{data:pvb}]=await Promise.all([sb.rpc("precio_venta",{p_costo:costoTotal,p_canal:"final"}),sb.rpc("precio_venta",{p_costo:costoBase,p_canal:"final"})]);const precioSugerido=Number(pv)||0,precioBase=Number(pvb)||0,adicionalColor=precioSugerido-precioBase;const horasPersona=mo.reduce((a,m)=>a+m.horas*m.personas,0);
+    const{data:tcr}=await sb.from("tipos_cambio").select("oficial_venta").not("oficial_venta","is",null).order("fecha",{ascending:false}).limit(1).maybeSingle();const tcUsd=Number(tcr?.oficial_venta)||null,precioUsd=tcUsd?Math.round(precioSugerido/tcUsd):null;
+    const sinFactura=[...Object.entries(hojas).filter(([k])=>!pcfg[k]?.al_dia).map(([k])=>k),...herrajes.filter(h=>!h._aldia).map(h=>h.nombre)];
+    const fmt=n=>"$"+Math.round(n).toLocaleString("es-AR");
+    if(adicionalColor>0){texto+=`\n\nPrecio base en melamina blanca: ${fmt(precioBase)} sin IVA.\nAdicional por color (${colores.filter(c=>c.dif>0).map(c=>`${c.material}, ${c.placas} placa${c.placas>1?"s":""}`).join("; ")}): +${fmt(adicionalColor)}.\nTotal sin IVA: ${fmt(precioSugerido)} (con IVA ${fmt(precioSugerido*1.21)}).`;}
+    else texto+=`\n\nPrecio sin IVA: ${fmt(precioSugerido)} (con IVA ${fmt(precioSugerido*1.21)}).`;
+    if(precioUsd)texto+=` Equivale a USD ${precioUsd.toLocaleString("es-AR")} (oficial BCRA $${tcUsd.toLocaleString("es-AR")}).`;
+    if(canalSeguro==="interno"&&colores.some(c=>c.barato))texto+=`\nOjo: ${colores.filter(c=>c.barato).map(c=>c.material).join(", ")} figura más barato que la blanca (precio viejo): lo cotizo al precio de la blanca, sin adicional.`;
+    if(mo.length)texto+=`\nTiempo estimado: ${mo.map(m=>`${m.etapa} ${m.horas} h con ${m.personas} persona${m.personas>1?"s":""}`).join(", ")}.`+(canalSeguro==="interno"?" Si el taller tarda otra cosa, decime las horas y personas por etapa y recalculo.":"");
+    // Control contra lo que hizo el taller: placas de melamina del despiece vs tipologias de referencia y vs placas por ml de 2026.
+    const placasMel=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
+    const ctrl=[];
+    const esPlacard=/placard|vestidor|dormitorio|ropero/i.test(String(dat.tipo_trabajo??"")),grpPlacard=/placard|vestidor/i;
+    const refs=(dat.tipologias_ref??[]).map(r=>({t:tipPorAncho(TIPOS,r),n:Number(r.cantidad)||1})).filter(r=>r.t&&(esPlacard||!grpPlacard.test(r.t.grupo)));
+    if(refs.length){const pr=refs.reduce((a,r)=>a+(Number(r.t.cantidades?.["hojas blancas"])||0)*r.n,0);if(canalSeguro==="interno")texto+=`\nTipología del taller: ${refs.map(r=>(r.n>1?r.n+" x ":"")+r.t.nombre).join(", ")} (${pr} placas blancas en la planilla).`;if(pr&&Math.abs(placasMel-pr)/pr>0.3)ctrl.push(`el despiece da ${placasMel} placas y la planilla del taller (${refs.map(r=>r.t.nombre).join(", ")}) usa ${pr}`);}
+    const mlDis=(dsp?dat.modulos:((da?.modulos)??[])).reduce((a,m)=>a+(Number(m.ancho_mm)||0)*(dsp?(Number(m.cantidad)||1):1)/1000,0);
+    if(dsp&&canalSeguro==="interno"){const mods=dat.modulos;texto+=`\nDespiece con las reglas del taller: ${dsp.piezas.reduce((a,p)=>a+p.cantidad,0)} piezas de ${mods.length} módulo${mods.length>1?"s":""}.`;if(dsp.avisos.length)texto+=` ${dsp.avisos.join("; ")}.`;}
+    if(dsp){const dicho=rx=>(hist??[]).some(h=>h.rol==="user"&&rx.test(String(h.contenido??"")))||rx.test(String(mensaje??""));const sup=dat.modulos.some(m=>m.frentes!=="embutidos");
+      if(!dicho(/embutid|superpuest|al ras/i))texto+=sup?`\nFrentes superpuestos al casco (casco + 2 cm de puerta). Si van embutidos o al ras del casco, decímelo y recalculo.`:`\nFrentes embutidos en el casco.`;
+      if(dat.modulos.some(m=>/bajo|cajonera|vanitory|isla/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>Number(m.zocalo_mm)>0||Number(m.patas)>0)&&!dicho(/z[oó]calo|pata/i))texto+=` No indicaste zócalo ni patas: no los incluí.`;
+      if(!dat.modulos.some(m=>Number(m.terminaciones)>0)&&!dicho(/terminaci|a la vista/i))texto+=` Sugerencia: si algún lateral queda a la vista, sumo lateral de terminación.`;
+      if(dat.modulos.some(m=>/bajo/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>m.regrueso)&&!dicho(/regrueso/i))texto+=` Regrueso de mesada: opcional, decime si lo sumo.`;}
+    const tt=String(dat.tipo_trabajo??"").toLowerCase(),cf=COEF.find(c=>tt.includes(c.grupo.split(":")[1].split("/")[0]))?.cantidades?.placas_blancas_por_ml;
+    if(cf&&mlDis>0){const r=placasMel/mlDis;if(r<cf.p25*0.7||r>cf.p75*1.3)ctrl.push(`${placasMel} placas para ${mlDis.toFixed(2)} ml de frente (${r.toFixed(2)} por ml); en los trabajos 2026 de este tipo fue entre ${cf.p25} y ${cf.p75} por ml`);}
+    if(canalSeguro==="interno"){texto+=`\nCosto directo ${fmt(costoTotal)}: material ${fmt(costoMat)} (blanca a ${fmt(pBlanca)}/placa), herrajes ${fmt(costoHerr)}, mano de obra ${fmt(costoMO)} (${horasPersona} h-persona a ${fmt(costoHoraMO)}).`;if(ctrl.length)texto+=`\nControl del taller: ${ctrl.join("; ")}. Revisá el despiece.`;if(sinFactura.length)texto+=`\nOjo: sin precio actualizado (ni factura ni lista de los últimos 60 días): ${sinFactura.join(", ")}. Subí la factura de compra para actualizarlos.`;}const{data:re}=await sb.from("cotizacion_resumen").select("render_url,pdf_presupuesto_url").eq("sesion_id",sid).maybeSingle();await sb.from("cotizacion_resumen").upsert({sesion_id:sid,costo_materiales:costoMat,costo_herrajes:costoHerr,costo_mano_obra:costoMO,costo_laqueado:costoLaq,costo_total_interno:costoTotal,margen_pct:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):0,precio_sugerido:precioSugerido,horas_totales_est:horasPersona||null,render_url:re?.render_url??null,tc_usd:tcUsd,precio_usd:precioUsd},{onConflict:"sesion_id"});const{data:ses}=await sb.from("cotizacion_sesiones").select("version,cliente_nombre,cliente_telefono").eq("id",sid).single();const version=re?.pdf_presupuesto_url?(Number(ses?.version)||1)+1:1;await sb.from("cotizacion_sesiones").update({version}).eq("id",sid);
+    const doc=await documento({tipo:"presupuesto",sesion_id:sid,version,numero:`AI-${String(sid).slice(0,6)}-v${version}`,fecha:new Date().toLocaleDateString("es-AR",{timeZone:"America/Argentina/Buenos_Aires"}),cliente:ses?.cliente_nombre,telefono:ses?.cliente_telefono,render_url:re?.render_url??null,titulo:[dat.tipo_trabajo,dat.ambiente].filter(Boolean).join(" - ")||"Mobiliario a medida",modulos:dat.modulos??[],precio_base:precioBase,adicional:adicionalColor,adicional_detalle:colores.filter(c=>c.dif>0).map(c=>c.material).join(", "),total:precioSugerido,total_usd:precioUsd,tc_usd:tcUsd});
+    if(doc?.path){await sb.from("cotizacion_resumen").update({pdf_presupuesto_url:doc.path}).eq("sesion_id",sid);texto+=`\n\nPresupuesto v${version} para enviar al cliente: ${doc.url}\nSi querés cambios, pedímelos y armo la versión ${version+1}; cuando el cliente lo apruebe, aprobalo y genero la orden de trabajo.`;}
+    resumenCot={documento_url:doc?.url??null,version,costoTotal,precioSugerido,precioUsd,tcUsd,precioBase,adicionalColor,margen:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):null,sin_factura:sinFactura,listo_para_aprobar:true};
+    return{texto,resumenCot};};
     if(aprobar_cotizacion&&sid){
       const yr=new Date().getFullYear();
       const{data:ots}=await sb.from("ordenes_trabajo").select("numero_ot").like("numero_ot",`OT-${yr}-%`);
       const nMax=Math.max(0,...(ots??[]).map(o=>Number(String(o.numero_ot).split("-").pop())||0));
       const nOT=`OT-${yr}-${String(nMax+1).padStart(3,"0")}`;
-      const{data:s}=await sb.from("cotizacion_sesiones").select("tipo_trabajo,ambiente,cliente_nombre,cliente_telefono,cliente_email").eq("id",sid).single();
+      const{data:s}=await sb.from("cotizacion_sesiones").select("tipo_trabajo,ambiente,cliente_nombre,cliente_telefono,cliente_email,cliente_id,prospecto_id,contexto_extra").eq("id",sid).single();
       const{data:resumen}=await sb.from("cotizacion_resumen").select("precio_sugerido,horas_totales_est").eq("sesion_id",sid).maybeSingle();
       const tipoTrabajo=s?.tipo_trabajo??"custom";
       const nombreCliente=(s?.cliente_nombre||"").trim();
@@ -378,8 +429,8 @@ Deno.serve(async(req)=>{
       // igual que cualquier proyecto cargado a mano. Matcheamos primero por NOMBRE (dato mas
       // confiable en este contexto) y recien despues por telefono, para evitar que sesiones
       // de test/distintos clientes con el mismo telefono placeholder se mezclen entre si.
-      let clienteId=null;
-      if(nombreCliente){const{data:cx}=await sb.from("clientes").select("id").ilike("nombre",nombreCliente).maybeSingle();if(cx)clienteId=cx.id;}
+      let clienteId=s?.cliente_id??null;
+      if(!clienteId&&nombreCliente){const{data:cx}=await sb.from("clientes").select("id").ilike("nombre",nombreCliente).maybeSingle();if(cx)clienteId=cx.id;}
       if(!clienteId&&telCliente){const{data:cx}=await sb.from("clientes").select("id").eq("telefono",telCliente).maybeSingle();if(cx)clienteId=cx.id;}
       if(!clienteId&&nombreCliente){const{data:nc,error:ce}=await sb.from("clientes").insert({nombre:nombreCliente,telefono:telCliente||null,email:s?.cliente_email||null,origen_lead:"otro",activo:true}).select("id").single();if(!ce)clienteId=nc.id;else return json({ok:false,sesion_id:sid,error:`No se pudo crear el cliente: ${ce.message}`},500);}
       if(!clienteId){
@@ -397,6 +448,12 @@ Deno.serve(async(req)=>{
       // hace que despues aparezca tambien en /produccion.
       const{data:proy,error:proyErr}=await sb.from("proyectos").insert({nombre:nombreProyecto,descripcion:s?.ambiente?`${tipoTrabajo} - ${s.ambiente}`:tipoTrabajo,tipo_trabajo:normTipoTrabajoProyecto(tipoTrabajo),estado:"cotizado",cliente_id:clienteId,valor_estimado:resumen?.precio_sugerido??null,fecha_creacion:hoy,fecha_cotizado:hoy,origen_cotizacion:"agente"}).select("id").single();
       if(proyErr){return json({ok:false,sesion_id:sid,error:`No se pudo crear el proyecto: ${proyErr.message}`},500);}
+      // Plan v2: el trabajo se agrupa en una obra (la elegida o una nueva del cliente) y la sesion queda ligada al trabajo.
+      let obraId=s?.contexto_extra?.obra_id??null;
+      if(!obraId){const{data:cn}=await sb.from("clientes").select("nombre,direccion_obra").eq("id",clienteId).maybeSingle();const{data:ob}=await sb.from("obras").insert({cliente_id:clienteId,nombre:(cn?.nombre||nombreProyecto)+(cn?.direccion_obra?` — ${cn.direccion_obra}`:""),direccion:cn?.direccion_obra||null}).select("id").single();obraId=ob?.id??null;}
+      await sb.from("proyectos").update({obra_id:obraId}).eq("id",proy.id);
+      await sb.from("cotizacion_sesiones").update({proyecto_id:proy.id,cliente_id:clienteId}).eq("id",sid);
+      if(s?.prospecto_id)await sb.from("prospectos").update({convertido_a_cliente:true,cliente_id:clienteId,estado:"ganado"}).eq("id",s.prospecto_id);
       // La OT lleva todo el detalle de fabricacion (diseno, render, modulos y despiece) pero NUNCA el precio de venta
       const notasOT=[`Generada por el Cotizador AI (sesion ${String(sid).slice(0,8)}).`,
         da?`Medidas generales: ${da.ancho_mm??"?"} x ${da.alto_mm??"?"} x ${da.prof_mm??"?"} mm.`:"",
@@ -424,6 +481,74 @@ Deno.serve(async(req)=>{
       const hoja=await documento({tipo:"ot",sesion_id:sid,numero_ot:nOT,presupuesto:`AI-${String(sid).slice(0,6)}`,cliente:nombreCliente,telefono:telCliente,fecha:hoy,tipo_trabajo:tipoTrabajo,render_url:da?.render_fotorrealista_url??null,modulos:ult?.metadata?.datos?.modulos??[],piezas:piezasCot??[],herrajes:hz??[],mano_obra:mz??[]});
       if(hoja?.path)await sb.from("cotizacion_resumen").update({pdf_ot_url:hoja.path}).eq("sesion_id",sid);
       return json({ok:true,sesion_id:sid,respuesta:`Orden ${nOT} creada con el diseño${nPiezas?` y ${nPiezas} líneas de despiece propuestas por el agente`:""} (sin precio de venta). Quedó pendiente en Producción para el taller; el proyecto figura en Proyectos como "Cotizado".${hoja?.url?`\nHoja de taller: ${hoja.url}`:""}`,ot_creada:true,numero_ot:nOT,proyecto_id:proy.id,hoja_taller_url:hoja?.url??null});
+    }
+    // v65 (10/11/2026): flujo por pasos de "Nuevo trabajo": leer -> guardar_diseno -> render -> cotizar -> aprobar_cotizacion.
+    const accion=body.accion;
+    if(accion){
+      if(!empleado)return json({ok:false,error:"no autorizado"},401);
+      const N=v=>Math.max(0,Math.round(Number(v)||0));
+      const normMod=m=>({nombre:String(m.nombre||"Módulo").slice(0,60),familia:String(m.familia||"bajo"),ancho_mm:N(m.ancho_mm),alto_mm:N(m.alto_mm),prof_mm:N(m.prof_mm),puertas:N(m.puertas),cajones:N(m.cajones),estantes:N(m.estantes),frentes:m.frentes==="embutidos"?"embutidos":"superpuestos",zocalo_mm:N(m.zocalo_mm),patas:N(m.patas),cantidad:Math.max(1,N(m.cantidad)||1),material:String(m.material||BLANCA?.nombre||"Melamina blanco mate 18mm"),terminaciones:Math.min(2,N(m.terminaciones)),regrueso:!!m.regrueso});
+      const detalle=m=>[m.familia,m.puertas?`${m.puertas} puerta${m.puertas>1?"s":""}`:"",m.cajones?`${m.cajones} cajón${m.cajones>1?"es":""}`:"",m.estantes?`${m.estantes} estante${m.estantes>1?"s":""}`:""].filter(Boolean).join(", ");
+      const promptBase=(mods,tipo,estilo)=>`Custom built-in ${tipo||"furniture"} in ${mods[0]?.material||"white melamine"}, ${mods.map(m=>`${m.cantidad>1?m.cantidad+" x ":""}${m.nombre} ${m.ancho_mm}x${m.alto_mm}x${m.prof_mm}mm (${detalle(m)})`).join("; ")}.${estilo?` Style: ${estilo}.`:""}`;
+      const guardarDiseno=async(modsIn,extra)=>{
+        const mods=(modsIn??[]).map(normMod).filter(m=>m.ancho_mm&&m.alto_mm);
+        const{data:ses0}=await sb.from("cotizacion_sesiones").select("contexto_extra,tipo_trabajo").eq("id",sid).single();
+        const ctx={...(ses0?.contexto_extra??{}),...extra};
+        const tipo=extra.tipo_trabajo??ses0?.tipo_trabajo??"";
+        const planos=mods.flatMap(m=>Array.from({length:m.cantidad},()=>({nombre:m.nombre,ancho_mm:m.ancho_mm,alto_mm:m.alto_mm,material:m.material,fila:/alacena/i.test(m.familia)?"alto":"bajo",detalles:detalle(m)})));
+        const sumF=f=>planos.filter(m=>m.fila===f).reduce((a,m)=>a+m.ancho_mm,0),maxF=f=>Math.max(0,...planos.filter(m=>m.fila===f).map(m=>m.alto_mm)),dos=maxF("alto")>0&&maxF("bajo")>0;
+        const du={ancho_mm:dos?Math.max(sumF("alto"),sumF("bajo")):planos.reduce((a,m)=>a+m.ancho_mm,0),alto_mm:dos?maxF("alto")+600+maxF("bajo"):Math.max(0,...planos.map(m=>m.alto_mm)),prof_mm:Math.max(0,...mods.map(m=>m.prof_mm)),modulos:planos};
+        const svg=mods.length?await generarSVG(du):null;
+        await sb.from("cotizacion_diseno").upsert({sesion_id:sid,version:(da?.version??0)+1,ancho_mm:du.ancho_mm||null,alto_mm:du.alto_mm||null,prof_mm:du.prof_mm||null,modulos:mods.map(m=>({...m,detalles:detalle(m)})),render_prompt_actual:promptBase(mods,tipo,ctx.estilo),svg_tecnico:svg,svg_aprobado:false,updated_at:new Date().toISOString()},{onConflict:"sesion_id"});
+        await sb.from("cotizacion_sesiones").update({contexto_extra:ctx,...(extra.tipo_trabajo?{tipo_trabajo:extra.tipo_trabajo}:{}),...(extra.ambiente?{ambiente:extra.ambiente}:{}),estado:"procesando"}).eq("id",sid);
+        return{mods,svg,ctx};
+      };
+      if(accion==="leer"){
+        // El agente lee plano / foto / bosquejo / medidas y devuelve modulos estructurados (no precios).
+        const iu=[];
+        for(let i=0;i<imagenes_base64.length;i++){try{const b=Uint8Array.from(atob(imagenes_base64[i]),c=>c.charCodeAt(0));const pt=`sesiones/${sid}/img_${Date.now()}_${i}.jpg`;const{error}=await sb.storage.from("zebrano-proyectos").upload(pt,b,{contentType:"image/jpeg",upsert:true});if(!error)iu.push(sb.storage.from("zebrano-proyectos").getPublicUrl(pt).data.publicUrl);}catch{}}
+        await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"user",contenido:mensaje||"(plano / imágenes)",imagenes:iu});
+        const sys=`Sos el lector de planos de Zebrano, carpinteria a medida (Buenos Aires). Del plano, foto, bosquejo o texto, devolve SOLO este JSON:
+{"tipo_trabajo":"cocina|placard|vestidor|vanitory|biblioteca|mueble tv|escritorio|otro","ambiente":"","datos_cliente":{"nombre":"","telefono":"","email":""},"modulos":[{"nombre","familia":"bajo|alacena|columna|placard|cajonera|abierto","ancho_mm","alto_mm","prof_mm" (casco sin puerta),"puertas","cajones","estantes","frentes":"superpuestos|embutidos","zocalo_mm","patas","cantidad","material","terminaciones" (0-2 laterales a la vista),"regrueso" (bool)}],"mano_obra":[{"etapa":"corte|canteado|armado|terminacion|instalacion","horas_estimadas","operarios"}],"estilo":"terminaciones y estilo visual en ingles para el render","preguntas":["dudas concretas que el usuario tiene que confirmar"]}
+Reglas: las cotas escritas mandan; un mueble corrido se divide en modulos reales de hasta 1 m; si falta una medida usa estandar (bajo 720x550, alacena 700x350, placard 2400x580) y agregala en "preguntas". Frentes superpuestos salvo que se indique. Patas o zocalo solo si se indican (si no, pregunta). Material: nombre exacto de esta lista: ${PLACAS.map(p=>p.nombre).join(", ")}.
+Mano de obra (horas de reloj, jornada 7 h): corte siempre 2 personas; referencia del taller: cocina de 4 ml de bajo + 2 ml de alacena = corte 3,5 h con 2 personas y armado 14 h con 2 personas; escalar por metros y complejidad. Si el usuario dio horas, usarlas exactas.`;
+        const cont=imagenes_base64.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));cont.push({type:"text",text:mensaje||"Leé el plano adjunto."});
+        const{parsed:p,apiError,usage,modelo}=await callLLM([{role:"user",content:cont}],sys);
+        await reg({sesion_id:sid,modelo:usage?.modelo??modelo??"error",tokens_in:usage?.tokens_in??null,tokens_out:usage?.tokens_out??null});
+        if(apiError||!p?.modulos?.length)return json({ok:false,sesion_id:sid,error:apiError||"No pude leer módulos. Agregá medidas o una imagen más clara."},apiError?502:422);
+        const dc=p.datos_cliente||{};const upd={};if(String(dc.nombre||"").trim())upd.cliente_nombre=String(dc.nombre).trim();if(String(dc.telefono||"").trim())upd.cliente_telefono=String(dc.telefono).trim();if(String(dc.email||"").trim())upd.cliente_email=String(dc.email).trim();if(Object.keys(upd).length)await sb.from("cotizacion_sesiones").update(upd).eq("id",sid);
+        const mo=(p.mano_obra??[]).map(m=>({etapa:String(m.etapa||"armado").toLowerCase(),horas_estimadas:Number(m.horas_estimadas)||0,operarios:String(m.etapa).toLowerCase()==="corte"?2:Math.max(1,Number(m.operarios)||1)}));
+        const g=await guardarDiseno(p.modulos,{tipo_trabajo:p.tipo_trabajo,ambiente:p.ambiente,estilo:p.estilo||"",mano_obra:mo});
+        const txt=`Leí ${g.mods.length} módulo${g.mods.length===1?"":"s"}. Revisalos en la tabla y aprobá el diseño para generar el render.${(p.preguntas??[]).length?"\nPara confirmar: "+p.preguntas.join(" "):""}`;
+        await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:[],metadata:{accion:"leer",_modelo:modelo}});
+        return json({ok:true,sesion_id:sid,respuesta:txt,modulos:g.mods,mano_obra:mo,estilo:g.ctx.estilo,tipo_trabajo:p.tipo_trabajo,preguntas:p.preguntas??[],svg_tecnico:g.svg});
+      }
+      if(accion==="guardar_diseno"){
+        const extra={};for(const k of["tipo_trabajo","ambiente","estilo","mano_obra"])if(body[k]!==undefined)extra[k]=body[k];
+        const g=await guardarDiseno(body.modulos,extra);
+        return json({ok:true,sesion_id:sid,modulos:g.mods,svg_tecnico:g.svg});
+      }
+      if(accion==="render"){
+        const{data:d2}=await sb.from("cotizacion_diseno").select("render_prompt_actual").eq("sesion_id",sid).maybeSingle();
+        if(!d2?.render_prompt_actual)return json({ok:false,error:"Primero guardá el diseño."},400);
+        const prompt=d2.render_prompt_actual+(body.cambio?` Change requested: ${String(body.cambio).slice(0,400)}.`:"");
+        const{url:ru,error:re,modelo:rm}=await renderFoto(sb,prompt);await reg({sesion_id:sid,modelo:rm??"render-error",renders:ru?1:0});
+        await sb.from("cotizacion_diseno").update({svg_aprobado:true,svg_aprobado_at:new Date().toISOString(),...(ru?{render_fotorrealista_url:ru,render_generado_at:new Date().toISOString()}:{})}).eq("sesion_id",sid);
+        if(ru){const{data:rx}=await sb.from("cotizacion_resumen").select("id").eq("sesion_id",sid).maybeSingle();if(rx)await sb.from("cotizacion_resumen").update({render_url:ru}).eq("sesion_id",sid);else await sb.from("cotizacion_resumen").insert({sesion_id:sid,render_url:ru,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:0,precio_sugerido:0});}
+        return json({ok:!!ru,sesion_id:sid,render_url:ru,error:ru?null:`No se pudo generar el render (${re}). Podés cotizar igual.`});
+      }
+      if(accion==="cotizar"){
+        const{data:d2}=await sb.from("cotizacion_diseno").select("modulos").eq("sesion_id",sid).maybeSingle();
+        const{data:s2}=await sb.from("cotizacion_sesiones").select("tipo_trabajo,ambiente,contexto_extra").eq("id",sid).single();
+        const mods=(d2?.modulos??[]).map(normMod);
+        if(!mods.length)return json({ok:false,error:"No hay módulos para cotizar."},400);
+        const mo=body.mano_obra??s2?.contexto_extra?.mano_obra??[];
+        if(body.mano_obra)await sb.from("cotizacion_sesiones").update({contexto_extra:{...(s2?.contexto_extra??{}),mano_obra:body.mano_obra}}).eq("id",sid);
+        const r=await cotizarDat({tipo_trabajo:s2?.tipo_trabajo||"",ambiente:s2?.ambiente||"",modulos:mods,mano_obra:mo,piezas:[],herrajes:body.herrajes??[],laqueado_m2:Number(body.laqueado_m2)||0},[],String(body.notas??""));
+        await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:r.texto.trim(),imagenes:[],metadata:{accion:"cotizar",datos:{modulos:mods,mano_obra:mo}}});
+        return json({ok:true,sesion_id:sid,respuesta:r.texto.trim(),resumen:r.resumenCot});
+      }
+      return json({ok:false,error:"accion desconocida"},400);
     }
     if(aprobar_svg&&sid&&da){if(!(await puedeRender()))return json({ok:true,sesion_id:sid,respuesta:SIN_RENDER,limite:true,canal:canalSeguro});const{url:ru,error:re,modelo:rm}=await renderFoto(sb,da.render_prompt_actual??"");await reg({sesion_id:sid,modelo:rm??"render-error",renders:ru?1:0});await sb.from("cotizacion_diseno").update({svg_aprobado:true,svg_aprobado_at:new Date().toISOString(),render_fotorrealista_url:ru,render_generado_at:ru?new Date().toISOString():null}).eq("sesion_id",sid);if(ru)await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:ru,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});const txt=ru?"Render listo. Lo aprobas para calcular el presupuesto?":`No pude generar el render (${re}). Igual podemos seguir: decime "cotizá" y calculo el presupuesto con el diseño aprobado.`;await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:txt,imagenes:ru?[ru]:[]});return json({ok:true,sesion_id:sid,respuesta:txt,render_url:ru,svg_aprobado:true,render_error:re});}
     const iu=[];
@@ -466,52 +591,7 @@ Deno.serve(async(req)=>{
       texto=`Leí ${mods.length} módulos. Antes de cotizar, revisá el plano: si las medidas están bien, aprobalo y genero el render; después armo el presupuesto.`;
       etapaOut="diseno";parsed.listo_para_cotizar=false;
     }
-    if(etapa==="cotizacion"&&parsed?.listo_para_cotizar&&parsed?.datos){const dat=parsed.datos;
-    // v57: si el agente describio modulos, el despiece y los herrajes de armado salen de las reglas del taller.
-    const FONDO=(PLACAS.find(p=>/fondo|hdf|fibro|plus/i.test(p.nombre)&&p.fuente==="factura")||PLACAS.find(p=>/fondo|hdf|fibro|plus/i.test(p.nombre)))?.nombre||"HDF blanco 3mm (fondos)";
-    const dsp=Array.isArray(dat.modulos)&&dat.modulos.length?despiece(dat.modulos,{placa:BLANCA?.nombre||"Melamina blanco mate 18mm",fondo:FONDO}):null;
-    if(dsp){const hb=HERR.find(h=>/bisagra/i.test(h.nombre)&&/soft|suave/i.test(h.nombre))||HERR.find(h=>/bisagra/i.test(h.nombre)),hc=HERR.find(h=>/corredera/i.test(h.nombre)&&/telesc/i.test(h.nombre))||HERR.find(h=>/corredera/i.test(h.nombre)),hp=HERR.find(h=>/pata/i.test(h.nombre)&&/cocina/i.test(h.nombre))||HERR.find(h=>/pata/i.test(h.nombre));const pares=dsp.herrajes.correderas.reduce((a,c)=>a+c.pares,0);const calc=[];if(dsp.herrajes.bisagras)calc.push({nombre:hb?.nombre??"Bisagra cazoleta",cantidad:dsp.herrajes.bisagras});if(pares)calc.push({nombre:hc?.nombre??"Corredera telescópica",cantidad:pares});if(dsp.herrajes.patas)calc.push({nombre:hp?.nombre??"Pata regulable",cantidad:dsp.herrajes.patas});
-      const nTir=dat.modulos.reduce((a,m)=>a+((Number(m.puertas)||0)+(Number(m.cajones)||0))*Math.max(1,Number(m.cantidad)||1),0),ht=HERR.find(h=>/^tirador chico/i.test(h.nombre));
-      const sinTir=(dat.herrajes??[]).some(h=>/tirador|manij|gola|push/i.test(String(h.nombre??"")))||/push|gola|u[ñn]ero|sin tirador/i.test(String(mensaje??""));
-      if(nTir&&!sinTir)calc.push({nombre:ht?.nombre??"Tirador chico",cantidad:nTir});dat.herrajes=[...calc,...(dat.herrajes??[]).filter(h=>!/bisagra|corredera|pata|pie nivelador/i.test(String(h.nombre??"")))];}
-    const piezas=dsp?[...dsp.piezas,...(dat.piezas??[])]:(dat.piezas??[]);await sb.from("cotizacion_sesiones").update({tipo_trabajo:String(dat.tipo_trabajo??"custom"),ambiente:String(dat.ambiente??""),estado:"borrador",procesado_at:new Date().toISOString()}).eq("id",sid);if(piezas.length>0){await sb.from("cotizacion_piezas").delete().eq("sesion_id",sid);await sb.from("cotizacion_piezas").insert(piezas.map((p,i)=>({sesion_id:sid,modulo_nombre:String(p.modulo??"General"),nombre_pieza:String(p.nombre??""),material:String(p.material??"Melamina blanco mate 18mm"),largo_mm:Number(p.largo_mm)||0,ancho_mm:Number(p.ancho_mm)||0,cantidad:Number(p.cantidad)||1,con_canto_largo:Boolean(p.canto_largo),con_canto_ancho:Boolean(p.canto_ancho),orden:i+1})));}
-    const hojas=calcHojas(piezas,pcfg,aprov);
-    // Como la planilla del taller: rollos de preencolado (50 m) por metros de canto del despiece y "varios" (tornilleria, cola) = placas + 1.
-    // ponytail: canto blanco aunque la placa sea de color; agregar canto al tono cuando haya precio por color.
-    if(dsp){const mCanto=piezas.reduce((a,p)=>a+(Number(p.cantidad)||1)*((p.canto_largo?Number(p.largo_mm):0)+(p.canto_ancho?Number(p.ancho_mm):0))*(p.canto_largo&&p.canto_ancho?2:1),0)/1000;
-      const hcan=CANTO.find(c=>/preencolado/i.test(c.nombre)&&/blanc/i.test(c.nombre)),hv=HERR.find(h=>/^varios/i.test(h.nombre));
-      const nPl=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
-      dat.herrajes=[...(dat.herrajes??[]),...(mCanto>0?[{nombre:hcan?.nombre??"Preencolado 22mm (rollo 50 m)",cantidad:Math.ceil(mCanto/50)}]:[]),...(nPl?[{nombre:hv?.nombre??"Varios",cantidad:nPl+1}]:[])];}await sb.from("cotizacion_hojas").delete().eq("sesion_id",sid);await sb.from("cotizacion_hojas").insert(Object.entries(hojas).map(([mat,hh])=>({sesion_id:sid,material:mat,m2_neto:hh.m2_neto,hojas_teoricas:hh.m2_neto/((pcfg[mat]?.largo_mm??2800)/1000*(pcfg[mat]?.ancho_mm??1600)/1000),hojas_reales:hh.hojas_reales,precio_hoja:hh.precio_hoja,subtotal:hh.subtotal})));const herrajes=(dat.herrajes??[]).map(h=>{const c=[...HERR,...CANTO].find(x=>x.nombre.toLowerCase()===String(h.nombre??"").toLowerCase());return{...h,precio_unit:c?Math.round(Number(c.precio_hoy)*(c.categoria==="canto"?1:ivaCompra)):0,_aldia:!!c?.precio_al_dia};});if(herrajes.length>0){await sb.from("cotizacion_herrajes").delete().eq("sesion_id",sid);await sb.from("cotizacion_herrajes").insert(herrajes.map(h=>({sesion_id:sid,nombre:String(h.nombre??"."),cantidad:Number(h.cantidad)||1,precio_unit:h.precio_unit,subtotal:(Number(h.cantidad)||1)*h.precio_unit})));}
-    const mo=(dat.mano_obra??[]).map(m=>({etapa:String(m.etapa??m.operacion??"armado").toLowerCase(),horas:Number(m.horas_estimadas)||0,personas:String(m.etapa??"").toLowerCase()==="corte"?2:Math.max(1,Number(m.operarios)||1)}));if(mo.length>0){await sb.from("cotizacion_mano_obra").delete().eq("sesion_id",sid);await sb.from("cotizacion_mano_obra").insert(mo.map(m=>({sesion_id:sid,etapa:m.etapa,operacion:m.etapa,horas_estimadas:m.horas,operarios:m.personas,costo_hora_ref:costoHoraMO,subtotal:Math.round(m.horas*m.personas*costoHoraMO)})));}
-    const ppLaq=PIN?.[0]?.precio_m2_aplicado??8500;const costoLaq=(Number(dat.laqueado_m2)||0)*ppLaq;const pBlanca=Number(BLANCA?.precio_hoy)||0;const esColor=k=>/^melamina/i.test(k)&&pBlanca>0; // toda melamina se cuenta a precio de blanca; si la placa es mas cara, la diferencia es el adicional
-    const colores=Object.entries(hojas).filter(([k])=>esColor(k)).map(([k,h])=>({material:k,placas:h.hojas_reales,dif:Math.max(0,h.precio_hoja-pBlanca)*h.hojas_reales,barato:h.precio_hoja<pBlanca}));
-    const costoMatBase=Object.entries(hojas).reduce((a,[k,h])=>a+(esColor(k)?h.hojas_reales*pBlanca:h.subtotal),0);
-    const costoMat=costoMatBase+colores.reduce((a,c)=>a+c.dif,0);const costoHerr=herrajes.reduce((a,h)=>a+(Number(h.cantidad)||1)*h.precio_unit,0);const costoMO=Math.round(mo.reduce((a,m)=>a+m.horas*m.personas*costoHoraMO,0));const costoTotal=costoMat+costoHerr+costoMO+costoLaq;const costoBase=costoTotal-(costoMat-costoMatBase);const[{data:pv},{data:pvb}]=await Promise.all([sb.rpc("precio_venta",{p_costo:costoTotal,p_canal:"final"}),sb.rpc("precio_venta",{p_costo:costoBase,p_canal:"final"})]);const precioSugerido=Number(pv)||0,precioBase=Number(pvb)||0,adicionalColor=precioSugerido-precioBase;const horasPersona=mo.reduce((a,m)=>a+m.horas*m.personas,0);
-    const sinFactura=[...Object.entries(hojas).filter(([k])=>!pcfg[k]?.al_dia).map(([k])=>k),...herrajes.filter(h=>!h._aldia).map(h=>h.nombre)];
-    const fmt=n=>"$"+Math.round(n).toLocaleString("es-AR");
-    if(adicionalColor>0){texto+=`\n\nPrecio base en melamina blanca: ${fmt(precioBase)} sin IVA.\nAdicional por color (${colores.filter(c=>c.dif>0).map(c=>`${c.material}, ${c.placas} placa${c.placas>1?"s":""}`).join("; ")}): +${fmt(adicionalColor)}.\nTotal sin IVA: ${fmt(precioSugerido)} (con IVA ${fmt(precioSugerido*1.21)}).`;}
-    else texto+=`\n\nPrecio sin IVA: ${fmt(precioSugerido)} (con IVA ${fmt(precioSugerido*1.21)}).`;
-    if(canalSeguro==="interno"&&colores.some(c=>c.barato))texto+=`\nOjo: ${colores.filter(c=>c.barato).map(c=>c.material).join(", ")} figura más barato que la blanca (precio viejo): lo cotizo al precio de la blanca, sin adicional.`;
-    if(mo.length)texto+=`\nTiempo estimado: ${mo.map(m=>`${m.etapa} ${m.horas} h con ${m.personas} persona${m.personas>1?"s":""}`).join(", ")}.`+(canalSeguro==="interno"?" Si el taller tarda otra cosa, decime las horas y personas por etapa y recalculo.":"");
-    // Control contra lo que hizo el taller: placas de melamina del despiece vs tipologias de referencia y vs placas por ml de 2026.
-    const placasMel=Object.entries(hojas).filter(([k])=>/^melamina/i.test(k)).reduce((a,[,h])=>a+h.hojas_reales,0);
-    const ctrl=[];
-    const esPlacard=/placard|vestidor|dormitorio|ropero/i.test(String(dat.tipo_trabajo??"")),grpPlacard=/placard|vestidor/i;
-    const refs=(dat.tipologias_ref??[]).map(r=>({t:tipPorAncho(TIPOS,r),n:Number(r.cantidad)||1})).filter(r=>r.t&&(esPlacard||!grpPlacard.test(r.t.grupo)));
-    if(refs.length){const pr=refs.reduce((a,r)=>a+(Number(r.t.cantidades?.["hojas blancas"])||0)*r.n,0);if(canalSeguro==="interno")texto+=`\nTipología del taller: ${refs.map(r=>(r.n>1?r.n+" x ":"")+r.t.nombre).join(", ")} (${pr} placas blancas en la planilla).`;if(pr&&Math.abs(placasMel-pr)/pr>0.3)ctrl.push(`el despiece da ${placasMel} placas y la planilla del taller (${refs.map(r=>r.t.nombre).join(", ")}) usa ${pr}`);}
-    const mlDis=(dsp?dat.modulos:((da?.modulos)??[])).reduce((a,m)=>a+(Number(m.ancho_mm)||0)*(dsp?(Number(m.cantidad)||1):1)/1000,0);
-    if(dsp&&canalSeguro==="interno"){const mods=dat.modulos;texto+=`\nDespiece con las reglas del taller: ${dsp.piezas.reduce((a,p)=>a+p.cantidad,0)} piezas de ${mods.length} módulo${mods.length>1?"s":""}.`;if(dsp.avisos.length)texto+=` ${dsp.avisos.join("; ")}.`;}
-    if(dsp){const dicho=rx=>(hist??[]).some(h=>h.rol==="user"&&rx.test(String(h.contenido??"")))||rx.test(String(mensaje??""));const sup=dat.modulos.some(m=>m.frentes!=="embutidos");
-      if(!dicho(/embutid|superpuest|al ras/i))texto+=sup?`\nFrentes superpuestos al casco (casco + 2 cm de puerta). Si van embutidos o al ras del casco, decímelo y recalculo.`:`\nFrentes embutidos en el casco.`;
-      if(dat.modulos.some(m=>/bajo|cajonera|vanitory|isla/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>Number(m.zocalo_mm)>0||Number(m.patas)>0)&&!dicho(/z[oó]calo|pata/i))texto+=` No indicaste zócalo ni patas: no los incluí.`;
-      if(!dat.modulos.some(m=>Number(m.terminaciones)>0)&&!dicho(/terminaci|a la vista/i))texto+=` Sugerencia: si algún lateral queda a la vista, sumo lateral de terminación.`;
-      if(dat.modulos.some(m=>/bajo/i.test(String(m.familia??"")))&&!dat.modulos.some(m=>m.regrueso)&&!dicho(/regrueso/i))texto+=` Regrueso de mesada: opcional, decime si lo sumo.`;}
-    const tt=String(dat.tipo_trabajo??"").toLowerCase(),cf=COEF.find(c=>tt.includes(c.grupo.split(":")[1].split("/")[0]))?.cantidades?.placas_blancas_por_ml;
-    if(cf&&mlDis>0){const r=placasMel/mlDis;if(r<cf.p25*0.7||r>cf.p75*1.3)ctrl.push(`${placasMel} placas para ${mlDis.toFixed(2)} ml de frente (${r.toFixed(2)} por ml); en los trabajos 2026 de este tipo fue entre ${cf.p25} y ${cf.p75} por ml`);}
-    if(canalSeguro==="interno"){texto+=`\nCosto directo ${fmt(costoTotal)}: material ${fmt(costoMat)} (blanca a ${fmt(pBlanca)}/placa), herrajes ${fmt(costoHerr)}, mano de obra ${fmt(costoMO)} (${horasPersona} h-persona a ${fmt(costoHoraMO)}).`;if(ctrl.length)texto+=`\nControl del taller: ${ctrl.join("; ")}. Revisá el despiece.`;if(sinFactura.length)texto+=`\nOjo: sin precio actualizado (ni factura ni lista de los últimos 60 días): ${sinFactura.join(", ")}. Subí la factura de compra para actualizarlos.`;}const{data:re}=await sb.from("cotizacion_resumen").select("render_url,pdf_presupuesto_url").eq("sesion_id",sid).maybeSingle();await sb.from("cotizacion_resumen").upsert({sesion_id:sid,costo_materiales:costoMat,costo_herrajes:costoHerr,costo_mano_obra:costoMO,costo_laqueado:costoLaq,costo_total_interno:costoTotal,margen_pct:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):0,precio_sugerido:precioSugerido,horas_totales_est:horasPersona||null,render_url:re?.render_url??null},{onConflict:"sesion_id"});const{data:ses}=await sb.from("cotizacion_sesiones").select("version,cliente_nombre,cliente_telefono").eq("id",sid).single();const version=re?.pdf_presupuesto_url?(Number(ses?.version)||1)+1:1;await sb.from("cotizacion_sesiones").update({version}).eq("id",sid);
-    const doc=await documento({tipo:"presupuesto",sesion_id:sid,version,numero:`AI-${String(sid).slice(0,6)}-v${version}`,fecha:new Date().toLocaleDateString("es-AR",{timeZone:"America/Argentina/Buenos_Aires"}),cliente:ses?.cliente_nombre,telefono:ses?.cliente_telefono,render_url:re?.render_url??null,titulo:[dat.tipo_trabajo,dat.ambiente].filter(Boolean).join(" - ")||"Mobiliario a medida",modulos:dat.modulos??[],precio_base:precioBase,adicional:adicionalColor,adicional_detalle:colores.filter(c=>c.dif>0).map(c=>c.material).join(", "),total:precioSugerido});
-    if(doc?.path){await sb.from("cotizacion_resumen").update({pdf_presupuesto_url:doc.path}).eq("sesion_id",sid);texto+=`\n\nPresupuesto v${version} para enviar al cliente: ${doc.url}\nSi querés cambios, pedímelos y armo la versión ${version+1}; cuando el cliente lo apruebe, aprobalo y genero la orden de trabajo.`;}
-    resumenCot={documento_url:doc?.url??null,version,costoTotal,precioSugerido,precioBase,adicionalColor,margen:precioSugerido?Math.round((1-costoTotal/precioSugerido)*100):null,sin_factura:sinFactura,listo_para_aprobar:true};}
+    if(etapa==="cotizacion"&&parsed?.listo_para_cotizar&&parsed?.datos){const r=await cotizarDat(parsed.datos,hist,mensaje);texto+=r.texto;resumenCot=r.resumenCot;}
     if(canalSeguro==="externo"){
       // Blindaje adicional independiente del prompt: aunque el modelo fallara y filtrara
       // numeros de costo interno en el texto, para canal externo nunca se los devolvemos

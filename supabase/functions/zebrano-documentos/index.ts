@@ -3,6 +3,7 @@
 // los sube al bucket privado "documentos" y devuelve un link firmado (7 días).
 // Lo llama el cotizador con el service role; un empleado con sesión también puede pedirlo.
 // v2: PDF (Storage sirve los .html como texto plano, así que no se podían abrir).
+// v4 (10/11/2026): el presupuesto muestra el equivalente en USD.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { jsPDF } from "npm:jspdf@2.5.2";
@@ -78,6 +79,7 @@ async function presupuesto(d) {
   y = parrafo(doc, `Materiales: ${mat}. Cantos al tono aplicados a máquina. Fondo fibro 3 mm blanco. ${mods.some((m) => m.frentes === "embutidos") ? "Frentes embutidos." : "Frentes superpuestos."} Correderas telescópicas y bisagras cazoleta.`, y + 1);
   doc.setFont("helvetica", "bold").setFontSize(12).text(`Total efectivo: ${$(d.total)}`, 195, y + 4, { align: "right" });
   doc.setFont("helvetica", "normal");
+  if (Number(d.total_usd) > 0) { doc.setFontSize(9).setTextColor(90).text(`Equivale a USD ${Math.round(d.total_usd).toLocaleString("es-AR")} (dólar oficial BCRA $${Number(d.tc_usd).toLocaleString("es-AR")})`, 195, y + 9, { align: "right" }); doc.setTextColor(30); y += 4; }
   y = subtitulo(doc, "Condiciones", y + 12);
   for (const c of ["El presupuesto no incluye IVA.", "Validez de la oferta: 7 días.",
     "Condiciones de fabricación: se deberán relevar las medidas en obra al momento de la contratación.",

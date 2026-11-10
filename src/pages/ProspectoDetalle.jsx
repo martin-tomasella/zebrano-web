@@ -109,6 +109,7 @@ export default function ProspectoDetalle() {
                 ? <Badge tone="success">Ya es cliente</Badge>
                 : <button onClick={convertirACliente} disabled={convirtiendo} className="btn btn-primary btn-sm">{convirtiendo?'Convirtiendo…':'Convertir en cliente'}</button>
             )}
+            <button onClick={()=>navigate(prospecto.convertido_a_cliente && prospecto.cliente_id ? `/cotizador/nuevo?cliente=${prospecto.cliente_id}` : `/cotizador/nuevo?prospecto=${id}`)} className="btn btn-secondary btn-sm"><Icon name="request_quote" size={16} /> Cotizar trabajo</button>
           </div>
           <div className="z-path mt-4" role="group" aria-label="Etapa del prospecto">
             {ESTADOS.filter(e => e !== 'dormido').map((e, i, arr) => {

@@ -771,7 +771,10 @@ function FichaCostos({ p }) {
     <div className="bg-z-inset border border-z-line rounded-xl p-4 mb-[18px]">
       <div className="flex justify-between items-center mb-2.5">
         <div className="font-mono text-[11.5px] text-z-ink-3">Rentabilidad (sin IVA)</div>
-        {p.presupuesto_url && <button onClick={verPresupuesto} className="bg-transparent border-none text-z-primary text-[12px] cursor-pointer">Ver presupuesto</button>}
+        <span className="flex gap-3">
+          {p.cliente_id && <a href={`/cotizador/nuevo?cliente=${p.cliente_id}${p.obra_id ? `&obra=${p.obra_id}` : ''}`} className="text-z-primary text-[12px] no-underline">+ Otro trabajo en esta obra</a>}
+          {p.presupuesto_url && <button onClick={verPresupuesto} className="bg-transparent border-none text-z-primary text-[12px] cursor-pointer">Ver presupuesto</button>}
+        </span>
       </div>
       <table className="w-full text-[12.5px] mb-2">
         <thead><tr className="text-z-ink-3"><th className="text-left font-normal">Rubro</th><th className="text-right font-normal">Cotizado</th><th className="text-right font-normal">Real</th></tr></thead>

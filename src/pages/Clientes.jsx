@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent } from '../components/Layout';
+import FichaCliente from '../components/FichaCliente';
 
 const fmt = n => n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—';
 const fechaFmt = d => d ? new Date(d).toLocaleDateString('es-AR') : '—';
@@ -263,6 +264,8 @@ export default function Clientes() {
                         <div className="font-mono text-2xl font-bold text-z-ink">{fmt(statsCliente.ticket)}</div>
                       </div>
                     </div>
+
+                    <FichaCliente cliente={seleccionado} trabajos={trabajosSeleccionado} />
 
                     {/* Historial de trabajos — timeline */}
                     <div className="px-8 pb-10">

@@ -28,10 +28,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,560px)] bg-z-surface">
+    <div className="min-h-screen grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,560px)]">
       {/* Panel de marca: chapa de zebrano */}
-      <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden bg-z-nav text-white">
-        <Veta />
+      <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden z-login-hero text-white">
         <div className="relative flex items-center gap-3">
           <BrandMark size={36} />
           <span className="text-[18px] font-bold" style={{ fontStretch: '92%' }}>Zebrano</span>
@@ -44,7 +43,7 @@ export default function Login() {
       </div>
 
       {/* Formulario */}
-      <div className="flex items-center justify-center p-6 sm:p-12">
+      <div className="flex items-center justify-center p-6 sm:p-12 z-login-side">
         <form onSubmit={handleLogin} className="w-full max-w-[380px] animate-in">
           <div className="lg:hidden flex items-center gap-3 mb-10"><BrandMark size={36} /><span className="text-[18px] font-bold text-z-ink">Zebrano</span></div>
           <h2 className="text-[26px] leading-[32px]">Ingresá a tu cuenta</h2>
@@ -71,20 +70,3 @@ export default function Login() {
   )
 }
 
-// Veta de zebrano: rayas onduladas, como la chapa cortada al cuarto
-function Veta() {
-  const lines = Array.from({ length: 34 }, (_, i) => i)
-  return (
-    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 900" preserveAspectRatio="xMidYMid slice" aria-hidden>
-      <rect width="800" height="900" fill="#1B2733" />
-      {lines.map(i => {
-        const x = -200 + i * 34
-        const w = i % 3 === 0 ? 9 : i % 2 ? 2.5 : 5
-        return <path key={i} d={`M${x} 950 C ${x + 120} 700, ${x + 40} 420, ${x + 210} 180 S ${x + 300} -40, ${x + 380} -80`}
-          stroke={i % 3 === 0 ? '#D8B26E' : '#8A6A3C'} strokeWidth={w} fill="none" opacity={i % 3 === 0 ? 0.3 : 0.14} />
-      })}
-      <rect width="800" height="900" fill="url(#vfade)" />
-      <defs><linearGradient id="vfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#1B2733" stopOpacity=".2"/><stop offset=".55" stopColor="#1B2733" stopOpacity=".55"/><stop offset="1" stopColor="#1B2733" stopOpacity=".95"/></linearGradient></defs>
-    </svg>
-  )
-}

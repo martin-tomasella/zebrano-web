@@ -631,3 +631,10 @@ select option { background: rgb(var(--z-surface-c)); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root { --z-surface: rgb(var(--z-surface-c) / .94); --z-glass-panel: rgb(var(--z-canvas-c) / .9); }
 }
+
+/* — Login sobre la foto — */
+.z-login-hero { background: linear-gradient(0deg, rgb(12 16 20 / .72), rgb(12 16 20 / .05) 70%); }
+.z-login-side {
+  background: var(--z-surface); border-left: 1px solid var(--z-glass-edge);
+  -webkit-backdrop-filter: var(--z-blur-strong); backdrop-filter: var(--z-blur-strong);
+}

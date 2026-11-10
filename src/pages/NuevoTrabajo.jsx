@@ -104,9 +104,9 @@ export default function NuevoTrabajo() {
     <Layout>
       <Topbar title="Nuevo trabajo" subtitle="Plano, foto o medidas → diseño → render → cotización → orden de trabajo" />
       <PageContent>
-        <ol className="z-seg mb-5" aria-label="Pasos" style={{ listStyle: 'none', display: 'flex', flexWrap: 'wrap' }}>
-          {PASOS.map((p, i) => <li key={p}><button aria-pressed={paso === i} disabled={i > paso || !!ot} onClick={() => setPaso(i)}>{i + 1}. {p}</button></li>)}
-        </ol>
+        <div className="z-seg mb-5" role="group" aria-label="Pasos" style={{ flexWrap: 'wrap' }}>
+          {PASOS.map((p, i) => <button key={p} aria-pressed={paso === i} aria-current={paso === i ? 'step' : undefined} disabled={i > paso || !!ot} onClick={() => setPaso(i)}>{i + 1}. {p}</button>)}
+        </div>
         {error && <Card style={{ marginBottom: 14, borderColor: 'rgb(var(--z-danger-c))' }}><span role="alert">{error}</span></Card>}
         {ocupado && <Card style={{ marginBottom: 14 }}><span aria-live="polite">⏳ {ocupado}</span></Card>}
 

@@ -162,7 +162,7 @@ export default function Dashboard() {
 
           {/* ── Indicadores ── */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-            <Kpi loading={loading} icon="request_quote" label={`Cotizado ${periodoTxt}`} value={moneyShort(m.cotizadoPeriodo)}
+            <Kpi featured loading={loading} icon="request_quote" label={`Cotizado ${periodoTxt}`} value={moneyShort(m.cotizadoPeriodo)}
               foot={`${m.cotizadosPeriodo.length} ${m.cotizadosPeriodo.length === 1 ? 'cotización' : 'cotizaciones'}`} />
             <Kpi loading={loading} icon="local_shipping" label={`Entregado ${periodoTxt}`} value={moneyShort(m.entregadoPeriodo)}
               foot={`${m.entregadosPeriodo.length} proyecto${m.entregadosPeriodo.length === 1 ? '' : 's'} terminado${m.entregadosPeriodo.length === 1 ? '' : 's'}`} />
@@ -231,9 +231,9 @@ function PanelHead({ title, meta, action }) {
   )
 }
 
-function Kpi({ icon, label, value, foot, loading }) {
+function Kpi({ icon, label, value, foot, loading, featured }) {
   return (
-    <div className="surface px-5 py-4 min-w-0">
+    <div className={`surface z-lift px-5 py-4 min-w-0${featured ? ' z-featured' : ''}`}>
       <div className="flex items-center gap-2 text-z-ink-3 text-[13px] font-medium mb-3">
         <span className="w-7 h-7 rounded-md bg-z-primary/10 text-z-primary inline-flex items-center justify-center shrink-0"><Icon name={icon} size={17} /></span>
         <span className="truncate">{label}</span>

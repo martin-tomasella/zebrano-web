@@ -511,3 +511,123 @@ button.z-nav-heading { font-family: inherit; border-radius: 6px; } button.z-nav-
 .z-path-step.is-lost.is-current { background: rgb(var(--z-danger-c)); color: #fff; }
 .z-path-step.is-side.is-current { background: rgb(var(--z-ink-3-c)); color: #fff; }
 .z-palette-input input:focus-visible { outline: none; }
+
+/* ============================================================
+   Glass v6 (10/11/2026): foto de fondo y paneles de vidrio esmerilado
+   (referencia "Glassy Dashboard V2"). Se apoya en los tokens: las páginas
+   no cambian. Foto: Unsplash (licencia libre), cocina a medida en tonos cálidos.
+   ============================================================ */
+:root {
+  --z-bg-img: url('https://images.unsplash.com/photo-1769326541248-5e09a8ace25b?w=2400&q=75&auto=format');
+  --z-veil: linear-gradient(160deg, rgb(255 250 243 / .30), rgb(236 226 212 / .50));
+  --z-blur: blur(22px) saturate(150%);
+  --z-blur-strong: blur(30px) saturate(160%);
+  --z-glass-edge: rgb(255 255 255 / .55);
+  --z-glass-panel: rgb(255 255 255 / .26);
+  --z-glass-strong: rgb(255 255 255 / .86);
+
+  --z-canvas:  transparent;
+  --z-surface: rgb(255 255 255 / .62);
+  --z-subtle:  rgb(255 255 255 / .40);
+  --z-inset:   rgb(255 255 255 / .45);
+  --z-line:    rgb(70 52 34 / .12);
+  --z-border-hover: rgb(70 52 34 / .22);
+  --z-shadow-sm: 0 1px 2px rgb(40 28 16 / .06), 0 6px 18px -10px rgb(40 28 16 / .25);
+  --z-shadow:    0 2px 6px rgb(40 28 16 / .08), 0 16px 34px -14px rgb(40 28 16 / .35);
+  --z-shadow-lg: 0 24px 60px -18px rgb(40 28 16 / .45);
+  --radius-md: 10px; --radius-lg: 16px; --radius-xl: 22px;
+}
+:root[data-theme="dark"] {
+  --z-veil: linear-gradient(160deg, rgb(8 12 16 / .62), rgb(8 12 16 / .80));
+  --z-glass-edge: rgb(255 255 255 / .10);
+  --z-glass-panel: rgb(14 20 27 / .38);
+  --z-glass-strong: rgb(20 27 35 / .92);
+  --z-surface: rgb(22 30 39 / .60);
+  --z-subtle:  rgb(255 255 255 / .04);
+  --z-inset:   rgb(0 0 0 / .24);
+  --z-line:    rgb(255 255 255 / .09);
+  --z-border-hover: rgb(255 255 255 / .18);
+  --z-shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 6px 18px -10px rgb(0 0 0 / .6);
+  --z-shadow:    0 2px 6px rgb(0 0 0 / .4), 0 16px 34px -14px rgb(0 0 0 / .7);
+  --z-shadow-lg: 0 24px 60px -18px rgb(0 0 0 / .8);
+}
+
+html { background: #cdbba5; }
+:root[data-theme="dark"] { background-color: #0b1015; }
+html, body, #root { background: transparent; }
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--z-veil), var(--z-bg-img) center / cover no-repeat;
+}
+select option { background: rgb(var(--z-surface-c)); }
+
+/* — Superficies de vidrio — */
+.card, .surface, .z-glass {
+  background: var(--z-surface); border: 1px solid var(--z-glass-edge);
+  -webkit-backdrop-filter: var(--z-blur); backdrop-filter: var(--z-blur);
+}
+.z-menu, .z-palette, .z-drawer {
+  background: var(--z-glass-strong); border-color: var(--z-glass-edge);
+  -webkit-backdrop-filter: var(--z-blur-strong); backdrop-filter: var(--z-blur-strong);
+}
+.z-overlay, .z-drawer-wrap { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+
+/* — Interacción: las tarjetas se elevan — */
+.card-interactive:hover, .z-lift:hover { transform: translateY(-4px); box-shadow: var(--z-shadow); border-color: var(--z-glass-edge); }
+.z-lift { transition: var(--z-transition); }
+.z-page-body > * { animation: fadeIn .35s var(--z-ease) both; }
+
+/* — Tarjeta destacada (verde laca), como la de "Total Earnings" — */
+.z-featured {
+  background: linear-gradient(145deg, rgb(var(--z-primary-c) / .92), rgb(var(--z-primary-2-c) / .82)) !important;
+  border-color: rgb(255 255 255 / .25) !important; color: #fff;
+}
+.z-featured, .z-featured * { color: #fff !important; }
+.z-featured .bg-z-primary\/10 { background: rgb(255 255 255 / .18) !important; }
+
+/* — Estructura flotante — */
+.z-shell { background: transparent; padding: 12px; gap: 12px; }
+.z-nav {
+  height: calc(100vh - 24px); border-radius: 24px; overflow: hidden;
+  background: rgb(255 255 255 / .42); border: 1px solid var(--z-glass-edge); box-shadow: var(--z-shadow);
+  -webkit-backdrop-filter: var(--z-blur-strong); backdrop-filter: var(--z-blur-strong);
+  --z-nav-ink-c: 61 73 86; --z-nav-ink-2-c: 104 116 130; --z-nav-accent-c: 13 118 101;
+}
+.z-nav-brand-name { color: rgb(var(--z-ink-c)); }
+.z-nav-item:hover { background: rgb(255 255 255 / .55); color: rgb(var(--z-ink-c)); }
+.z-nav-item.is-active { background: rgb(255 255 255 / .85); color: rgb(var(--z-ink-c)); box-shadow: var(--z-shadow-sm); }
+.z-nav-item.is-active::before { left: -10px; }
+.z-nav-collapse:hover, button.z-nav-heading:hover { color: rgb(var(--z-ink-c)); }
+.z-nav-collapse { border-top-color: rgb(70 52 34 / .10); }
+:root[data-theme="dark"] .z-nav {
+  background: rgb(10 15 21 / .55);
+  --z-nav-ink-c: 196 206 216; --z-nav-ink-2-c: 128 143 158; --z-nav-accent-c: 72 196 168;
+}
+:root[data-theme="dark"] .z-nav-item:hover { background: rgb(255 255 255 / .07); color: #fff; }
+:root[data-theme="dark"] .z-nav-item.is-active { background: rgb(255 255 255 / .12); color: #fff; }
+:root[data-theme="dark"] .z-nav-brand-name { color: #fff; }
+
+.z-main { gap: 12px; }
+.z-topbar {
+  height: 58px; border-radius: 999px; padding: 0 10px 0 22px;
+  background: var(--z-surface); border: 1px solid var(--z-glass-edge); box-shadow: var(--z-shadow-sm);
+  -webkit-backdrop-filter: var(--z-blur); backdrop-filter: var(--z-blur);
+}
+.z-search { border-radius: 999px; background: var(--z-subtle); border-color: var(--z-glass-edge); }
+.z-topbar .btn-primary, .z-user { border-radius: 999px; }
+.z-content {
+  border-radius: 28px; background: var(--z-glass-panel); border: 1px solid var(--z-glass-edge);
+  box-shadow: var(--z-shadow); -webkit-backdrop-filter: var(--z-blur-strong); backdrop-filter: var(--z-blur-strong);
+}
+.z-dot-count { box-shadow: 0 0 0 2px rgb(var(--z-surface-c)); }
+
+@media (max-width: 860px) {
+  .z-shell { padding: 8px; gap: 8px; }
+  .z-nav { height: 100vh; border-radius: 0 24px 24px 0; }
+  .z-topbar { padding: 0 8px; }
+  .z-content { border-radius: 20px; }
+}
+/* Sin soporte de backdrop-filter: paneles opacos para que el texto se lea */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --z-surface: rgb(var(--z-surface-c) / .94); --z-glass-panel: rgb(var(--z-canvas-c) / .9); }
+}

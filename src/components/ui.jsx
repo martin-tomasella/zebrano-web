@@ -89,9 +89,8 @@ export function Avatar({ name, size = 30, square }) {
 
 export function Card({ children, style, padding = '18px 20px', onClick }) {
   return (
-    <div onClick={onClick} className={onClick ? 'card-interactive' : undefined} style={{
-      background:'var(--z-card)', borderRadius:'var(--radius-lg)',
-      border:'1px solid var(--z-border)', padding, boxShadow:'var(--z-shadow-sm)',
+    <div onClick={onClick} className={onClick ? 'z-glass card-interactive' : 'z-glass'} style={{
+      borderRadius:'var(--radius-lg)', padding, boxShadow:'var(--z-shadow-sm)',
       transition:'var(--z-transition)', ...style,
     }}>
       {children}

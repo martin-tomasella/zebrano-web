@@ -1,6 +1,10 @@
 # Changelog
 
 ## 10/11/2026
+- **Cotizador v65 (núcleo del ERP v2).** Flujo por pasos para el "Nuevo trabajo": `leer` (plano, foto, bosquejo o medidas → módulos, mano de obra y estilo), `guardar_diseno` (tabla de módulos editada → plano SVG), `render` (con "pedir cambio"), `cotizar` y `aprobar_cotizacion`. Solo empleados (la clave pública recibe 401). El precio sale también en USD con el oficial BCRA del día (`cotizacion_resumen.tc_usd` y `precio_usd`, y una línea en el presupuesto de `zebrano-documentos` v4). Al aprobar, el trabajo queda dentro de una obra (nueva o la elegida), la OT entra en cola sin fecha y el prospecto pasa a ganado. Incluye v64.
+- **Obras.** Tabla `obras`: una obra (lugar) agrupa varios trabajos (`proyectos.obra_id`). Los 23 proyectos existentes quedaron con una obra cada uno.
+- Publicación del cotizador: la función en Supabase importa el código de este repo en un commit fijo, así lo deployado es exactamente lo versionado.
+- Mercado: el relevamiento corre los lunes a las 2 am.
 - Diseño Glass v6: foto de fondo (cocina a medida, Unsplash), paneles de vidrio esmerilado, menú lateral y barra superior flotantes, contenido en un panel de vidrio, tarjetas que se elevan al pasar el mouse y el primer indicador del Inicio destacado. También en el login y en el tema oscuro.
 
 ## 04/11/2026

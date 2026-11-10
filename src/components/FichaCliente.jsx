@@ -16,8 +16,8 @@ export default function FichaCliente({ cliente, trabajos }) {
       supabase.from('obras').select('id,nombre,direccion').eq('cliente_id', cliente.id).order('created_at', { ascending: false }),
       supabase.from('cotizacion_sesiones').select('id,created_at,tipo_trabajo,ambiente,version,estado,precio_aprobado,proyecto_id,cotizacion_resumen(precio_sugerido,precio_final,precio_usd,tc_usd,pdf_presupuesto_url)').eq('cliente_id', cliente.id).order('created_at', { ascending: false }),
       supabase.from('pagos').select('monto,moneda,estado,fecha_recibido,concepto').eq('cliente_id', cliente.id),
-      supabase.from('tipos_cambio').select('fecha,oficial_venta').order('fecha'),
-    ]).then(([o, s, p, t]) => setD({ obras: o.data || [], cot: s.data || [], pagos: p.data || [], tc: t.data || [] }));
+      supabase.from('tipos_cambio').select('fecha,oficial_venta').not('oficial_venta', 'is', null).order('fecha', { ascending: false }).limit(1000),
+    ]).then(([o, s, p, t]) => setD({ obras: o.data || [], cot: s.data || [], pagos: p.data || [], tc: (t.data || []).reverse() }));
   }, [cliente.id]);
   if (!d) return <Spinner pad={20} />;
 

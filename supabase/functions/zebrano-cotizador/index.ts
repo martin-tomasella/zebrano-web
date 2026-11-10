@@ -524,6 +524,10 @@ Mano de obra (horas de reloj, jornada 7 h): corte siempre 2 personas; referencia
         return json({ok:true,sesion_id:sid,respuesta:txt,modulos:g.mods,mano_obra:mo,estilo:g.ctx.estilo,tipo_trabajo:p.tipo_trabajo,preguntas:p.preguntas??[],svg_tecnico:g.svg});
       }
       if(accion==="guardar_diseno"){
+        // v66: no se pisa el diseño de una cotización ya aprobada ni se guarda una tabla vacía.
+        const{data:sx}=await sb.from("cotizacion_sesiones").select("estado").eq("id",sid).maybeSingle();
+        if(sx?.estado==="aprobada")return json({ok:false,error:"La cotización ya está aprobada: el diseño no se puede cambiar."},409);
+        if(!(body.modulos??[]).some(m=>Number(m?.ancho_mm)>0&&Number(m?.alto_mm)>0))return json({ok:false,error:"Agregá al menos un módulo con ancho y alto."},400);
         const extra={};for(const k of["tipo_trabajo","ambiente","estilo","mano_obra"])if(body[k]!==undefined)extra[k]=body[k];
         const g=await guardarDiseno(body.modulos,extra);
         return json({ok:true,sesion_id:sid,modulos:g.mods,svg_tecnico:g.svg});

@@ -62,7 +62,7 @@ export default function Mercado() {
       <Topbar title="Mercado" subtitle={`Precios de la competencia en Mercado Libre vs. nuestro costo · último relevamiento ${ultima ? new Date(ultima + 'T12:00').toLocaleDateString('es-AR') : '—'}`} />
       <PageContent>
         <div className="flex flex-wrap items-center gap-3 mb-3 text-[12.5px] text-z-ink-3">
-          <span>Actualización automática: 1er y 3er lunes de cada mes.</span>
+          <span>Actualización automática: todos los lunes a las 2:00.</span>
           {rel && <span style={{ color: rel.ok ? undefined : 'rgb(var(--z-danger-c))' }}>Último intento {new Date(rel.fecha).toLocaleString('es-AR')}: {rel.ok ? `${rel.actualizados} de ${rel.total} precios actualizados` : rel.error}</span>}
           {rel && !rel.ok && /no est. conectado/.test(rel.error || '') && <a className="underline font-medium text-z-ink" href={`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/mercado-relevamiento?conectar=1`} target="_blank" rel="noreferrer">Conectar Mercado Libre</a>}
           <button className="btn btn-quiet btn-sm" onClick={relevarAhora} disabled={relevando}>{relevando ? 'Actualizando…' : 'Actualizar ahora'}</button>
@@ -83,6 +83,7 @@ export default function Mercado() {
         <p className="text-[12.5px] text-z-ink-3 mb-3">
           "Te queda en ML" = precio − IVA − comisión − costo fijo − envío propio − ingresos brutos − débitos/créditos (se ajustan en Cotizar por módulos → Parámetros). "Nuestro costo" = material + horas × costo hora + gastos fijos prorrateados, sin instalación. Margen real sobre precio sin IVA: 20% o más competimos; 5–20% margen bajo.
         </p>
+        {rows && <Sugerencias rows={rows} onCat={setCat} />}
         {!rows ? <Spinner /> : (
           <div className="card overflow-auto">
             <table className="w-full text-[13px]">
@@ -125,4 +126,33 @@ function FilaMercado({ r, abierto, hist, onHist }) {
       ))}</div>}
     </td></tr>}
   </>;
+}
+
+// F7: dónde conviene competir. Por categoría: margen real mediano y cuántos productos quedan en "competimos".
+function Sugerencias({ rows, onCat }) {
+  const porCat = {};
+  for (const r of rows) if (r.margen_real_pct != null) (porCat[r.categoria] ??= []).push(r);
+  const med = xs => { const v = xs.map(r => Number(r.margen_real_pct)).sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
+  const cats = Object.entries(porCat).map(([c, xs]) => ({ c, n: xs.length, med: med(xs), comp: xs.filter(r => r.veredicto === 'competimos').length,
+    ticket: xs.reduce((a, r) => a + Number(r.precio_mercado || 0), 0) / xs.length })).sort((a, b) => b.med - a.med);
+  if (!cats.length) return null;
+  const buenas = cats.filter(x => x.med >= 20), flojas = cats.filter(x => x.med < 5);
+  return (
+    <div className="card p-4 mb-4">
+      <div className="font-medium text-z-ink mb-1">Dónde conviene competir</div>
+      <p className="text-[12.5px] text-z-ink-3 mt-0 mb-3">Margen real mediano por categoría frente a lo que cobra la competencia en Mercado Libre. Usalo para elegir qué ofrecer en la prospección y en redes.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+        {cats.map(x => (
+          <button key={x.c} className="text-left rounded-lg p-3" style={{ border: '1px solid var(--z-line)', background: 'var(--z-inset)', cursor: 'pointer' }} onClick={() => onCat(x.c)}>
+            <div className="flex justify-between items-baseline"><b className="capitalize text-z-ink">{x.c}</b><Badge tone={x.med >= 20 ? 'success' : x.med >= 5 ? 'warning' : 'danger'}>{Math.round(x.med)}%</Badge></div>
+            <div className="text-[12px] text-z-ink-3">{x.comp} de {x.n} productos con margen ≥ 20% · ticket ML {$(x.ticket)}</div>
+          </button>
+        ))}
+      </div>
+      <p className="text-[12.5px] text-z-ink-2 mt-3 mb-0">
+        {buenas.length ? <>Conviene empujar <b>{buenas.map(x => x.c).join(', ')}</b>: ahí el mueble a medida sale mejor que lo estándar de ML. </> : 'Ninguna categoría deja hoy un margen mediano de 20% o más. '}
+        {flojas.length ? <>En <b>{flojas.map(x => x.c).join(', ')}</b> la competencia está por debajo de nuestro costo: competir por diseño o medida, no por precio.</> : ''}
+      </p>
+    </div>
+  );
 }

@@ -538,9 +538,9 @@ button.z-nav-heading { font-family: inherit; border-radius: 6px; } button.z-nav-
   --radius-md: 10px; --radius-lg: 16px; --radius-xl: 22px;
 }
 :root[data-theme="dark"] {
-  --z-veil: linear-gradient(160deg, rgb(8 12 16 / .62), rgb(8 12 16 / .80));
+  --z-veil: linear-gradient(160deg, rgb(8 12 16 / .38), rgb(8 12 16 / .60));
   --z-glass-edge: rgb(255 255 255 / .10);
-  --z-glass-panel: rgb(14 20 27 / .38);
+  --z-glass-panel: rgb(14 20 27 / .30);
   --z-glass-strong: rgb(20 27 35 / .92);
   --z-surface: rgb(22 30 39 / .60);
   --z-subtle:  rgb(255 255 255 / .04);

@@ -1,6 +1,14 @@
 # Changelog
 
 ## 10/11/2026
+- **ERP v2, fases 2 a 7.**
+  - Órdenes: cada OT tiene "Corte de placas" (optimizador en guillotina, sierra de 4 mm, sin girar las melaminas con veta, dibujo por placa, aprovechamiento y retazos) con hoja de corte imprimible, y "Materiales y compras".
+  - Compras y stock: al crearse una OT se calculan sus necesidades (placas, cantos, herrajes) desde la cotización (`ot_necesidades`). Por renglón se decide comprar o usar stock; "Usar" descuenta el stock. El stock (`stock_movimientos`, vista `stock_actual`) suma las facturas con insumo identificado desde hoy, resta lo que usan las OT y se corrige con el conteo físico. Pestañas nuevas en Compras: Necesidades de OT y Stock.
+  - Horas de trabajo: planificación de la cola con horas-persona por etapa (`ot_etapas`). Al cambiar las personas se recalcula la duración y la fecha de fin de esa OT y de las siguientes (jornada de 7 h, lunes a viernes, una OT por vez), y se guarda en la OT. Muestra las horas reales cargadas por etapa.
+  - Clientes: ficha con obras y sus trabajos, cotizaciones (versión, precio, cierre, descuento, USD del día) y vendido, cobrado y saldo. Botón "Nuevo trabajo" desde el cliente, la obra, el prospecto y el proyecto.
+  - Prospección: bandeja de mails para aprobar, editar o descartar, y "Respondió → Prospecto". Sin casilla conectada no se envía nada.
+  - Mercado: "Dónde conviene competir", con el margen real mediano por categoría.
+- Cotizador v66: `guardar_diseno` no modifica una cotización aprobada ni guarda una tabla vacía.
 - **Cotizador v65 (núcleo del ERP v2).** Flujo por pasos para el "Nuevo trabajo": `leer` (plano, foto, bosquejo o medidas → módulos, mano de obra y estilo), `guardar_diseno` (tabla de módulos editada → plano SVG), `render` (con "pedir cambio"), `cotizar` y `aprobar_cotizacion`. Solo empleados (la clave pública recibe 401). El precio sale también en USD con el oficial BCRA del día (`cotizacion_resumen.tc_usd` y `precio_usd`, y una línea en el presupuesto de `zebrano-documentos` v4). Al aprobar, el trabajo queda dentro de una obra (nueva o la elegida), la OT entra en cola sin fecha y el prospecto pasa a ganado. Incluye v64.
 - **Obras.** Tabla `obras`: una obra (lugar) agrupa varios trabajos (`proyectos.obra_id`). Los 23 proyectos existentes quedaron con una obra cada uno.
 - Publicación del cotizador: la función en Supabase importa el código de este repo en un commit fijo, así lo deployado es exactamente lo versionado.

@@ -67,7 +67,7 @@ export default function Prospeccion() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <KpiCard label="Empresas encontradas" value={emp.length} icon="storefront" detail={segs.map(s => `${s.codigo}: ${cuenta(e => e.segmento === s.codigo)}`).join(' · ')} />
             <KpiCard label="Con email" value={cuenta(e => e.email)} icon="alternate_email" detail={`${cuenta(e => e.perfilada_at)} webs leídas`} />
-            <KpiCard label="Mails esperando tu dale" value={msjs.filter(m => ['borrador', 'propuesto'].includes(m.estado)).length} icon="pending_actions" detail="Se aprueban en Alfred" />
+            <KpiCard label="Mails esperando aprobación" value={msjs.filter(m => ['borrador', 'propuesto'].includes(m.estado)).length} icon="pending_actions" detail={`${msjs.filter(m => m.estado === 'aprobado').length} aprobados, listos para enviar`} onClick={() => setTab('mensajes')} />
             <KpiCard label="Contactadas" value={cuenta(e => ['contactada', 'respondio'].includes(e.estado))} icon="mark_email_read" detail={`${msjs.filter(m => m.estado === 'enviado').length} enviados por Gmail`} />
           </div>
           {ult && <p className="text-[12.5px] text-z-ink-3 mb-3">Último ciclo {new Date(ult.fecha).toLocaleString('es-AR')}: {JSON.stringify({ ...ult, fecha: undefined, unidad: undefined, etapa: undefined }).replace(/[{}"]/g, '').replace(/,/g, ' · ')}</p>}
@@ -102,20 +102,7 @@ export default function Prospeccion() {
             </div>
           </>}
 
-          {tab === 'mensajes' && <div className="grid gap-3">
-            {msjs.length === 0 ? <div className="card"><EmptyState icon="edit_note" title="Todavía no hay mails" /></div> : msjs.map(m => (
-              <div key={m.id} className="card p-4">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <Badge tone={MSJ_TONO[m.estado]}>{m.estado}</Badge>
-                  <span className="font-medium text-z-ink">{m.prosp_empresas?.nombre}</span>
-                  <span className="text-[12.5px] text-z-ink-3">{m.para} · {m.prosp_empresas?.segmento} · {new Date(m.created_at).toLocaleDateString('es-AR')}</span>
-                </div>
-                <div className="text-[13.5px] font-medium text-z-ink">{m.asunto}</div>
-                <pre className="whitespace-pre-wrap font-sans text-[13px] text-z-ink-2 m-0 mt-1">{m.cuerpo}</pre>
-                {(m.gate || []).length > 0 && <p className="text-[12.5px] mt-2 mb-0" style={{ color: 'rgb(var(--z-danger-c))' }}>Frenado por el control: {m.gate.join(' · ')}</p>}
-                {m.error && <p className="text-[12.5px] mt-2 mb-0 text-z-ink-3">{m.error}</p>}
-              </div>))}
-          </div>}
+          {tab === 'mensajes' && <Bandeja msjs={msjs} onCambio={cargar} setMsg={setMsg} />}
 
           {tab === 'senales' && <div className="card overflow-auto">
             <p className="text-[12.5px] text-z-ink-3 px-3 pt-3 m-0">Solo las señales confirmadas se usan para elegir a quién escribir y qué decirle. Las pagas quedan propuestas hasta que las confirmes.</p>
@@ -153,5 +140,68 @@ export default function Prospeccion() {
         </>}
       </PageContent>
     </Layout>
+  );
+}
+
+// F6: bandeja de mails. Se aprueban, corrigen o descartan acá. Aprobado = listo para enviar:
+// sin casilla conectada no sale nada (el envío lo hace Alfred por Gmail cuando esté la cuenta).
+function Bandeja({ msjs, onCambio, setMsg }) {
+  const [filtro, setFiltro] = useState('pendientes');
+  const [edit, setEdit] = useState({});
+  const grupos = { pendientes: m => ['borrador', 'propuesto'].includes(m.estado), aprobados: m => m.estado === 'aprobado', enviados: m => m.estado === 'enviado', descartados: m => ['rechazado', 'bloqueado', 'error'].includes(m.estado) };
+  const lista = msjs.filter(grupos[filtro]);
+  const guardar = async (m, cambios) => {
+    const e = edit[m.id] || {};
+    const { error } = await supabase.from('prosp_mensajes').update({ asunto: e.asunto ?? m.asunto, cuerpo: e.cuerpo ?? m.cuerpo, ...cambios }).eq('id', m.id);
+    if (error) { setMsg(error.message); return; }
+    setEdit(x => ({ ...x, [m.id]: undefined })); onCambio();
+  };
+  const aProspecto = async m => {
+    const em = m.prosp_empresas || {};
+    const { data: e } = await supabase.from('prosp_empresas').select('id,nombre,email,telefono,segmento,rubro,prospecto_id').eq('id', m.empresa_id).single();
+    if (e?.prospecto_id) { setMsg('Esta empresa ya es prospecto.'); return; }
+    const { data: p, error } = await supabase.from('prospectos').insert({ nombre: e?.nombre || em.nombre, email: e?.email || m.para, telefono: e?.telefono || null, canal_origen: 'prospeccion', estado: 'nuevo', tipo_trabajo: e?.segmento || null, descripcion_proyecto: `Respondió el mail de prospección (${e?.rubro || ''}).`, activo: true }).select('id').single();
+    if (error) { setMsg(error.message); return; }
+    await supabase.from('prosp_empresas').update({ estado: 'respondio', prospecto_id: p.id }).eq('id', m.empresa_id);
+    setMsg(`${e?.nombre || 'La empresa'} pasó a Prospectos.`); onCambio();
+  };
+  return (
+    <>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {Object.keys(grupos).map(k => <button key={k} className="z-chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{k[0].toUpperCase() + k.slice(1)} <span className="z-chip-count">{msjs.filter(grupos[k]).length}</span></button>)}
+      </div>
+      <p className="text-[12.5px] text-z-ink-3 mb-3">Revisá cada mail, corregilo si hace falta y aprobalo. Todavía no hay casilla conectada: los aprobados quedan listos y no se envía nada hasta conectarla. Si una empresa contesta, pasala a Prospectos.</p>
+      <div className="grid gap-3">
+        {lista.length === 0 ? <div className="card"><EmptyState icon="inbox" title="No hay mails en esta bandeja" /></div> : lista.map(m => {
+          const e = edit[m.id];
+          return (
+            <div key={m.id} className="card p-4">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge tone={MSJ_TONO[m.estado]}>{m.estado}</Badge>
+                <span className="font-medium text-z-ink">{m.prosp_empresas?.nombre}</span>
+                <span className="text-[12.5px] text-z-ink-3">{m.para} · {m.prosp_empresas?.segmento} · {new Date(m.created_at).toLocaleDateString('es-AR')}</span>
+              </div>
+              {e ? <>
+                <input className="w-full mb-2" value={e.asunto ?? m.asunto} onChange={ev => setEdit(x => ({ ...x, [m.id]: { ...e, asunto: ev.target.value } }))} aria-label="Asunto" />
+                <textarea className="w-full" rows={8} value={e.cuerpo ?? m.cuerpo} onChange={ev => setEdit(x => ({ ...x, [m.id]: { ...e, cuerpo: ev.target.value } }))} aria-label="Cuerpo del mail" />
+              </> : <>
+                <div className="text-[13.5px] font-medium text-z-ink">{m.asunto}</div>
+                <pre className="whitespace-pre-wrap font-sans text-[13px] text-z-ink-2 m-0 mt-1">{m.cuerpo}</pre>
+              </>}
+              {(m.gate || []).length > 0 && <p className="text-[12.5px] mt-2 mb-0" style={{ color: 'rgb(var(--z-danger-c))' }}>Frenado por el control: {m.gate.join(' · ')}</p>}
+              {m.error && <p className="text-[12.5px] mt-2 mb-0 text-z-ink-3">{m.error}</p>}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {['borrador', 'propuesto', 'bloqueado'].includes(m.estado) && <button className="btn btn-primary btn-sm" disabled={m.estado === 'bloqueado' && !e} onClick={() => guardar(m, { estado: 'aprobado', gate: [] })}>{e ? 'Guardar y aprobar' : 'Aprobar'}</button>}
+                {m.estado !== 'enviado' && (e ? <button className="btn btn-secondary btn-sm" onClick={() => guardar(m, {})}>Guardar</button>
+                  : <button className="btn btn-secondary btn-sm" onClick={() => setEdit(x => ({ ...x, [m.id]: {} }))}>Editar</button>)}
+                {['borrador', 'propuesto', 'aprobado', 'bloqueado'].includes(m.estado) && <button className="btn btn-quiet btn-sm" onClick={() => guardar(m, { estado: 'rechazado' })}>Descartar</button>}
+                {['aprobado', 'rechazado'].includes(m.estado) && <button className="btn btn-quiet btn-sm" onClick={() => guardar(m, { estado: 'propuesto' })}>Volver a pendientes</button>}
+                <button className="btn btn-quiet btn-sm ml-auto" onClick={() => aProspecto(m)}>Respondió → Prospecto</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

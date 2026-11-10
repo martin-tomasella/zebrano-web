@@ -15,6 +15,7 @@ const ESTADOS = [
 ];
 const CANALES = {
   instagram: { label: 'Instagram', icon: 'photo_camera' },
+  prospeccion: { label: 'Prospección', icon: 'travel_explore' },
   facebook:  { label: 'Facebook',  icon: 'thumb_up' },
   tiktok:    { label: 'TikTok',    icon: 'music_note' },
   whatsapp:  { label: 'WhatsApp',  icon: 'chat' },

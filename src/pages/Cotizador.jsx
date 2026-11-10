@@ -10,7 +10,7 @@ const FN_COTIZADOR = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano
 const MAX_LADO = 1600
 
 // Imagen → JPEG base64 reducido (para no mandar fotos de 10 MB al modelo)
-function imagenAJpeg(src) {
+export function imagenAJpeg(src) {
   return new Promise((ok, mal) => {
     const img = new Image()
     img.onload = () => {
@@ -24,7 +24,7 @@ function imagenAJpeg(src) {
   })
 }
 // PDF / plano → una imagen por página (hasta 4) con pdf.js
-async function pdfAJpegs(file) {
+export async function pdfAJpegs(file) {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf')
   pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise

@@ -26,6 +26,7 @@ import Compras          from './pages/Compras'
 import Ordenes          from './pages/Ordenes'
 import Prospeccion      from './pages/Prospeccion'
 import CotizadorModular from './pages/CotizadorModular'
+import NuevoTrabajo     from './pages/NuevoTrabajo'
 import Mercado          from './pages/Mercado'
 import Personal         from './pages/Personal'
 import HorasTrabajo     from './pages/HorasTrabajo'
@@ -74,6 +75,7 @@ function AppRoutes() {
       <Route path="/finanzas"         element={<PrivateRoute><Finanzas /></PrivateRoute>} />
       <Route path="/proveedores"      element={<PrivateRoute><Proveedores /></PrivateRoute>} />
       <Route path="/cotizar-modulos"  element={<PrivateRoute><CotizadorModular /></PrivateRoute>} />
+      <Route path="/cotizador/nuevo"  element={<PrivateRoute><NuevoTrabajo /></PrivateRoute>} />
       <Route path="/personal"         element={<PrivateRoute><Personal /></PrivateRoute>} />
       <Route path="/mercado"          element={<PrivateRoute><Mercado /></PrivateRoute>} />
       <Route path="/prospeccion"      element={<PrivateRoute><Prospeccion /></PrivateRoute>} />

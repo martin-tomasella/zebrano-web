@@ -13,8 +13,8 @@ const NAV_SECTIONS = [
   { label: 'Ventas', items: [
     { path: '/prospeccion', icon: 'travel_explore', label: 'Prospección', moduloKey: 'prospeccion' },
     { path: '/prospectos', icon: 'funnel', label: 'Prospectos', moduloKey: 'prospectos' },
+    { path: '/cotizador/nuevo', icon: 'add', label: 'Nuevo trabajo', moduloKey: 'cotizador' },
     { path: '/cotizador',  icon: 'spark',  label: 'Cotizador AI', moduloKey: 'cotizador' },
-    { path: '/cotizar-modulos', icon: 'straighten', label: 'Cotizar por módulos', moduloKey: 'cotizador_modular' },
     { path: '/proyectos',  icon: 'layers', label: 'Proyectos', moduloKey: 'proyectos' },
   ]},
   { label: 'Clientes y mercado', items: [
@@ -152,7 +152,7 @@ function CommandPalette({ open, onClose, rol, onTheme, onAgent }) {
 
   const term = q.trim().toLowerCase()
   const acciones = [
-    tieneAcceso(rol, 'cotizador') && { group: 'Acciones', icon: 'add', label: 'Nueva cotización', go: () => navigate('/cotizador') },
+    tieneAcceso(rol, 'cotizador') && { group: 'Acciones', icon: 'add', label: 'Nuevo trabajo', go: () => navigate('/cotizador/nuevo') },
     tieneAcceso(rol, 'prospectos') && { group: 'Acciones', icon: 'person_add', label: 'Nuevo prospecto', go: () => navigate('/prospectos') },
     { group: 'Acciones', icon: 'smart_toy', label: 'Abrir Agent Zebrano', go: onAgent },
     { group: 'Acciones', icon: 'contrast', label: 'Cambiar tema claro / oscuro', go: onTheme },

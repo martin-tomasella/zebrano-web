@@ -19,6 +19,15 @@ const COLS = [['nombre', 'Módulo', 'text', 130], ['familia', 'Familia', FAMILIA
 const $ = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('es-AR')
 const nuevoModulo = mat => ({ nombre: 'Módulo', familia: 'bajo', ancho_mm: 600, alto_mm: 720, prof_mm: 550, puertas: 2, cajones: 0, estantes: 1, frentes: 'superpuestos', patas: 0, zocalo_mm: 0, terminaciones: 0, cantidad: 1, material: mat || 'Melamina blanco mate 18mm' })
 
+// Gira 90° en sentido horario una imagen (data URL).
+function girar(src) {
+  return new Promise(ok => {
+    const img = new Image()
+    img.onload = () => { const c = document.createElement('canvas'); c.width = img.height; c.height = img.width; const x = c.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(img, 0, 0); ok(c.toDataURL('image/jpeg', 0.85)) }
+    img.src = src
+  })
+}
+
 async function llamar(body) {
   const r = await fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
   const d = await r.json().catch(() => ({}))
@@ -132,8 +141,11 @@ export default function NuevoTrabajo() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '12px 0' }}>
             <label className="btn btn-secondary btn-sm"><span className="material-symbols-outlined">upload</span>Plano, foto, bosquejo o PDF
               <input type="file" accept="image/*,application/pdf" multiple hidden onChange={e => agregarArchivos([...e.target.files]).catch(x => setError(x.message))} /></label>
-            {imagenes.map((src, i) => <button key={i} className="btn btn-quiet btn-sm" title="Quitar" onClick={() => setImagenes(im => im.filter((_, j) => j !== i))}>
-              <img src={src} alt={`Adjunto ${i + 1}`} style={{ height: 44, borderRadius: 6 }} /> ✕</button>)}
+            {imagenes.map((src, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+              <img src={src} alt={`Adjunto ${i + 1}`} style={{ height: 44, borderRadius: 6 }} />
+              <button className="btn btn-quiet btn-sm" title="Girar 90°" aria-label={`Girar adjunto ${i + 1}`} onClick={() => girar(src).then(g => setImagenes(im => im.map((x, j) => j === i ? g : x)))}>↻</button>
+              <button className="btn btn-quiet btn-sm" title="Quitar" aria-label={`Quitar adjunto ${i + 1}`} onClick={() => setImagenes(im => im.filter((_, j) => j !== i))}>✕</button></span>)}
+            {imagenes.length > 0 && <span className="text-[12px]" style={{ color: 'var(--z-text-3)' }}>Si el plano está de costado, giralo con ↻ hasta que los textos se lean derechos: el agente lo lee mucho mejor.</span>}
           </div>
           <Btn icon="auto_awesome" onClick={leer} disabled={!!ocupado || (para === 'cliente' && !clienteId) || (para === 'prospecto' && !prospectoId)}>Leer y armar el diseño</Btn>
         </Card>}

@@ -544,6 +544,8 @@ LECTURA DE PLANOS (v67):
         const mo=(p.mano_obra??[]).map(m=>({etapa:String(m.etapa||"armado").toLowerCase(),horas_estimadas:Number(m.horas_estimadas)||0,operarios:String(m.etapa).toLowerCase()==="corte"?2:Math.max(1,Number(m.operarios)||1)}));
         // v67: controles de coherencia (plano girado, tipo de mueble) y terminacion siempre definida.
         p.preguntas=p.preguntas??[];
+        // Un mueble corrido leido como un solo modulo se parte en modulos iguales de hasta 1 m (el taller no arma cascos mas anchos).
+        p.modulos=p.modulos.flatMap(m=>{const a=Number(m.ancho_mm)||0,n=Math.ceil(a/1000);if(n<2||/placard|vestidor/i.test(String(m.familia??"")))return[m];const r=k=>Math.ceil((Number(m[k])||0)/n);return[{...m,ancho_mm:Math.round(a/n),cantidad:(Number(m.cantidad)||1)*n,puertas:r("puertas"),cajones:r("cajones"),terminaciones:Number(m.terminaciones)?1:0}];});
         const bajoTipo=/mueble ?tv|rack|vanitory|bajo|cajonera|aparador|comoda/i.test(String(p.tipo_trabajo??""));
         const altoMax=Math.max(0,...p.modulos.map(m=>Number(m.alto_mm)||0));
         if(altoMax>2800||(bajoTipo&&altoMax>1000))p.preguntas.unshift(`Leí ${altoMax} mm de alto, que no es razonable para ${p.tipo_trabajo||"este mueble"}: puede que el plano esté girado y esa cota sea el largo. Revisá alto y largo en la tabla.`);

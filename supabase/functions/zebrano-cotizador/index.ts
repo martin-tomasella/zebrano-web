@@ -263,7 +263,7 @@ ${tipologias||"(sin tipologias cargadas)"}
 Si el mueble (o una parte) coincide con una tipologia, pone su nombre EXACTO en datos.tipologias_ref (lista de {"nombre","cantidad","ancho_m"}) y usa sus cantidades como guia del despiece y los herrajes. Elegi la tipologia cuyo rango de ancho (primer numero del nombre, ej. "2,20m/2,40m") incluye el frente real del mueble, y en ancho_m pone ese frente en metros.
 
 REGLA 13 - HORAS DEL TALLER:
-Si el usuario dice cuanto tarda el taller (horas o dias por etapa, o cuantas personas), usas EXACTAMENTE esos valores en mano_obra; tu estimacion es solo una propuesta cuando no los dio.
+Si el usuario dice cuanto tarda el taller (horas o dias por etapa, o cuantas personas), usas EXACTAMENTE esos valores en mano_obra y pones datos.horas_dadas_por_usuario=true; si no los dio, el sistema usa los tiempos reales del taller por metro lineal (tu estimacion solo cuenta para etapas sin tiempo cargado).
 
 REGLA 14 - MODULOS EN LUGAR DE DESPIECE (manda sobre la Regla 9):
 En la etapa cotizacion NO armes el despiece de los muebles: describi cada modulo en datos.modulos y el sistema calcula piezas, bisagras y correderas con las reglas del taller.
@@ -414,7 +414,20 @@ Deno.serve(async(req)=>{
     const normTerm=t=>{const x=String(t??"").toLowerCase();return /lustr/.test(x)?"lustrado":/agua/.test(x)?"laqueado al agua":/laque/.test(x)?"laqueado sintetico":/melam|sin pint|ninguna|no lleva/.test(x)?"melamina":"sin definir";};
     // ponytail: m2 = frentes de ambas caras + laterales a la vista; si el taller mide otra superficie, se pasa laqueado_m2.
     const m2Terminar=mods=>Math.round((mods??[]).reduce((a,m)=>a+((Number(m.ancho_mm)||0)*(Number(m.alto_mm)||0)*2+(Number(m.alto_mm)||0)*(Number(m.prof_mm)||0)*(Number(m.terminaciones)||0))*(Number(m.cantidad)||1),0)/1e5)/10;
+    // v72: tiempos reales del taller por metro lineal (tabla tiempos_taller) en lugar de la estimacion de la IA.
+    let TT=null;
+    const tiemposTaller=async(mods,tipo,moIn)=>{
+      TT=TT??((await sb.from("tiempos_taller").select("tipo,etapa,horas_por_ml,personas,minimo_h")).data??[]);
+      const ml=(mods??[]).reduce((a,m)=>a+(Number(m.ancho_mm)||0)*(Number(m.cantidad)||1),0)/1000;
+      const filas=TT.filter(r=>{try{return new RegExp(r.tipo,"i").test(String(tipo??""));}catch{return false;}});
+      if(!filas.length||!(ml>0))return moIn??[];
+      const out=(moIn??[]).filter(m=>!filas.some(r=>r.etapa===String(m.etapa??"").toLowerCase()));
+      for(const r of filas)out.push({etapa:r.etapa,horas_estimadas:Math.max(Number(r.minimo_h)||0,Math.round(ml*Number(r.horas_por_ml)*2)/2),operarios:r.personas,fuente:"taller"});
+      const orden=["corte","canteado","armado","terminacion","instalacion"];
+      return out.sort((a,b)=>orden.indexOf(String(a.etapa))-orden.indexOf(String(b.etapa)));
+    };
     const cotizarDat=async(dat,hist,mensaje)=>{let texto="",resumenCot=null;
+    if(!dat.horas_dadas_por_usuario)dat.mano_obra=await tiemposTaller(dat.modulos,dat.tipo_trabajo,dat.mano_obra);
     // v57: si el agente describio modulos, el despiece y los herrajes de armado salen de las reglas del taller.
     const FONDO=(PLACAS.find(p=>/fondo|hdf|fibro|plus/i.test(p.nombre)&&p.fuente==="factura")||PLACAS.find(p=>/fondo|hdf|fibro|plus/i.test(p.nombre)))?.nombre||"HDF blanco 3mm (fondos)";
     const dsp=Array.isArray(dat.modulos)&&dat.modulos.length?despiece(dat.modulos,{placa:BLANCA?.nombre||"Melamina blanco mate 18mm",fondo:FONDO}):null;
@@ -588,6 +601,7 @@ LECTURA DE PLANOS (v67):
         const mo=(p.mano_obra??[]).map(m=>({etapa:String(m.etapa||"armado").toLowerCase(),horas_estimadas:Number(m.horas_estimadas)||0,operarios:String(m.etapa).toLowerCase()==="corte"?2:Math.max(1,Number(m.operarios)||1)}));
         // v67: controles de coherencia (plano girado, tipo de mueble) y terminacion siempre definida.
         revisar(p);
+        const moT=await tiemposTaller(p.modulos,p.tipo_trabajo,mo);mo.splice(0,mo.length,...moT);
         const term=normTerm(p.terminacion);
         if(term==="sin definir"&&!p.preguntas.some(q=>/laque|lustr/i.test(q)))p.preguntas.push("¿Lleva terminación laqueada o lustrada, o queda en melamina? Cambia el costo y el plazo.");
         const g=await guardarDiseno(p.modulos,{tipo_trabajo:p.tipo_trabajo,ambiente:p.ambiente,estilo:p.estilo||"",mano_obra:mo,terminacion:term});
@@ -634,7 +648,7 @@ LECTURA DE PLANOS (v67):
         if(!mods.length)return json({ok:false,error:"No hay módulos para cotizar."},400);
         const mo=body.mano_obra??s2?.contexto_extra?.mano_obra??[];
         if(body.mano_obra)await sb.from("cotizacion_sesiones").update({contexto_extra:{...(s2?.contexto_extra??{}),mano_obra:body.mano_obra}}).eq("id",sid);
-        const r=await cotizarDat({tipo_trabajo:s2?.tipo_trabajo||"",ambiente:s2?.ambiente||"",modulos:mods,mano_obra:mo,piezas:[],herrajes:body.herrajes??[],terminacion:body.terminacion??s2?.contexto_extra?.terminacion,laqueado_m2:Number(body.laqueado_m2??s2?.contexto_extra?.laqueado_m2)||0},[],String(body.notas??""));
+        const r=await cotizarDat({tipo_trabajo:s2?.tipo_trabajo||"",ambiente:s2?.ambiente||"",modulos:mods,mano_obra:mo,piezas:[],horas_dadas_por_usuario:!!body.mano_obra,herrajes:body.herrajes??[],terminacion:body.terminacion??s2?.contexto_extra?.terminacion,laqueado_m2:Number(body.laqueado_m2??s2?.contexto_extra?.laqueado_m2)||0},[],String(body.notas??""));
         await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:r.texto.trim(),imagenes:[],metadata:{accion:"cotizar",datos:{modulos:mods,mano_obra:mo}}});
         return json({ok:true,sesion_id:sid,respuesta:r.texto.trim(),resumen:r.resumenCot});
       }

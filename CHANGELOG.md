@@ -1,6 +1,12 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v74: tiempos y laqueado como los da el taller.**
+  - Mueble TV / bajo (`tiempos_taller`): corte medio día (3,5 h) con 1 persona y armado 1 día y medio (10,5 h) con 2 personas, con el canteado incluido. Sin laqueado: 2 días. Ya no se fuerzan 2 personas en el corte.
+  - Laqueado o lustrado: 3 días (21 h) del pintor, 1 persona, fijo; no depende de la superficie. Con laqueado: 5 días entre 3 personas (45,5 h-persona).
+  - m² a laquear: solo las caras a la vista (frente de un lado, laterales a la vista, tapa una vez aunque sea regruesada, zócalo). Solo se usa para la cantidad de pintura, que sigue sin precio.
+  - Placa blanco mate: $65.000 ($55.000 de costo + $10.000).
+  - 6065 con laqueado: $2.005.000 sin factura, utilidad 40,5%, 35 h de taller.
 - **Cotizador v73: ajustes contra el presupuesto 6065 (Agustina, mueble zapatero/TV).**
   - Placa blanco mate a $75.000 y preencolado blanco a $12.000 el rollo, como la planilla. En el cotizador, el precio de lista cargado a mano gana si su fecha es igual o posterior a la última factura.
   - Regrueso: la placa es siempre de 18 mm; la pieza regruesada a 36 mm se duplica (tapa y laterales a la vista). Con regrueso, la tapa se suma a los m² a laquear. Antes era una tira de 6 cm "regrueso de mesada".

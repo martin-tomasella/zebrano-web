@@ -1,6 +1,10 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v70: render de presentación.**
+  - Desde el 02/11 todos los renders salían de Pollinations, el respaldo gratuito, de baja calidad: `gpt-image-1` ya no existe para la cuenta, `dall-e-3` cambió su API y Gemini Image no tiene cupo gratis. Ahora usa `gpt-image-2` (con `gpt-image-1.5` y `gpt-image-1-mini` de respaldo, configurables en `COTIZADOR_IMG_MODELS`).
+  - El render es una foto de catálogo en un ambiente acorde (luz natural, perspectiva 3/4, decoración que no tapa el mueble), y ya no un frente plano sobre fondo blanco.
+  - En Nuevo trabajo, el paso 2 muestra el modelo 3D. El render parte de esa vista (edición de imagen), así respeta módulos, puertas y proporciones.
 - **Órdenes → 3D y armado.**
   - Modelo 3D paramétrico de cada OT (three.js, se carga solo al abrir la pestaña): casco, fondo, estantes, puertas y cajones con las medidas del diseño y las reglas del despiece. Se gira con el mouse o el dedo, en vista armado o despiezado.
   - Pasos de armado por módulo.

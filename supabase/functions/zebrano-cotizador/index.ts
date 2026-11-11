@@ -537,7 +537,7 @@ LECTURA DE PLANOS (v67):
 - Coherencia antes de responder: ningun mueble pasa de 2800 mm de alto; mueble TV, bajo, vanitory o cajonera no pasan de 1000 mm de alto. Si tu lectura no cumple esto, releé el plano (seguro esta girado) y, si sigue sin cerrar, pregunta en vez de seguir.
 - TERMINACION: si el plano o el usuario no dicen si lleva laqueado o lustrado (o si es melamina), PREGUNTALO siempre: cambia el costo y el plazo.`;
         const cont=imagenes_base64.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));cont.push({type:"text",text:mensaje||"Leé el plano adjunto."});
-        const{parsed:p,apiError,usage,modelo}=await callLLM([{role:"user",content:cont}],sys);
+        const{parsed:p,apiError,usage,modelo}=await callLLM([{role:"user",content:cont}],sys,{esfuerzo:imagenes_base64.length?"medium":"low"});
         await reg({sesion_id:sid,modelo:usage?.modelo??modelo??"error",tokens_in:usage?.tokens_in??null,tokens_out:usage?.tokens_out??null});
         if(apiError||!p?.modulos?.length)return json({ok:false,sesion_id:sid,error:apiError||"No pude leer módulos. Agregá medidas o una imagen más clara."},apiError?502:422);
         const dc=p.datos_cliente||{};const upd={};if(String(dc.nombre||"").trim())upd.cliente_nombre=String(dc.nombre).trim();if(String(dc.telefono||"").trim())upd.cliente_telefono=String(dc.telefono).trim();if(String(dc.email||"").trim())upd.cliente_email=String(dc.email).trim();if(Object.keys(upd).length)await sb.from("cotizacion_sesiones").update(upd).eq("id",sid);

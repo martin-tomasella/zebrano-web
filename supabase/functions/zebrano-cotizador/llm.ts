@@ -50,13 +50,14 @@ async function claude(msgs, system) {
     usage: { modelo: d.model || model, tokens_in: d.usage?.input_tokens ?? null, tokens_out: d.usage?.output_tokens ?? null } };
 }
 
-export async function callLLM(msgs, system) {
+// opts.esfuerzo: razonamiento de Gemini ("low" por defecto; "medium" para leer planos con imagen).
+export async function callLLM(msgs, system, opts = {}) {
   const intentos = [];
   if (GW) intentos.push(["gateway", () => openaiCompat(`${GW.replace(/\/$/, "")}/chat/completions`, GWK, "agente", msgs, system)]);
   if (GK) intentos.push(["gemini", () => openaiCompat("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", GK,
     Deno.env.get("COTIZADOR_GEMINI_MODEL") || "gemini-2.5-flash", msgs, system,
     // Gemini 2.5 descuenta el razonamiento interno del tope de tokens: con despieces largos se cortaba
-    { max_tokens: 32768, reasoning_effort: "low", response_format: { type: "json_object" } })]);
+    { max_tokens: 32768, reasoning_effort: opts.esfuerzo || "low", response_format: { type: "json_object" } })]);
   if (AK) intentos.push(["claude", () => claude(msgs, system)]);
   if (OK) intentos.push(["openai", () => openaiCompat("https://api.openai.com/v1/chat/completions", OK,
     Deno.env.get("COTIZADOR_OPENAI_MODEL") || "gpt-4.1", msgs, system)]);

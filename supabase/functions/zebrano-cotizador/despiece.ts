@@ -5,7 +5,8 @@
 // los bajos llevan dos travesaños en lugar de techo; fondo de fibro 3 mm clavado atrás; luz de 3 mm;
 // puertas y frentes superpuestos al casco (casco 55 + puerta 2 = 57) salvo que se indique "embutidos";
 // bisagras: 2 hasta 900 mm de alto, 3 hasta 1600, 4 más; cajones con laterales y frente en 18 mm, fondo fibro 3 mm,
-// lateral según el alto del frente; zócalo o patas solo si se indican; laterales de terminación y regrueso de mesada opcionales.
+// lateral según el alto del frente; zócalo o patas solo si se indican; laterales de terminación opcionales.
+// Regrueso (Martín 11/11): la placa es siempre de 18 mm; la pieza regruesada a 36 mm se duplica (tapa y laterales a la vista).
 const T = 18, LUZ = 3, FIBRO = 3, TRAV = 100, COR_LADO = 13;
 
 const bisagrasPorPuerta = (alto) => (alto <= 900 ? 2 : alto <= 1600 ? 3 : 4);
@@ -36,14 +37,16 @@ export function despiece(modulos, mat) {
     // Casco: base y techo enteros, laterales entre ellos.
     add("Lateral", H - 2 * T, P, 2, placa, true);
     add("Base", W, P, 1, placa, true);
-    if (bajo) { add("Travesaño delantero", W, TRAV, 1, placa, true); add("Travesaño trasero", W, TRAV, 1); }
+    const reg = !!m.regrueso;
+    // Con regrueso, el bajo lleva tapa a la vista (2 capas, cubre la puerta superpuesta) en lugar de travesaños.
+    if (reg) add("Tapa (regrueso 36 mm)", W, P + (emb ? 0 : 20), 2, placa, true, true);
+    else if (bajo) { add("Travesaño delantero", W, TRAV, 1, placa, true); add("Travesaño trasero", W, TRAV, 1); }
     else add("Techo", W, P, 1, placa, true);
     add("Estante", W - 2 * T, P - 10, Number(m.estantes) || 0, placa, true);
     add("Fondo (clavado)", W, H, 1, mat.fondo);
     if (Number(m.zocalo_mm) > 0) add("Zócalo", W, Number(m.zocalo_mm), 1, placa, true);
     // Laterales de terminación a la vista: cubren casco + puerta superpuesta (+ zócalo) y llevan canto en todo el borde visible.
-    add("Lateral de terminación", H + (Number(m.zocalo_mm) || 0), P + (emb ? 0 : 20), Math.min(2, Number(m.terminaciones) || 0), placa, true, true);
-    if (m.regrueso && bajo) add("Regrueso de mesada", W, 60, 1, placa, true);
+    add(reg ? "Lateral de terminación (regrueso 36 mm)" : "Lateral de terminación", H + (Number(m.zocalo_mm) || 0) + (reg ? 2 * T : 0), P + (emb ? 0 : 20), Math.min(2, Number(m.terminaciones) || 0) * (reg ? 2 : 1), placa, true, true);
     herr.patas += (Number(m.patas) || 0) * n;
 
     // Frentes: superpuestos cubren todo el casco; embutidos van dentro del hueco.
@@ -84,5 +87,8 @@ if (typeof Deno === "undefined" && import.meta.url.endsWith("despiece.mjs")) {
   console.assert(cj["Frente de cajón"].cantidad === 3 && cj["Lateral de cajón"].largo_mm === 500 && c.herrajes.correderas[0].pares === 3, "cajones");
   const a = despiece([{ nombre: "Alacena", familia: "alacena", ancho_mm: 800, alto_mm: 1700, prof_mm: 350, puertas: 2, frentes: "embutidos" }], { placa: "MB", fondo: "F" });
   console.assert(a.piezas.some((p) => p.nombre === "Techo") && a.herrajes.bisagras === 8, "alacena alta embutida: 4 bisagras por puerta");
+  const g = despiece([{ nombre: "TV", familia: "bajo", ancho_mm: 2000, alto_mm: 500, prof_mm: 500, puertas: 4, terminaciones: 1, regrueso: true }], { placa: "MB", fondo: "F" });
+  const gt = Object.fromEntries(g.piezas.map((p) => [p.nombre, p]));
+  console.assert(gt["Tapa (regrueso 36 mm)"].cantidad === 2 && !gt["Travesaño delantero"] && gt["Lateral de terminación (regrueso 36 mm)"].cantidad === 2, "regrueso duplica tapa y lateral");
   console.log("ok", d.piezas.length, c.piezas.length, a.piezas.length);
 }

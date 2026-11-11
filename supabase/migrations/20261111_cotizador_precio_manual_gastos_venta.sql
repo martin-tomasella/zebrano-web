@@ -1,0 +1,7 @@
+-- Aplicadas el 11/11/2026 (cotizador v73): cotizador_precio_manual_y_gastos_venta y cotizacion_resumen_desglose.
+-- 1) cotizador_catalogo: el precio de lista cargado a mano con fecha igual o posterior a la última factura gana.
+-- 2) Placa blanco mate $75.000 y preencolado blanco $12.000 el rollo (pedido de Martín).
+-- 3) cotiz_parametros: flete_pct = 3 y factura_pct = 24 (el impuesto bancario es debcred_pct = 1,2).
+-- 4) Insumos de laqueado renombrados: pintura de fondo (base) y pintura de acabado (semimate, brillante u opaca).
+-- 5) cotizacion_resumen.desglose jsonb: resumen de la orden desglosado.
+-- Ver el SQL completo en el historial de migraciones de Supabase.

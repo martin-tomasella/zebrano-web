@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
 import { Layout, Topbar, PageContent } from '../components/Layout'
 import { Card, Btn, SectionTitle } from '../components/ui'
-import { imagenAJpeg, pdfAJpegs, girar } from './Cotizador'
+import { imagenAJpeg, pdfAJpegs, girar, ResumenOrden } from './Cotizador'
 const Vista3D = lazy(() => import('../components/Vista3D'))
 
 // Nuevo trabajo (ERP v2): plano / foto / bosquejo / medidas -> diseño editable -> render -> cotización -> OT en cola.
@@ -209,14 +209,10 @@ export default function NuevoTrabajo() {
 
         {paso === 3 && resumen && <>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
-            <Card style={{ flex: '1 1 200px' }}><div style={{ color: 'var(--z-text-2)' }}>Precio sin IVA</div><div style={{ fontSize: 28, fontWeight: 700 }}>{$(resumen.precioSugerido)}</div></Card>
+            <Card style={{ flex: '1 1 200px' }}><div style={{ color: 'var(--z-text-2)' }}>Precio sin factura</div><div style={{ fontSize: 28, fontWeight: 700 }}>{$(resumen.precioSugerido)}</div></Card>
             <Card style={{ flex: '1 1 200px' }}><div style={{ color: 'var(--z-text-2)' }}>En dólares</div><div style={{ fontSize: 28, fontWeight: 700 }}>USD {resumen.precioUsd?.toLocaleString('es-AR') ?? '—'}</div>
               <div style={{ fontSize: 12, color: 'var(--z-text-2)' }}>oficial BCRA {resumen.tcUsd ? $(resumen.tcUsd) : '—'}</div></Card>
-            <Card style={{ flex: '1 1 260px' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--z-text-3)', marginBottom: 6 }}>Resumen de la orden</div>
-              {[['Costo materiales', $(resumen.costoMateriales)], ['Costo MO', $(resumen.costoMO)], ['Utilidad', `${$(resumen.utilidad)} (${resumen.margen ?? '—'}%)`], ['Precio de venta', `${$(resumen.precioVenta ?? resumen.precioSugerido)} sin IVA`], ['Tiempo aprox.', `${resumen.horas ?? '—'} h de taller (${resumen.horasPersona ?? '—'} h-persona)`]].map(([k, v]) =>
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '2px 0', fontWeight: k === 'Precio de venta' ? 700 : 400 }}><span style={{ color: 'var(--z-text-2)' }}>{k}</span><span style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>)}
-            </Card>
+            <div style={{ flex: '1 1 260px' }}><ResumenOrden r={resumen} /></div>
           </div>
           <Card style={{ marginBottom: 14 }}><div style={{ whiteSpace: 'pre-wrap', fontSize: 14 }}>{cot.respuesta}</div></Card>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

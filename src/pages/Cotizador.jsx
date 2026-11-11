@@ -523,18 +523,36 @@ function Visor({ vista, vistas, onCambiar, onCerrar }) {
   )
 }
 
-// Resumen rápido de la orden (11/11/2026): materiales (placas, herrajes y terminación), mano de obra, utilidad, precio y horas.
+// Resumen rápido de la orden (11/11/2026). v73: con el desglose del cotizador (r.desglose) muestra la terminación por insumo,
+// los gastos de venta (impuesto bancario y flete) fuera de la utilidad, el % de utilidad y el precio con factura.
 export function ResumenOrden({ r }) {
   const $ = v => '$' + Math.round(Number(v) || 0).toLocaleString('es-AR')
-  const mat = (+r.costo_materiales || 0) + (+r.costo_herrajes || 0) + (+r.costo_laqueado || 0)
-  const util = (+r.precio_sugerido || 0) - (+r.costo_total_interno || 0)
-  const horas = r.dias_produccion_est ? Math.round(r.dias_produccion_est * 7 * 10) / 10 : null
-  const filas = [['Costo materiales', $(mat)], ['Costo MO', $(r.costo_mano_obra)], ['Utilidad', `${$(util)}${r.precio_sugerido ? ` (${Math.round(util / r.precio_sugerido * 100)}%)` : ''}`],
-    ['Precio de venta', `${$(r.precio_sugerido)} sin IVA${r.precio_usd ? ` · USD ${Math.round(r.precio_usd).toLocaleString('es-AR')}` : ''}`], ['Tiempo aprox.', horas ? `${horas} h de taller${r.horas_totales_est ? ` (${Math.round(r.horas_totales_est)} h-persona)` : ''}` : (r.horas_totales_est ? `${Math.round(r.horas_totales_est)} h-persona` : '—')]]
+  const d = r.desglose
+  const horas = d ? d.horas : r.dias_produccion_est ? Math.round(r.dias_produccion_est * 7 * 10) / 10 : null
+  const hp = d ? d.horas_persona : r.horas_totales_est
+  const tiempo = ['Tiempo aprox.', horas ? `${horas} h de taller${hp ? ` (${Math.round(hp)} h-persona)` : ''}` : (hp ? `${Math.round(hp)} h-persona` : '—')]
+  const usd = d?.precio_usd ?? r.precio_usd
+  let filas
+  if (d) {
+    filas = [['Costo materiales', $(d.costo_materiales)],
+      ...(d.terminacion_lineas?.length ? d.terminacion_lineas.map(l => [`· ${l.nombre} (${l.cant} ${l.unidad})`, l.precio ? $(l.subtotal) : 'sin precio', 'sub']) : []),
+      ['Costo MO', $(d.costo_mo)],
+      ['Precio de venta', `${$(d.precio)} sin factura${usd ? ` · USD ${Math.round(usd).toLocaleString('es-AR')}` : ''}`, 'total'],
+      [`− Impuesto bancario ${d.pct_bancario}%`, $(d.gasto_bancario), 'sub'],
+      [`− Flete ${d.pct_flete}%`, $(d.gasto_flete), 'sub'],
+      ['Utilidad', `${$(d.utilidad)} (${d.utilidad_pct}%)`, 'fuerte'],
+      [`Con factura (+${d.pct_factura}%)`, $(d.precio_factura)],
+      tiempo]
+  } else {
+    const mat = (+r.costo_materiales || 0) + (+r.costo_herrajes || 0) + (+r.costo_laqueado || 0)
+    const util = (+r.precio_sugerido || 0) - (+r.costo_total_interno || 0)
+    filas = [['Costo materiales', $(mat)], ['Costo MO', $(r.costo_mano_obra)], ['Utilidad', `${$(util)}${r.precio_sugerido ? ` (${Math.round(util / r.precio_sugerido * 100)}%)` : ''}`],
+      ['Precio de venta', `${$(r.precio_sugerido)} sin IVA${usd ? ` · USD ${Math.round(usd).toLocaleString('es-AR')}` : ''}`, 'total'], tiempo]
+  }
   return (
     <div className="z-glass" style={{ borderRadius:'var(--radius-lg)', padding:'12px 14px' }} aria-label="Resumen de la orden">
       <div style={{ fontSize:12, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', color:'var(--z-text-3)', marginBottom:6 }}>Resumen de la orden</div>
-      {filas.map(([k, v]) => <div key={k} style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'3px 0', borderTop: k === 'Precio de venta' ? '1px solid var(--z-border)' : undefined, fontWeight: k === 'Precio de venta' ? 700 : 400 }}><span style={{ color:'var(--z-text-2)' }}>{k}</span><span style={{ fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{v}</span></div>)}
+      {filas.map(([k, v, t]) => <div key={k} style={{ display:'flex', justifyContent:'space-between', gap:12, padding: t === 'sub' ? '1px 0 1px 10px' : '3px 0', fontSize: t === 'sub' ? 12 : undefined, borderTop: t === 'total' ? '1px solid var(--z-border)' : undefined, fontWeight: t === 'total' || t === 'fuerte' ? 700 : 400 }}><span style={{ color:'var(--z-text-2)' }}>{k}</span><span style={{ fontVariantNumeric:'tabular-nums', textAlign:'right', whiteSpace:'nowrap' }}>{v}</span></div>)}
     </div>
   )
 }

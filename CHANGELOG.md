@@ -7,6 +7,7 @@
   - m² a laquear: solo las caras a la vista (frente de un lado, laterales a la vista, tapa una vez aunque sea regruesada, zócalo). Solo se usa para la cantidad de pintura, que sigue sin precio.
   - Placa blanco mate: $65.000 ($55.000 de costo + $10.000).
   - 6065 con laqueado: $2.005.000 sin factura, utilidad 40,5%, 35 h de taller.
+  - Mueble TV / bajo: la IA agregaba "instalación 4 h con 2 personas" por su cuenta (18 h en lugar de 14). Ahora `tiempos_taller` la deja en 0 h para ese tipo y no se suma, salvo que el usuario dé las horas.
 - **Cotizador v73: ajustes contra el presupuesto 6065 (Agustina, mueble zapatero/TV).**
   - Placa blanco mate a $75.000 y preencolado blanco a $12.000 el rollo, como la planilla. En el cotizador, el precio de lista cargado a mano gana si su fecha es igual o posterior a la última factura.
   - Regrueso: la placa es siempre de 18 mm; la pieza regruesada a 36 mm se duplica (tapa y laterales a la vista). Con regrueso, la tapa se suma a los m² a laquear. Antes era una tira de 6 cm "regrueso de mesada".

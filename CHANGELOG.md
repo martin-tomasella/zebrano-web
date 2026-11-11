@@ -1,5 +1,13 @@
 # Changelog
 
+## 11/11/2026
+- **Cotizador v67.**
+  - Lectura de planos: los planos de arquitectura suelen venir girados, así que el agente se orienta por el rótulo y las vistas (planta, frente, corte) y respeta el tipo de mueble del título. También cuenta las divisiones del frente y no duplica el mueble cuando el plano trae dos vistas frente (exterior con puertas e interior con estantes). Las opciones "como adicional" no entran en la base.
+  - Controles en código: si lee más de 2,8 m de alto, o más de 1 m en un mueble bajo o de TV, avisa que el plano puede estar girado. Un mueble corrido leído como un solo módulo se parte en módulos de hasta 1 m.
+  - Las imágenes de planos se leen primero con Claude u OpenAI (el que tenga clave); Gemini queda de respaldo.
+  - Terminación: pregunta siempre si lleva laqueado o lustrado. Se cotiza por m² con `config_pintura` (sintético, al agua o lustrado poliuretano). Por defecto toma los frentes de ambas caras más los laterales a la vista, o los m² que se carguen a mano. Sale en el costo, en el texto y en el título del presupuesto.
+- Nuevo trabajo: selector de terminación y m² en el paso 2, y botón ↻ para girar los planos antes de leerlos.
+
 ## 10/11/2026
 - **ERP v2, fases 2 a 7.**
   - Órdenes: cada OT tiene "Corte de placas" (optimizador en guillotina, sierra de 4 mm, sin girar las melaminas con veta, dibujo por placa, aprovechamiento y retazos) con hoja de corte imprimible, y "Materiales y compras".

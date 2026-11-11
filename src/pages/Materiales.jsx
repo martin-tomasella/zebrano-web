@@ -29,6 +29,14 @@ export default function Materiales() {
     if (error) setErr(error.message); else { setNuevo(null); cargar() }
   }
 
+  // Precio de lista (neto, sin IVA) para lo que todavía no tiene factura. La factura confirmada lo reemplaza.
+  const precioLista = async (r, v) => {
+    const n = v === '' ? null : Number(v)
+    if (n === (r.precio_neto == null ? null : Number(r.precio_neto))) return
+    const { error } = await supabase.from('insumos').update({ precio_lista: n, descuento_pct: 0, precio_lista_fecha: new Date().toISOString().slice(0, 10) }).eq('id', r.insumo_id)
+    if (error) setErr(error.message); else cargar()
+  }
+
   return (
     <Layout>
       <Topbar title="Insumos" subtitle="Catálogo de materiales y herrajes con el último precio pagado"
@@ -46,14 +54,17 @@ export default function Materiales() {
             {cats.map(c => <button key={c} className="z-chip capitalize" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}
             <input className="ml-auto max-w-[260px]" placeholder="Buscar insumo…" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar" />
           </div>
+          {err && !nuevo && <p role="alert" className="text-[13px]" style={{ color: 'rgb(var(--z-danger-c))' }}>{err}</p>}
+          {cat === 'pintura' && <Recetas rows={rows} />}
           <div className="card overflow-auto">
             <table className="w-full text-[13px]">
               <thead><tr><th>Insumo</th><th>Categoría</th><th>Unidad</th><th className="text-right">Precio neto</th><th className="text-right">USD</th><th>Fuente</th><th className="text-right">Comprado</th><th>Última compra</th><th>Proveedor</th></tr></thead>
               <tbody>{lista.length === 0 ? <tr><td colSpan={9}><EmptyState icon="inventory_2" title="Sin insumos" /></td></tr> : lista.map(r => (
                 <tr key={r.insumo_id}>
                   <td className="font-medium text-z-ink">{r.nombre}</td><td className="capitalize">{r.categoria}</td><td>{r.unidad}</td>
-                  <td className="text-right tabular-nums">{$(r.precio_neto)}</td><td className="text-right tabular-nums">{usd(r.precio_usd)}</td>
-                  <td><Badge tone={r.fuente === 'factura' ? 'success' : 'neutral'}>{r.fuente === 'factura' ? 'Factura' : 'Lista Excel'}</Badge></td>
+                  <td className="text-right tabular-nums">{r.fuente === 'factura' ? $(r.precio_neto)
+                    : <input type="number" min={0} defaultValue={r.precio_neto ?? ''} placeholder="Cargar" style={{ width: 100, textAlign: 'right' }} aria-label={`Precio de lista de ${r.nombre}`} onBlur={e => precioLista(r, e.target.value)} />}</td><td className="text-right tabular-nums">{usd(r.precio_usd)}</td>
+                  <td><Badge tone={r.fuente === 'factura' ? 'success' : r.precio_neto == null ? 'warning' : 'neutral'}>{r.fuente === 'factura' ? 'Factura' : r.precio_neto == null ? 'Sin precio' : 'Lista'}</Badge></td>
                   <td className="text-right tabular-nums">{Number(r.comprado_cantidad) ? `${Number(r.comprado_cantidad).toLocaleString('es-AR')} ${r.unidad}` : '—'}</td>
                   <td>{f(r.ultima_compra)}</td><td>{r.proveedor || '—'}</td>
                 </tr>))}</tbody>
@@ -76,5 +87,35 @@ export default function Materiales() {
         </div>
       )}
     </Layout>
+  )
+}
+
+// Receta de cada terminación: consumo por m² terminado (todas las manos) de cada insumo de pintura.
+// El cotizador multiplica consumo × m² × precio del insumo. Solo un admin la puede editar.
+function Recetas({ rows }) {
+  const [rec, setRec] = useState(null)
+  const cargar = () => supabase.from('terminacion_receta').select('terminacion,insumo_id,consumo_m2,notas').order('terminacion').then(({ data }) => setRec(data || []))
+  useEffect(() => { cargar() }, [])
+  if (!rec) return null
+  const precio = id => Number(rows.find(r => r.insumo_id === id)?.precio_neto || 0)
+  const nombre = id => rows.find(r => r.insumo_id === id)?.nombre || '—'
+  const guardar = async (r, v) => { await supabase.from('terminacion_receta').update({ consumo_m2: Number(v) || 0 }).eq('terminacion', r.terminacion).eq('insumo_id', r.insumo_id); cargar() }
+  return (
+    <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+      {['laqueado sintetico', 'laqueado al agua', 'lustrado'].map(t => {
+        const rs = rec.filter(r => r.terminacion === t)
+        const m2 = rs.reduce((a, r) => a + Number(r.consumo_m2) * precio(r.insumo_id), 0)
+        return (
+          <div key={t} className="card p-4">
+            <div className="flex justify-between items-baseline mb-2"><b className="capitalize text-z-ink">{t}</b><span className="tabular-nums text-[13px]">{$(m2)} / m² sin IVA</span></div>
+            <table className="w-full text-[12.5px]"><tbody>{rs.map(r => (
+              <tr key={r.insumo_id}><td>{nombre(r.insumo_id)}{!precio(r.insumo_id) && <> <Badge tone="warning">sin precio</Badge></>}</td>
+                <td className="text-right whitespace-nowrap"><input type="number" step="0.01" min={0} defaultValue={r.consumo_m2} style={{ width: 70, textAlign: 'right' }} onBlur={e => Number(e.target.value) !== Number(r.consumo_m2) && guardar(r, e.target.value)} aria-label={`Consumo por m² de ${nombre(r.insumo_id)} en ${t}`} /> /m²</td></tr>
+            ))}</tbody></table>
+          </div>
+        )
+      })}
+      <p className="text-[12px] text-z-ink-3 m-0" style={{ gridColumn: '1 / -1' }}>Consumo por m² terminado, con todas las manos. Los valores iniciales son una referencia: ajustalos con lo que gasta el taller. Las horas de lijado y pintura van en la etapa "terminación" de la mano de obra.</p>
+    </div>
   )
 }

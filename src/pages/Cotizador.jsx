@@ -24,6 +24,15 @@ export function imagenAJpeg(src) {
   })
 }
 // PDF / plano → una imagen por página (hasta 4) con pdf.js
+// Gira 90° en sentido horario una imagen (data URL).
+export function girar(src) {
+  return new Promise(ok => {
+    const img = new Image()
+    img.onload = () => { const c = document.createElement('canvas'); c.width = img.height; c.height = img.width; const x = c.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(img, 0, 0); ok(c.toDataURL('image/jpeg', 0.85)) }
+    img.src = src
+  })
+}
+
 export async function pdfAJpegs(file) {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf')
   pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
@@ -414,8 +423,11 @@ export default function Cotizador() {
                   <img src={a.dataUrl} alt={a.nombre} style={{ height:56, borderRadius:6, border:'1px solid var(--z-border)', background:'#fff' }} />
                   <button className="btn btn-quiet btn-icon" aria-label={`Quitar ${a.nombre}`} onClick={() => setAdjuntos(x => x.filter((_, j) => j !== i))}
                     style={{ position:'absolute', top:-8, right:-8, width:22, height:22, minHeight:0, padding:0, borderRadius:'50%', background:'var(--z-card)', border:'1px solid var(--z-border)', fontSize:12 }}>✕</button>
+                  <button className="btn btn-quiet btn-icon" title="Girar 90°" aria-label={`Girar ${a.nombre}`} onClick={() => girar(a.dataUrl).then(g => setAdjuntos(x => x.map((y, j) => j === i ? { ...y, dataUrl: g } : y)))}
+                    style={{ position:'absolute', bottom:-8, right:-8, width:22, height:22, minHeight:0, padding:0, borderRadius:'50%', background:'var(--z-card)', border:'1px solid var(--z-border)', fontSize:12 }}>↻</button>
                 </div>
               ))}
+              <span style={{ alignSelf:'center', fontSize:12, color:'var(--z-text-3)' }}>Si un plano está de costado, giralo con ↻ hasta que los textos se lean derechos.</span>
             </div>
           )}
           <div style={{ padding:'14px 24px', borderTop: adjuntos.length ? 'none' : '1px solid var(--z-border)', display:'flex', gap:10, alignItems:'flex-end' }}

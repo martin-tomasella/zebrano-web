@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
 import { Layout, Topbar, PageContent } from '../components/Layout'
 import { Card, Btn, SectionTitle } from '../components/ui'
-import { imagenAJpeg, pdfAJpegs } from './Cotizador'
+import { imagenAJpeg, pdfAJpegs, girar } from './Cotizador'
 
 // Nuevo trabajo (ERP v2): plano / foto / bosquejo / medidas -> diseño editable -> render -> cotización -> OT en cola.
 // Cada paso es una acción de zebrano-cotizador v65.
@@ -18,15 +18,6 @@ const COLS = [['nombre', 'Módulo', 'text', 130], ['familia', 'Familia', FAMILIA
   ['patas', 'Patas', 'n'], ['zocalo_mm', 'Zócalo', 'n'], ['terminaciones', 'Lat. term.', 'n'], ['cantidad', 'Cant.', 'n'], ['material', 'Material', 'text', 190]]
 const $ = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('es-AR')
 const nuevoModulo = mat => ({ nombre: 'Módulo', familia: 'bajo', ancho_mm: 600, alto_mm: 720, prof_mm: 550, puertas: 2, cajones: 0, estantes: 1, frentes: 'superpuestos', patas: 0, zocalo_mm: 0, terminaciones: 0, cantidad: 1, material: mat || 'Melamina blanco mate 18mm' })
-
-// Gira 90° en sentido horario una imagen (data URL).
-function girar(src) {
-  return new Promise(ok => {
-    const img = new Image()
-    img.onload = () => { const c = document.createElement('canvas'); c.width = img.height; c.height = img.width; const x = c.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(img, 0, 0); ok(c.toDataURL('image/jpeg', 0.85)) }
-    img.src = src
-  })
-}
 
 async function llamar(body) {
   const r = await fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })

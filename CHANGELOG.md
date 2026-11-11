@@ -1,6 +1,7 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v69.** Antes de leer un plano o una foto, la IA dice cuántos grados hay que girarla y el cotizador la endereza (giro exacto de 90°, `enderezar.ts`). Así lee derechos los planos girados, en el chat y en Nuevo trabajo, sin tocar ↻; la imagen queda guardada derecha. Mueble TV de más de 800 mm de alto: avisa. Los PDF se convierten a 2200 px (antes 1600) para que se lean las cotas.
 - Cotizador AI: el chat queda más angosto y al lado se ve la vista previa (render, plano técnico y plano subido, con el precio en ARS y USD). "Ampliar" abre un visor a pantalla completa con zoom (ajustar, 100%, 200% o 300%) para diseños de muchos módulos. En pantallas de menos de 1100 px el panel se oculta y aparece el botón "Ver diseño".
 - **Cotizador v68.** El laqueado y el lustrado se cotizan como material, no como precio por m² aplicado.
   - Cada terminación tiene una receta (`terminacion_receta`) con el consumo por m² de cada insumo: sellador, laca o barniz, catalizador o acelerante, diluyente, tinte y lija. El costo es consumo × m² × precio vigente del insumo (factura o lista).

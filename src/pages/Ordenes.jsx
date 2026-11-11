@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
 import { Badge, Spinner, EmptyState } from '../components/ui';
 import { optimizarPorMaterial } from '../lib/corte';
+import { pasosArmado } from '../lib/modelo3d';
+// three.js pesa: el visor se carga solo cuando se abre la pestaña 3D.
+const Vista3D = lazy(() => import('../components/Vista3D'));
 import { Necesidades } from '../components/StockCompras';
 
 const n = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: d });
@@ -18,7 +21,7 @@ export default function Ordenes() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('ordenes_trabajo').select('id,numero_ot,presupuesto,estado,historica,fecha_inicio,fecha_entrega_estimada,proyectos(nombre,descripcion,notas_internas,clientes(nombre,telefono,direccion_obra))').order('numero_ot', { ascending: false }),
+      supabase.from('ordenes_trabajo').select('id,numero_ot,presupuesto,estado,historica,sesion_cotizacion_id,fecha_inicio,fecha_entrega_estimada,proyectos(nombre,descripcion,notas_internas,clientes(nombre,telefono,direccion_obra))').order('numero_ot', { ascending: false }),
       supabase.from('ot_modulos_resumen').select('*'),
       supabase.from('calibracion_material').select('*'),
     ]).then(([a, b, c]) => { setOts(a.data || []); setRes(b.data || []); setCal(c.data || []); });
@@ -138,11 +141,12 @@ function Detalle({ ot, mods, onClose }) {
         <div className="z-drawer-body">
           {ot.proyectos?.notas_internas && <p className="text-[13px] text-z-ink-2 mb-4">{ot.proyectos.notas_internas}</p>}
           <div className="z-seg mb-4" role="group" aria-label="Vista de la orden">
-            {[['despiece', 'Despiece'], ['corte', 'Corte de placas'], ['compras', 'Materiales y compras']].map(([k, l]) =>
+            {[['despiece', 'Despiece'], ['3d', '3D y armado'], ['corte', 'Corte de placas'], ['compras', 'Materiales y compras']].map(([k, l]) =>
               <button key={k} aria-pressed={vista === k} onClick={() => setVista(k)}>{l}</button>)}
           </div>
           {vista === 'corte' && (piezas ? <Corte ot={ot} piezas={piezasDeCorte(mods, piezas)} /> : <Spinner />)}
           {vista === 'compras' && <Necesidades otId={ot.id} />}
+          {vista === '3d' && (piezas ? <Armado ot={ot} mods={mods} piezas={piezas} /> : <Spinner />)}
           {vista !== 'despiece' ? null : !piezas ? <Spinner /> : mods.map(m => {
             const todas = piezas.filter(p => p.modulo_id === m.id);
             const taller = todas.filter(p => p.origen === 'taller'), agente = todas.filter(p => p.origen === 'agente');
@@ -239,6 +243,76 @@ function Corte({ ot, piezas }) {
           </div>
         </section>
       ))}
+    </>
+  );
+}
+
+// 3D y armado: modelo paramétrico de los módulos (girable, armado o explotado) e instructivo imprimible
+// con el 3D, los pasos de armado por módulo, los planos de corte y el despiece.
+function Armado({ ot, mods, piezas }) {
+  const [modulos, setModulos] = useState(null);
+  const [explotado, setExplotado] = useState(false);
+  const [cfg, setCfg] = useState([]);
+  const [armando, setArmando] = useState(false);
+  const visor = useRef(null);
+  useEffect(() => {
+    supabase.from('config_placas').select('material,largo_mm,ancho_mm').eq('activo', true).then(({ data }) => setCfg(data || []));
+    // Los módulos con puertas, cajones y estantes vienen del diseño de la cotización; si la OT se cargó a mano, cajas con sus medidas.
+    const desdeOt = () => mods.map(m => ({ nombre: m.nombre, familia: /alacena/i.test(m.nombre) ? 'alacena' : 'bajo', ancho_mm: Math.round((+m.ml || 0) * 1000), alto_mm: Math.round((+m.alto_m || 0.72) * 1000), prof_mm: Math.round((+m.prof_m || 0.55) * 1000), material: m.material, cantidad: 1 })).filter(m => m.ancho_mm > 0);
+    if (!ot.sesion_cotizacion_id) { setModulos(desdeOt()); return; }
+    supabase.from('cotizacion_diseno').select('modulos').eq('sesion_id', ot.sesion_cotizacion_id).maybeSingle()
+      .then(({ data }) => setModulos(data?.modulos?.length ? data.modulos : desdeOt()));
+  }, [ot.id, ot.sesion_cotizacion_id, mods]);
+
+  if (!modulos) return <Spinner />;
+  if (!modulos.length) return <EmptyState icon="view_in_ar" title="Sin medidas de módulos para armar el 3D" />;
+
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  const instructivo = async () => {
+    setArmando(true);
+    setExplotado(false); await esperar(400); const fotoArmado = visor.current?.captura();
+    setExplotado(true); await esperar(400); const fotoExplotado = visor.current?.captura();
+    setExplotado(false); setArmando(false);
+    const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const grupos = optimizarPorMaterial(piezasDeCorte(mods, piezas), cfg);
+    const pct = x => Math.round(x * 100) + '%';
+    const pasos = modulos.map(m => `<div class="p"><h3>${esc(m.nombre)}${(+m.cantidad || 1) > 1 ? ` × ${+m.cantidad}` : ''}</h3><p class="s">${+m.ancho_mm} × ${+m.alto_mm} × ${+m.prof_mm} mm · ${esc(m.material || '')}</p><ol>${pasosArmado(m).map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>`).join('');
+    const cortes = grupos.map(g => `<h3>${esc(g.material)} — ${g.placas.length} placa${g.placas.length > 1 ? 's' : ''} de ${g.largo}×${g.ancho} · ${pct(g.uso)}</h3>` +
+      g.placas.map((pl, i) => `<div class="p"><b>Placa ${i + 1}</b> · ${pct(pl.uso)}${svgPlaca(pl, g.largo, g.ancho)}</div>`).join('')).join('');
+    const desp = mods.map(m => {
+      const todas = piezas.filter(p => p.modulo_id === m.id), ps = todas.some(p => p.origen === 'taller') ? todas.filter(p => p.origen === 'taller') : todas;
+      return ps.length ? `<h3>${esc(m.nombre)}</h3><table><tr><th>Cant</th><th>Largo</th><th>Ancho</th><th>Pieza</th><th>Material</th><th>Canto</th><th>✓</th></tr>${ps.map(p => `<tr><td>${p.cantidad}</td><td>${p.largo_mm}</td><td>${p.ancho_mm}</td><td>${esc(p.nombre_pieza)}</td><td>${esc(p.material_nombre)}</td><td>${cantos(p)}</td><td></td></tr>`).join('')}</table>` : '';
+    }).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>Armado ${esc(ot.numero_ot)}</title><style>body{font:12px system-ui;margin:22px}h1{font-size:19px;margin:0 0 4px}h2{font-size:16px;margin:22px 0 6px;border-bottom:2px solid #222;page-break-after:avoid}h3{font-size:13.5px;margin:12px 0 2px}.s{color:#555;margin:0 0 4px}.p{page-break-inside:avoid}.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f img{width:100%;border:1px solid #ccc;border-radius:6px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:3px 6px;text-align:left}td:nth-child(-n+3){text-align:right}ol{margin:4px 0 0 18px;padding:0}li{margin:2px 0}</style>
+      <h1>Instructivo de armado ${esc(ot.numero_ot)}</h1><p class="s">${esc(ot.proyectos?.clientes?.nombre || '')} · ${esc(ot.proyectos?.nombre || '')}. Medidas en mm.</p>
+      <h2>1. Diseño en 3D</h2><div class="f"><div><b>Armado</b>${fotoArmado ? `<img src="${fotoArmado}">` : ''}</div><div><b>Despiezado (cómo va cada pieza)</b>${fotoExplotado ? `<img src="${fotoExplotado}">` : ''}</div></div>
+      <h2>2. Pasos de armado por módulo</h2>${pasos}
+      <h2>3. Planos de corte</h2><p class="s">Corte en guillotina, sierra de 4 mm. ↻ = pieza girada. Mismo color = mismo módulo.</p>${cortes}
+      <h2>4. Despiece</h2>${desp}<p class="s" style="margin-top:12px">Canto: 1L = un lado largo, 2A = dos lados cortos.</p>`);
+    w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
+  };
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="z-seg" role="group" aria-label="Vista 3D">
+          <button aria-pressed={!explotado} onClick={() => setExplotado(false)}>Armado</button>
+          <button aria-pressed={explotado} onClick={() => setExplotado(true)}>Despiezado</button>
+        </div>
+        <span className="text-[12.5px] text-z-ink-3">Arrastrá para girar, rueda o pellizco para acercar.</span>
+        <button className="btn btn-primary btn-sm ml-auto" onClick={instructivo} disabled={armando}><Icon name="print" /> {armando ? 'Preparando…' : 'Instructivo de armado'}</button>
+      </div>
+      <Suspense fallback={<Spinner />}><Vista3D ref={visor} modulos={modulos} explotado={explotado} alto={440} /></Suspense>
+      <p className="text-[12px] text-z-ink-3 mt-2">Modelo armado con las medidas del diseño y las reglas del despiece (placa de 18 mm, fondo de 3 mm, frentes superpuestos 2 cm). No es el render de la IA: es la geometría real para el taller. El instructivo junta el 3D, los pasos por módulo, los planos de corte y el despiece.</p>
+      <div className="grid gap-3 mt-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+        {modulos.map((m, i) => (
+          <div key={i} className="card p-3">
+            <b className="text-z-ink text-[13.5px]">{m.nombre}{(+m.cantidad || 1) > 1 ? ` × ${+m.cantidad}` : ''}</b>
+            <ol className="text-[12.5px] text-z-ink-2 mt-1 mb-0 pl-4">{pasosArmado(m).map((t, j) => <li key={j}>{t}</li>)}</ol>
+          </div>
+        ))}
+      </div>
     </>
   );
 }

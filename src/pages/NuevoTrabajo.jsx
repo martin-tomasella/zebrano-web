@@ -12,6 +12,7 @@ const FN = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano-cotizador
 const PASOS = ['Para quién y qué', 'Diseño', 'Render', 'Cotización', 'Orden de trabajo']
 const FAMILIAS = ['bajo', 'alacena', 'columna', 'placard', 'cajonera', 'abierto']
 const ETAPAS_MO = ['corte', 'canteado', 'armado', 'terminacion', 'instalacion']
+const TERMINACIONES = [['sin definir', 'Sin definir (preguntar)'], ['melamina', 'Melamina (sin pintar)'], ['laqueado sintetico', 'Laqueado sintético'], ['laqueado al agua', 'Laqueado al agua'], ['lustrado', 'Lustrado poliuretano']]
 const COLS = [['nombre', 'Módulo', 'text', 130], ['familia', 'Familia', FAMILIAS, 95], ['ancho_mm', 'Ancho', 'n'], ['alto_mm', 'Alto', 'n'], ['prof_mm', 'Prof.', 'n'],
   ['puertas', 'Puertas', 'n'], ['cajones', 'Cajones', 'n'], ['estantes', 'Estantes', 'n'], ['frentes', 'Frentes', ['superpuestos', 'embutidos'], 110],
   ['patas', 'Patas', 'n'], ['zocalo_mm', 'Zócalo', 'n'], ['terminaciones', 'Lat. term.', 'n'], ['cantidad', 'Cant.', 'n'], ['material', 'Material', 'text', 190]]
@@ -40,6 +41,7 @@ export default function NuevoTrabajo() {
   const [imagenes, setImagenes] = useState([])
   // Paso 2+
   const [modulos, setModulos] = useState([]), [manoObra, setManoObra] = useState([]), [estilo, setEstilo] = useState(''), [tipo, setTipo] = useState('')
+  const [terminacion, setTerminacion] = useState('sin definir'), [m2Term, setM2Term] = useState('')
   const [preguntas, setPreguntas] = useState([]), [svg, setSvg] = useState(null)
   const [render, setRender] = useState(null), [cambio, setCambio] = useState('')
   const [cot, setCot] = useState(null), [ot, setOt] = useState(null)
@@ -78,11 +80,11 @@ export default function NuevoTrabajo() {
     setSid(d.sesion_id)
     const c = para === 'cliente' ? clientes.find(x => x.id === clienteId) : prospectos.find(x => x.id === prospectoId)
     if (c) await supabase.from('cotizacion_sesiones').update({ cliente_nombre: [c.nombre, c.apellido].filter(Boolean).join(' '), cliente_telefono: c.telefono || null, cliente_email: c.email || null }).eq('id', d.sesion_id)
-    setModulos(d.modulos); setManoObra(d.mano_obra || []); setEstilo(d.estilo || ''); setTipo(d.tipo_trabajo || ''); setPreguntas(d.preguntas || []); setSvg(d.svg_tecnico)
+    setModulos(d.modulos); setManoObra(d.mano_obra || []); setEstilo(d.estilo || ''); setTipo(d.tipo_trabajo || ''); setTerminacion(d.terminacion || 'sin definir'); setPreguntas(d.preguntas || []); setSvg(d.svg_tecnico)
     setPaso(1)
   })
 
-  const guardar = () => llamar({ accion: 'guardar_diseno', sesion_id: sid, modulos, mano_obra: manoObra, estilo, tipo_trabajo: tipo }).then(d => { setModulos(d.modulos); setSvg(d.svg_tecnico) })
+  const guardar = () => llamar({ accion: 'guardar_diseno', sesion_id: sid, modulos, mano_obra: manoObra, estilo, tipo_trabajo: tipo, terminacion, laqueado_m2: Number(m2Term) || 0 }).then(d => { setModulos(d.modulos); setSvg(d.svg_tecnico) })
   const pedirRender = (conCambio) => paso_('Generando el render (puede tardar un minuto)…', async () => {
     if (!conCambio) await guardar()
     const d = await llamar({ accion: 'render', sesion_id: sid, cambio: conCambio ? cambio : undefined })
@@ -90,7 +92,7 @@ export default function NuevoTrabajo() {
   })
   const cotizar = (guardarAntes) => paso_('Calculando materiales, herrajes y mano de obra…', async () => {
     if (guardarAntes) await guardar()
-    setCot(await llamar({ accion: 'cotizar', sesion_id: sid, mano_obra: manoObra })); setPaso(3)
+    setCot(await llamar({ accion: 'cotizar', sesion_id: sid, mano_obra: manoObra, terminacion, laqueado_m2: Number(m2Term) || 0 })); setPaso(3)
   })
   const aprobar = () => window.confirm('¿Aprobar la cotización y crear la orden de trabajo? Queda en la cola de fábrica, sin fecha de inicio.') &&
     paso_('Creando obra, trabajo y orden de trabajo…', async () => { setOt(await llamar({ aprobar_cotizacion: true, sesion_id: sid })); setPaso(4) })
@@ -155,6 +157,10 @@ export default function NuevoTrabajo() {
                 <input type="number" min={1} value={m.operarios} onChange={e => setMo(i, 'operarios', Number(e.target.value))} style={{ width: 56 }} aria-label="Personas" /> pers.
                 <button className="btn btn-quiet btn-sm" aria-label="Quitar etapa" onClick={() => setManoObra(ms => ms.filter((_, j) => j !== i))}>✕</button></div>)}
               <Btn small variant="ghost" icon="add" onClick={() => setManoObra(ms => [...ms, { etapa: 'armado', horas_estimadas: 0, operarios: 1 }])}>Etapa</Btn>
+              <label style={{ display: 'block', marginTop: 12 }}>Terminación<select value={terminacion} onChange={e => setTerminacion(e.target.value)}>
+                {TERMINACIONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              {/laque|lustr/.test(terminacion) && <label style={{ display: 'block', marginTop: 8 }}>m² a terminar (vacío = frentes de ambas caras + laterales a la vista)
+                <input type="number" min={0} step="0.1" value={m2Term} onChange={e => setM2Term(e.target.value)} /></label>}
               <label style={{ display: 'block', marginTop: 12 }}>Estilo para el render<input value={estilo} onChange={e => setEstilo(e.target.value)} /></label>
             </Card>
             <Card style={{ flex: '2 1 420px' }}><SectionTitle>Plano</SectionTitle>

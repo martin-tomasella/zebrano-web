@@ -1,6 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
+const Vista3D = React.lazy(() => import('../components/Vista3D'))
 import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
 import { Layout, Topbar } from '../components/Layout'
@@ -83,6 +85,7 @@ export default function Cotizador() {
   const [leyendo, setLeyendo] = useState(false)
   const [vistaKey, setVistaKey] = useState(null)
   const [ampliar, setAmpliar] = useState(null)
+  const visor3d = useRef(null)
   const fileRef = useRef(null)
   const endRef = useRef(null)
 
@@ -157,7 +160,7 @@ export default function Cotizador() {
     try {
       const res = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/zebrano-cotizador`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sesion_id: sesionId, aprobar_svg: true }),
+        body: JSON.stringify({ sesion_id: sesionId, aprobar_svg: true, base_3d: visor3d.current?.captura() || undefined }),
       })
       const data = await res.json()
       if (!data.ok) { alert('No se pudo aprobar el diseño: ' + (data.error || 'error desconocido')); return }
@@ -271,12 +274,15 @@ export default function Cotizador() {
   // Lo que se muestra en el panel: render, plano técnico y el último plano o foto que subió el usuario.
   const renderUrl = diseno?.render_fotorrealista_url || resumen?.render_url
   const subidos = [...messages].reverse().find(m => m.role === 'user' && m.imgs?.length)?.imgs || []
+  // Diseño estructurado (módulos con puertas, cajones y estantes): se puede ver en 3D y el render parte de esa vista.
+  const mods3d = (diseno?.modulos || []).filter(m => m && m.puertas !== undefined && +m.ancho_mm > 0)
   const vistas = !sesionId ? [] : [
+    mods3d.length > 0 && { key: '3d', label: '3D' },
     renderUrl && { key: 'render', label: 'Render', src: renderUrl },
     diseno?.svg_tecnico && { key: 'plano', label: 'Plano técnico', src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(diseno.svg_tecnico)}`, blanco: true },
     ...subidos.map((u, i) => ({ key: 'subido' + i, label: subidos.length > 1 ? `Plano subido ${i + 1}` : 'Plano subido', src: u, blanco: true })),
   ].filter(Boolean)
-  const vista = vistas.find(v => v.key === vistaKey) || vistas[0]
+  const vista = vistas.find(v => v.key === vistaKey) || vistas.find(v => v.key === 'render') || vistas[0]
 
   return (
     <Layout>
@@ -466,18 +472,23 @@ export default function Cotizador() {
             <div className="z-seg" role="tablist" aria-label="Vista">
               {vistas.map(v => <button key={v.key} role="tab" aria-pressed={vista?.key === v.key} aria-selected={vista?.key === v.key} onClick={() => setVistaKey(v.key)}>{v.label}</button>)}
             </div>
-            {vista && (
+            {/* El 3D queda montado (oculto en las otras pestañas) para poder sacarle la foto base del render. */}
+            {mods3d.length > 0 && (
+              <div style={{ display: vista?.key === '3d' ? 'block' : 'none' }}>
+                <React.Suspense fallback={null}><Vista3D ref={visor3d} modulos={mods3d} alto={380} /></React.Suspense>
+                <div style={{ display:'flex', gap:10, alignItems:'center', marginTop:6, fontSize:12, color:'var(--z-text-3)' }}>
+                  <span style={{ flex:1 }}>Arrastrá para girar. El render parte de esta vista: dejala en el ángulo que quieras mostrar.</span>
+                  <Link className="btn btn-secondary btn-sm" to={`/cotizador/nuevo?sesion=${sesionId}`}>Editar módulos</Link>
+                </div>
+              </div>
+            )}
+            {vista && vista.key !== '3d' && (
               <button className="z-cot-prev-img" onClick={() => setAmpliar(vista)} title="Ampliar" aria-label={`Ampliar ${vista.label}`}>
                 <img src={vista.src} alt={vista.label} />
                 <span className="z-cot-prev-zoom"><span className="material-symbols-outlined">zoom_in</span> Ampliar</span>
               </button>
             )}
-            {resumen?.precio_sugerido > 0 && (
-              <div className="z-glass" style={{ borderRadius:'var(--radius-lg)', padding:'12px 14px', display:'flex', gap:18, flexWrap:'wrap' }}>
-                <div><div style={{ fontSize:11.5, color:'var(--z-text-3)' }}>Precio sin IVA</div><div style={{ fontSize:20, fontWeight:700 }}>${Math.round(resumen.precio_sugerido).toLocaleString('es-AR')}</div></div>
-                {resumen.precio_usd > 0 && <div><div style={{ fontSize:11.5, color:'var(--z-text-3)' }}>En dólares</div><div style={{ fontSize:20, fontWeight:700 }}>USD {Math.round(resumen.precio_usd).toLocaleString('es-AR')}</div></div>}
-              </div>
-            )}
+            {resumen?.precio_sugerido > 0 && <ResumenOrden r={resumen} />}
           </aside>
         )}
       </div>
@@ -508,6 +519,22 @@ function Visor({ vista, vistas, onCambiar, onCerrar }) {
       <div className="z-visor-lienzo" style={zoom ? { display: "block", textAlign: "center" } : undefined} onMouseDown={e => e.stopPropagation()}>
         <img src={vista.src} alt={vista.label} style={zoom ? { width: `${zoom * 100}%`, maxWidth: 'none', background: vista.blanco ? '#fff' : undefined } : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', background: vista.blanco ? '#fff' : undefined }} />
       </div>
+    </div>
+  )
+}
+
+// Resumen rápido de la orden (11/11/2026): materiales (placas, herrajes y terminación), mano de obra, utilidad, precio y horas.
+export function ResumenOrden({ r }) {
+  const $ = v => '$' + Math.round(Number(v) || 0).toLocaleString('es-AR')
+  const mat = (+r.costo_materiales || 0) + (+r.costo_herrajes || 0) + (+r.costo_laqueado || 0)
+  const util = (+r.precio_sugerido || 0) - (+r.costo_total_interno || 0)
+  const horas = r.dias_produccion_est ? Math.round(r.dias_produccion_est * 7 * 10) / 10 : null
+  const filas = [['Costo materiales', $(mat)], ['Costo MO', $(r.costo_mano_obra)], ['Utilidad', `${$(util)}${r.precio_sugerido ? ` (${Math.round(util / r.precio_sugerido * 100)}%)` : ''}`],
+    ['Precio de venta', `${$(r.precio_sugerido)} sin IVA${r.precio_usd ? ` · USD ${Math.round(r.precio_usd).toLocaleString('es-AR')}` : ''}`], ['Tiempo aprox.', horas ? `${horas} h de taller${r.horas_totales_est ? ` (${Math.round(r.horas_totales_est)} h-persona)` : ''}` : (r.horas_totales_est ? `${Math.round(r.horas_totales_est)} h-persona` : '—')]]
+  return (
+    <div className="z-glass" style={{ borderRadius:'var(--radius-lg)', padding:'12px 14px' }} aria-label="Resumen de la orden">
+      <div style={{ fontSize:12, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', color:'var(--z-text-3)', marginBottom:6 }}>Resumen de la orden</div>
+      {filas.map(([k, v]) => <div key={k} style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'3px 0', borderTop: k === 'Precio de venta' ? '1px solid var(--z-border)' : undefined, fontWeight: k === 'Precio de venta' ? 700 : 400 }}><span style={{ color:'var(--z-text-2)' }}>{k}</span><span style={{ fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{v}</span></div>)}
     </div>
   )
 }

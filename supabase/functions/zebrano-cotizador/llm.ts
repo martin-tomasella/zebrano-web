@@ -17,7 +17,7 @@ function aOpenAI(msgs, system) {
   for (const m of msgs) {
     if (typeof m.content === "string") { out.push({ role: m.role, content: m.content }); continue; }
     out.push({ role: m.role, content: m.content.map((c) => c.type === "image"
-      ? { type: "image_url", image_url: { url: `data:${c.source.media_type};base64,${c.source.data}` } }
+      ? { type: "image_url", image_url: { url: `data:${c.source.media_type};base64,${c.source.data}`, detail: "high" } }
       : { type: "text", text: c.text }) });
   }
   return out;
@@ -27,7 +27,10 @@ async function openaiCompat(url, key, model, msgs, system, extra = {}) {
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(key ? { Authorization: `Bearer ${key}` } : {}) },
-    body: JSON.stringify({ model, max_tokens: 8192, temperature: 0.2, messages: aOpenAI(msgs, system), ...extra }),
+    // Modelos de razonamiento (gpt-5.x, o-series): max_completion_tokens y sin temperature.
+    body: JSON.stringify(/^(gpt-5|o\d)/.test(model)
+      ? { model, max_completion_tokens: 16000, messages: aOpenAI(msgs, system), ...extra }
+      : { model, max_tokens: 8192, temperature: 0.2, messages: aOpenAI(msgs, system), ...extra }),
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || d.error) throw new Error(`${model} ${r.status}: ${d.error?.message ?? JSON.stringify(d).slice(0, 200)}`);
@@ -51,6 +54,7 @@ async function claude(msgs, system) {
 }
 
 // opts.preferir: proveedores que van primero si tienen clave, en ese orden (planos con imagen: Gemini flash los lee mal).
+// opts.modeloOpenai / opts.esfuerzo: modelo de vision fuerte (ej. gpt-5.5) y su razonamiento, solo para leer planos.
 export async function callLLM(msgs, system, opts = {}) {
   const intentos = [];
   if (GW) intentos.push(["gateway", () => openaiCompat(`${GW.replace(/\/$/, "")}/chat/completions`, GWK, "agente", msgs, system)]);
@@ -60,7 +64,8 @@ export async function callLLM(msgs, system, opts = {}) {
     { max_tokens: 32768, reasoning_effort: "low", response_format: { type: "json_object" } })]);
   if (AK) intentos.push(["claude", () => claude(msgs, system)]);
   if (OK) intentos.push(["openai", () => openaiCompat("https://api.openai.com/v1/chat/completions", OK,
-    Deno.env.get("COTIZADOR_OPENAI_MODEL") || "gpt-4.1", msgs, system)]);
+    opts.modeloOpenai || Deno.env.get("COTIZADOR_OPENAI_MODEL") || "gpt-4.1", msgs, system,
+    opts.modeloOpenai && opts.esfuerzo ? { reasoning_effort: opts.esfuerzo, response_format: { type: "json_object" } } : {})]);
   for (const n of [...(opts.preferir ?? [])].reverse()) { const i = intentos.findIndex(([x]) => x === n); if (i > 0) intentos.unshift(...intentos.splice(i, 1)); }
   if (!intentos.length) return { raw: "", parsed: null, apiError: "No hay ningún modelo configurado (gateway, Gemini, Claude u OpenAI)" };
   const errores = [];

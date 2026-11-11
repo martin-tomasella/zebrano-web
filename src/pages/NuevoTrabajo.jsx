@@ -56,6 +56,21 @@ export default function NuevoTrabajo() {
     if (para !== 'cliente' || !clienteId) { setObras([]); return }
     supabase.from('obras').select('id,nombre,direccion').eq('cliente_id', clienteId).order('created_at', { ascending: false }).then(({ data }) => setObras(data || []))
   }, [para, clienteId])
+  // ?sesion=ID: abre el diseño de una sesión del Cotizador AI directo en el paso 2 para editar los módulos.
+  useEffect(() => {
+    const id = params.get('sesion')
+    if (!id) return
+    Promise.all([
+      supabase.from('cotizacion_diseno').select('modulos,svg_tecnico,render_fotorrealista_url').eq('sesion_id', id).maybeSingle(),
+      supabase.from('cotizacion_sesiones').select('tipo_trabajo,contexto_extra').eq('id', id).maybeSingle(),
+    ]).then(([{ data: d }, { data: se }]) => {
+      const cx = se?.contexto_extra || {}
+      setSid(id); setModulos((d?.modulos || []).filter(m => m.puertas !== undefined)); setSvg(d?.svg_tecnico || null); setRender(d?.render_fotorrealista_url || null)
+      setManoObra(cx.mano_obra || []); setEstilo(cx.estilo || ''); setTipo(se?.tipo_trabajo || ''); setTerminacion(cx.terminacion || 'sin definir')
+      setPaso(1)
+    })
+  }, [])
+
   useEffect(() => { // el prospecto ya trae lo que pidió: arranca el texto con eso
     const p = prospectos.find(x => x.id === prospectoId)
     if (para === 'prospecto' && p && !texto) setTexto([p.tipo_trabajo, p.descripcion_proyecto].filter(Boolean).join('. '))
@@ -197,7 +212,11 @@ export default function NuevoTrabajo() {
             <Card style={{ flex: '1 1 200px' }}><div style={{ color: 'var(--z-text-2)' }}>Precio sin IVA</div><div style={{ fontSize: 28, fontWeight: 700 }}>{$(resumen.precioSugerido)}</div></Card>
             <Card style={{ flex: '1 1 200px' }}><div style={{ color: 'var(--z-text-2)' }}>En dólares</div><div style={{ fontSize: 28, fontWeight: 700 }}>USD {resumen.precioUsd?.toLocaleString('es-AR') ?? '—'}</div>
               <div style={{ fontSize: 12, color: 'var(--z-text-2)' }}>oficial BCRA {resumen.tcUsd ? $(resumen.tcUsd) : '—'}</div></Card>
-            <Card style={{ flex: '1 1 200px' }}><div style={{ color: 'var(--z-text-2)' }}>Costo directo · margen</div><div style={{ fontSize: 28, fontWeight: 700 }}>{$(resumen.costoTotal)} · {resumen.margen ?? '—'}%</div></Card>
+            <Card style={{ flex: '1 1 260px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--z-text-3)', marginBottom: 6 }}>Resumen de la orden</div>
+              {[['Costo materiales', $(resumen.costoMateriales)], ['Costo MO', $(resumen.costoMO)], ['Utilidad', `${$(resumen.utilidad)} (${resumen.margen ?? '—'}%)`], ['Precio de venta', `${$(resumen.precioVenta ?? resumen.precioSugerido)} sin IVA`], ['Tiempo aprox.', `${resumen.horas ?? '—'} h de taller (${resumen.horasPersona ?? '—'} h-persona)`]].map(([k, v]) =>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '2px 0', fontWeight: k === 'Precio de venta' ? 700 : 400 }}><span style={{ color: 'var(--z-text-2)' }}>{k}</span><span style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>)}
+            </Card>
           </div>
           <Card style={{ marginBottom: 14 }}><div style={{ whiteSpace: 'pre-wrap', fontSize: 14 }}>{cot.respuesta}</div></Card>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

@@ -4,6 +4,7 @@ import { Layout, Topbar, PageContent, Icon } from '../components/Layout';
 import { Badge, Spinner, EmptyState } from '../components/ui';
 import { optimizarPorMaterial } from '../lib/corte';
 import { pasosArmado } from '../lib/modelo3d';
+import { ResumenOrden } from './Cotizador';
 // three.js pesa: el visor se carga solo cuando se abre la pestaña 3D.
 const Vista3D = lazy(() => import('../components/Vista3D'));
 import { Necesidades } from '../components/StockCompras';
@@ -103,6 +104,10 @@ export default function Ordenes() {
 function Detalle({ ot, mods, onClose }) {
   const [piezas, setPiezas] = useState(null);
   const [vista, setVista] = useState('despiece');
+  const [resumen, setResumen] = useState(null);
+  useEffect(() => {
+    if (ot.sesion_cotizacion_id) supabase.from('cotizacion_resumen').select('*').eq('sesion_id', ot.sesion_cotizacion_id).maybeSingle().then(({ data }) => setResumen(data));
+  }, [ot.sesion_cotizacion_id]);
   useEffect(() => {
     supabase.from('ot_piezas').select('*').eq('orden_trabajo_id', ot.id).order('orden').then(({ data }) => setPiezas(data || []));
   }, [ot.id]);
@@ -140,6 +145,7 @@ function Detalle({ ot, mods, onClose }) {
         </div>
         <div className="z-drawer-body">
           {ot.proyectos?.notas_internas && <p className="text-[13px] text-z-ink-2 mb-4">{ot.proyectos.notas_internas}</p>}
+          {resumen?.precio_sugerido > 0 && <div className="mb-4" style={{ maxWidth: 460 }}><ResumenOrden r={resumen} /></div>}
           <div className="z-seg mb-4" role="group" aria-label="Vista de la orden">
             {[['despiece', 'Despiece'], ['3d', '3D y armado'], ['corte', 'Corte de placas'], ['compras', 'Materiales y compras']].map(([k, l]) =>
               <button key={k} aria-pressed={vista === k} onClick={() => setVista(k)}>{l}</button>)}

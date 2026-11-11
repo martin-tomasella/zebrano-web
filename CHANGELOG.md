@@ -1,6 +1,13 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v68.** El laqueado y el lustrado se cotizan como material, no como precio por m² aplicado.
+  - Cada terminación tiene una receta (`terminacion_receta`) con el consumo por m² de cada insumo: sellador, laca o barniz, catalizador o acelerante, diluyente, tinte y lija. El costo es consumo × m² × precio vigente del insumo (factura o lista).
+  - Los insumos van a las necesidades de la OT, redondeados a litros o pliegos enteros. Las horas de lijado y pintura van en la etapa "terminación" de la mano de obra, y el cotizador avisa si falta.
+  - Se dejó de usar `config_pintura`.
+- Insumos: el precio de lista se carga en la tabla (para lo que todavía no tiene factura). Con el filtro "pintura" aparecen las recetas de terminación con el consumo editable (solo admin) y el costo por m².
+- Cotizador AI: botón ↻ para girar planos antes de enviarlos.
+- Se borraron los datos de prueba: OT-2026-005, 006 y 007 con sus proyectos, obras, necesidades y etapas; clientes "Cliente cotizador OT-2026-005", "Fornes Prueba E2E" y "Cliente Prueba v65"; y las sesiones de prueba del cotizador.
 - **Cotizador v67.**
   - Lectura de planos: los planos de arquitectura suelen venir girados, así que el agente se orienta por el rótulo y las vistas (planta, frente, corte) y respeta el tipo de mueble del título. También cuenta las divisiones del frente y no duplica el mueble cuando el plano trae dos vistas frente (exterior con puertas e interior con estantes). Las opciones "como adicional" no entran en la base.
   - Controles en código: si lee más de 2,8 m de alto, o más de 1 m en un mueble bajo o de TV, avisa que el plano puede estar girado. Un mueble corrido leído como un solo módulo se parte en módulos de hasta 1 m.

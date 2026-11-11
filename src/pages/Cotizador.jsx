@@ -542,7 +542,8 @@ export function ResumenOrden({ r }) {
       [`− Flete ${d.pct_flete}%`, $(d.gasto_flete), 'sub'],
       ['Utilidad', `${$(d.utilidad)} (${d.utilidad_pct}%)`, 'fuerte'],
       [`Con factura (+${d.pct_factura}%)`, $(d.precio_factura)],
-      tiempo]
+      tiempo,
+      ...(d.alt_laqueado ? [['Con laqueado (+3 días)', `${$(d.alt_laqueado.precio)} sin factura`, 'total'], ['· con factura', $(d.alt_laqueado.precio_factura), 'sub'], ['· tiempo', `${d.alt_laqueado.horas} h de taller${d.alt_laqueado.costo_pintura ? '' : ' (sin pintura cargada)'}`, 'sub']] : [])]
   } else {
     const mat = (+r.costo_materiales || 0) + (+r.costo_herrajes || 0) + (+r.costo_laqueado || 0)
     const util = (+r.precio_sugerido || 0) - (+r.costo_total_interno || 0)

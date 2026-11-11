@@ -61,7 +61,7 @@ const Vista3D = forwardRef(function Vista3D({ modulos, explotado = false, alto =
     const box = new THREE.Box3().setFromObject(grupo)
     if (!box.isEmpty()) {
       const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()), r = Math.max(s.x, s.y, s.z)
-      camera.position.set(c.x + r * 0.55, c.y + r * 0.45, c.z + r * 1.35); controls.target.copy(c); controls.update()
+      camera.position.set(c.x + r * 0.4, c.y + r * 0.35, c.z + r * 0.95); controls.target.copy(c); controls.update()
     }
   }, [modulos, explotado])
 

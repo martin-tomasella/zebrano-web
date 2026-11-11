@@ -1,6 +1,11 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v71: revisión completa del Cotizador AI (chat).**
+  - Planos y fotos se leen con el lector estructurado de Nuevo trabajo, con `gpt-5.5` (`COTIZADOR_OPENAI_VISION_MODEL`). Antes el chat los leía con Gemini Flash y texto libre: con el plano PL2 daba 1,60 m o 0,97 m; ahora da mueble TV, 8 × 500 × 600 × 450.
+  - El diseño del chat es estructurado (puertas, cajones, estantes, zócalo, laterales): 3D, plano, render y cotización salen del mismo diseño. Las correcciones por chat ("son 4 cuerpos de 1 m con 2 puertas") actualizan el diseño y el 3D, y se cotiza exactamente lo que se ve.
+  - Panel con pestaña **3D**, que se puede girar, más "Editar módulos", que abre la tabla de Nuevo trabajo con esa sesión. Al aprobar el diseño, el render parte de la vista 3D (`gpt-image-2`, edición). Los cambios al render editan el render anterior.
+  - **Resumen de la orden** al cotizar (texto, panel, Nuevo trabajo y Órdenes): costo de materiales (placas, herrajes y terminación), costo de MO, utilidad (precio sin IVA menos costo directo), precio de venta y tiempo aproximado en horas de taller y horas-persona.
 - **Cotizador v70: render de presentación.**
   - Desde el 02/11 todos los renders salían de Pollinations, el respaldo gratuito, de baja calidad: `gpt-image-1` ya no existe para la cuenta, `dall-e-3` cambió su API y Gemini Image no tiene cupo gratis. Ahora usa `gpt-image-2` (con `gpt-image-1.5` y `gpt-image-1-mini` de respaldo, configurables en `COTIZADOR_IMG_MODELS`).
   - El render es una foto de catálogo en un ambiente acorde (luz natural, perspectiva 3/4, decoración que no tapa el mueble), y ya no un frente plano sobre fondo blanco.

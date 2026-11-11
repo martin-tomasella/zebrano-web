@@ -13,7 +13,11 @@ function json(data, status=200){return new Response(JSON.stringify(data),{status
 // v52 (02/11/2026): el render prueba varios proveedores y guarda la imagen en Storage (link estable, sin base64 en la base).
 // Orden: OpenAI gpt-image-1 -> OpenAI dall-e-3 -> Gemini Image -> Pollinations. Si todos fallan se puede cotizar igual.
 const GK = Deno.env.get("GEMINI_API_KEY") ?? "";
-const PROMPT_RENDER = (p) => `Photorealistic FLAT FRONT VIEW render of custom built-in furniture: ${p}. White studio background, professional lighting, NO perspective, NO room context, exact proportions.`.slice(0, 3900);
+// v70 (11/11/2026): render de presentacion (para el presupuesto): foto de catalogo en un ambiente, no un alzado sobre fondo blanco.
+const PROMPT_RENDER = (p) => `Professional interior design photograph for a high-end custom furniture catalog. The furniture: ${p}. Show it installed in a styled, realistic room that fits it (kitchen, bedroom, living room or bathroom), eye-level 3/4 perspective, warm natural daylight from a window, soft shadows, tasteful decor (plants, books, ceramics, rug) that never covers the furniture. Photorealistic materials: real wood grain, matte melamine or satin lacquer, metal hardware. Magazine quality, sharp focus on the furniture. Keep the exact proportions, number of modules, doors, drawers and shelves described. No text, no labels, no watermark.`.slice(0, 3900);
+// Con la foto del modelo 3D del taller como base: misma geometria, vestida como foto de catalogo.
+const PROMPT_RENDER_BASE = (p) => `Turn this 3D model of custom furniture into a photorealistic interior design photograph for a catalog. Keep EXACTLY the same furniture geometry, proportions, number of modules, doors, drawers, shelves and the same camera angle. Apply real materials (${p}). Replace the plain background with a styled, realistic room that fits the furniture, warm natural daylight, soft shadows, tasteful decor that never covers the furniture. Magazine quality. No text, no watermark.`.slice(0, 3900);
+const MODELOS_IMG = (Deno.env.get("COTIZADOR_IMG_MODELS") || "gpt-image-2,gpt-image-1.5,gpt-image-1-mini").split(",").map((x) => x.trim()).filter(Boolean);
 const b64aBytes = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0));
 
 async function subir(sb, bytes, ct) {
@@ -23,13 +27,21 @@ async function subir(sb, bytes, ct) {
   return sb.storage.from("zebrano-proyectos").getPublicUrl(path).data.publicUrl;
 }
 
-async function openaiImg(model, prompt) {
+async function openaiImg(model, prompt, base = null) {
   if (!OK) throw new Error("OPENAI_API_KEY no configurada");
-  const extra = model === "dall-e-3" ? { size: "1792x1024", quality: "standard", response_format: "b64_json" } : { size: "1536x1024", quality: "medium" };
-  const r = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${OK}` },
-    body: JSON.stringify({ model, n: 1, prompt: PROMPT_RENDER(prompt), ...extra }), signal: AbortSignal.timeout(120000),
-  });
+  let r;
+  if (base) {
+    // Edicion: la imagen del modelo 3D manda la geometria.
+    const fd = new FormData();
+    fd.append("model", model); fd.append("prompt", PROMPT_RENDER_BASE(prompt)); fd.append("size", "1536x1024"); fd.append("quality", "medium");
+    fd.append("image[]", new Blob([b64aBytes(base)], { type: "image/png" }), "modelo3d.png");
+    r = await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: `Bearer ${OK}` }, body: fd, signal: AbortSignal.timeout(140000) });
+  } else {
+    r = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${OK}` },
+      body: JSON.stringify({ model, n: 1, prompt: PROMPT_RENDER(prompt), size: "1536x1024", quality: "medium" }), signal: AbortSignal.timeout(140000),
+    });
+  }
   const d = await r.json();
   if (d.error) throw new Error(d.error.message);
   const b64 = d.data?.[0]?.b64_json;
@@ -58,8 +70,10 @@ async function pollinationsImg(prompt) {
   return { bytes: new Uint8Array(await r.arrayBuffer()), ct: r.headers.get("content-type") };
 }
 
-async function renderFoto(sb, prompt) {
-  const intentos = [["gpt-image-1", () => openaiImg("gpt-image-1", prompt)], ["dall-e-3", () => openaiImg("dall-e-3", prompt)],
+async function renderFoto(sb, prompt, base = null) {
+  // gpt-image-1 y dall-e-3 dejaron de existir para esta cuenta (desde el 02/11 todo caia en Pollinations).
+  const intentos = [...(base ? MODELOS_IMG.slice(0, 1).map((m) => [m + " (desde 3D)", () => openaiImg(m, prompt, base)]) : []),
+    ...MODELOS_IMG.map((m) => [m, () => openaiImg(m, prompt)]),
     ["gemini-image", () => geminiImg(prompt)], ["pollinations", () => pollinationsImg(prompt)]];
   const errores = [];
   for (const [modelo, fn] of intentos) {
@@ -344,6 +358,7 @@ Deno.serve(async(req)=>{
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
     // v69: planos girados -> se enderezan antes de leerlos (y se guardan derechos).
     if(imagenes_base64.length){const e=await enderezar(imagenes_base64);imagenes_base64.splice(0,imagenes_base64.length,...e.imgs);if(e.usage)await reg({sesion_id:sesion_id??null,modelo:e.usage.modelo??"orientacion",tokens_in:e.usage.tokens_in??null,tokens_out:e.usage.tokens_out??null});}
+    // v70 (11/11/2026): render de presentacion con gpt-image-2 (los modelos viejos ya no existen y caia en Pollinations); en Nuevo trabajo parte de la foto del modelo 3D.
     // v69 (11/11/2026): las imagenes se enderezan antes de leerlas (la IA dice cuantos grados, se giran exacto); mueble TV hasta 800 mm de alto.
     // v68 (11/11/2026): laqueado y lustrado como material (terminacion_receta: sellador, laca o barniz, catalizador, diluyente, lija) que tambien pasa a las necesidades de la OT.
     // v67 (11/11/2026): planos girados con control de coherencia; terminacion laqueada o lustrada preguntada y cotizada por m2 (config_pintura).
@@ -578,7 +593,8 @@ LECTURA DE PLANOS (v67):
         const{data:d2}=await sb.from("cotizacion_diseno").select("render_prompt_actual").eq("sesion_id",sid).maybeSingle();
         if(!d2?.render_prompt_actual)return json({ok:false,error:"Primero guardá el diseño."},400);
         const prompt=d2.render_prompt_actual+(body.cambio?` Change requested: ${String(body.cambio).slice(0,400)}.`:"");
-        const{url:ru,error:re,modelo:rm}=await renderFoto(sb,prompt);await reg({sesion_id:sid,modelo:rm??"render-error",renders:ru?1:0});
+        const base3d=typeof body.base_3d==="string"?body.base_3d.replace(/^data:image\/\w+;base64,/,""):null;
+        const{url:ru,error:re,modelo:rm}=await renderFoto(sb,prompt,base3d&&base3d.length<6e6?base3d:null);await reg({sesion_id:sid,modelo:rm??"render-error",renders:ru?1:0});
         await sb.from("cotizacion_diseno").update({svg_aprobado:true,svg_aprobado_at:new Date().toISOString(),...(ru?{render_fotorrealista_url:ru,render_generado_at:new Date().toISOString()}:{})}).eq("sesion_id",sid);
         if(ru){const{data:rx}=await sb.from("cotizacion_resumen").select("id").eq("sesion_id",sid).maybeSingle();if(rx)await sb.from("cotizacion_resumen").update({render_url:ru}).eq("sesion_id",sid);else await sb.from("cotizacion_resumen").insert({sesion_id:sid,render_url:ru,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:0,precio_sugerido:0});}
         return json({ok:!!ru,sesion_id:sid,render_url:ru,error:ru?null:`No se pudo generar el render (${re}). Podés cotizar igual.`});

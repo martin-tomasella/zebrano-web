@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
 import { Layout, Topbar, PageContent } from '../components/Layout'
 import { Card, Btn, SectionTitle } from '../components/ui'
 import { imagenAJpeg, pdfAJpegs, girar } from './Cotizador'
+const Vista3D = lazy(() => import('../components/Vista3D'))
 
 // Nuevo trabajo (ERP v2): plano / foto / bosquejo / medidas -> diseño editable -> render -> cotización -> OT en cola.
 // Cada paso es una acción de zebrano-cotizador v65.
@@ -44,6 +45,7 @@ export default function NuevoTrabajo() {
   const [terminacion, setTerminacion] = useState('sin definir'), [m2Term, setM2Term] = useState('')
   const [preguntas, setPreguntas] = useState([]), [svg, setSvg] = useState(null)
   const [render, setRender] = useState(null), [cambio, setCambio] = useState('')
+  const visor3d = useRef(null)
   const [cot, setCot] = useState(null), [ot, setOt] = useState(null)
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function NuevoTrabajo() {
   const guardar = () => llamar({ accion: 'guardar_diseno', sesion_id: sid, modulos, mano_obra: manoObra, estilo, tipo_trabajo: tipo, terminacion, laqueado_m2: Number(m2Term) || 0 }).then(d => { setModulos(d.modulos); setSvg(d.svg_tecnico) })
   const pedirRender = (conCambio) => paso_('Generando el render (puede tardar un minuto)…', async () => {
     if (!conCambio) await guardar()
-    const d = await llamar({ accion: 'render', sesion_id: sid, cambio: conCambio ? cambio : undefined })
+    const d = await llamar({ accion: 'render', sesion_id: sid, cambio: conCambio ? cambio : undefined, base_3d: conCambio ? undefined : visor3d.current?.captura() || undefined })
     setRender(d.render_url); setCambio(''); setPaso(2)
   })
   const cotizar = (guardarAntes) => paso_('Calculando materiales, herrajes y mano de obra…', async () => {
@@ -166,7 +168,10 @@ export default function NuevoTrabajo() {
                 <input type="number" min={0} step="0.1" value={m2Term} onChange={e => setM2Term(e.target.value)} /></label>}
               <label style={{ display: 'block', marginTop: 12 }}>Estilo para el render<input value={estilo} onChange={e => setEstilo(e.target.value)} /></label>
             </Card>
-            <Card style={{ flex: '2 1 420px' }}><SectionTitle>Plano</SectionTitle>
+            <Card style={{ flex: '2 1 420px' }}><SectionTitle>Vista 3D y plano</SectionTitle>
+              {/* El 3D se arma con la tabla de arriba y es la base del render: la IA lo viste de foto de catálogo sin cambiar la geometría. */}
+              <Suspense fallback={null}><Vista3D ref={visor3d} modulos={modulos} alto={320} /></Suspense>
+              <p style={{ fontSize: 12, color: 'var(--z-text-3)', margin: '6px 0 10px' }}>Arrastrá para girar. El render parte de esta vista: dejala en el ángulo que quieras mostrar.</p>
               {svg ? <img alt="Plano técnico" style={{ width: '100%', background: '#fff', borderRadius: 8 }} src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`} /> : <p>Sin plano.</p>}
               <div style={{ marginTop: 10 }}><Btn small variant="ghost" icon="refresh" disabled={!!ocupado} onClick={() => paso_('Actualizando el plano…', guardar)}>Actualizar plano</Btn></div>
             </Card>

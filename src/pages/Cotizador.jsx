@@ -79,6 +79,8 @@ export default function Cotizador() {
   const [aprobando, setAprobando] = useState(false)
   const [adjuntos, setAdjuntos] = useState([]) // [{ nombre, dataUrl }]
   const [leyendo, setLeyendo] = useState(false)
+  const [vistaKey, setVistaKey] = useState(null)
+  const [ampliar, setAmpliar] = useState(null)
   const fileRef = useRef(null)
   const endRef = useRef(null)
 
@@ -264,6 +266,16 @@ export default function Cotizador() {
   const sesionActiva = sesiones.find(s => s.id === sesionId)
   const etapa = sesionActiva ? etapaActual(sesionActiva.estado) : null
 
+  // Lo que se muestra en el panel: render, plano técnico y el último plano o foto que subió el usuario.
+  const renderUrl = diseno?.render_fotorrealista_url || resumen?.render_url
+  const subidos = [...messages].reverse().find(m => m.role === 'user' && m.imgs?.length)?.imgs || []
+  const vistas = !sesionId ? [] : [
+    renderUrl && { key: 'render', label: 'Render', src: renderUrl },
+    diseno?.svg_tecnico && { key: 'plano', label: 'Plano técnico', src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(diseno.svg_tecnico)}`, blanco: true },
+    ...subidos.map((u, i) => ({ key: 'subido' + i, label: subidos.length > 1 ? `Plano subido ${i + 1}` : 'Plano subido', src: u, blanco: true })),
+  ].filter(Boolean)
+  const vista = vistas.find(v => v.key === vistaKey) || vistas[0]
+
   return (
     <Layout>
       <Topbar title="Cotizador AI" subtitle="Texto, fotos, PDF o planos → diseño, render, cotización y despiece" actions={
@@ -314,7 +326,7 @@ export default function Cotizador() {
         </div>
 
         {/* Chat */}
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex: vistas.length ? '1 1 380px' : 1, minWidth: 340, maxWidth: vistas.length ? 620 : 'none', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
           {sesionActiva && (
             <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 24px', borderBottom:'1px solid var(--z-border)' }}>
@@ -340,11 +352,8 @@ export default function Cotizador() {
 
           {sesionId && (diseno?.svg_tecnico || resumen?.precio_sugerido > 0) && (
             <div style={{ padding:'12px 24px', borderBottom:'1px solid var(--z-border)', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-              {diseno?.svg_tecnico && (
-                <a href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(diseno.svg_tecnico)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver plano técnico</a>
-              )}
-              {diseno?.render_fotorrealista_url && (
-                <a href={diseno.render_fotorrealista_url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--z-primary-light)' }}>Ver render</a>
+              {vistas.length > 0 && (
+                <button className="btn btn-ghost btn-sm z-cot-solo-angosto" onClick={() => setAmpliar(vistas[0])}>Ver diseño</button>
               )}
               {resumen?.pdf_presupuesto_url && (
                 <button className="btn btn-sm" onClick={() => abrirDoc(resumen.pdf_presupuesto_url)}>Presupuesto (PDF)</button>
@@ -448,7 +457,55 @@ export default function Cotizador() {
             </button>
           </div>
         </div>
+
+        {/* Vista previa: lo que generó Zebrano, al lado del chat */}
+        {vistas.length > 0 && (
+          <aside className="z-cot-prev" aria-label="Vista previa del diseño">
+            <div className="z-seg" role="tablist" aria-label="Vista">
+              {vistas.map(v => <button key={v.key} role="tab" aria-pressed={vista?.key === v.key} aria-selected={vista?.key === v.key} onClick={() => setVistaKey(v.key)}>{v.label}</button>)}
+            </div>
+            {vista && (
+              <button className="z-cot-prev-img" onClick={() => setAmpliar(vista)} title="Ampliar" aria-label={`Ampliar ${vista.label}`}>
+                <img src={vista.src} alt={vista.label} />
+                <span className="z-cot-prev-zoom"><span className="material-symbols-outlined">zoom_in</span> Ampliar</span>
+              </button>
+            )}
+            {resumen?.precio_sugerido > 0 && (
+              <div className="z-glass" style={{ borderRadius:'var(--radius-lg)', padding:'12px 14px', display:'flex', gap:18, flexWrap:'wrap' }}>
+                <div><div style={{ fontSize:11.5, color:'var(--z-text-3)' }}>Precio sin IVA</div><div style={{ fontSize:20, fontWeight:700 }}>${Math.round(resumen.precio_sugerido).toLocaleString('es-AR')}</div></div>
+                {resumen.precio_usd > 0 && <div><div style={{ fontSize:11.5, color:'var(--z-text-3)' }}>En dólares</div><div style={{ fontSize:20, fontWeight:700 }}>USD {Math.round(resumen.precio_usd).toLocaleString('es-AR')}</div></div>}
+              </div>
+            )}
+          </aside>
+        )}
       </div>
+
+      {ampliar && <Visor vista={ampliar} vistas={vistas} onCambiar={setAmpliar} onCerrar={() => setAmpliar(null)} />}
     </Layout>
+  )
+}
+
+// Visor a pantalla completa: ajustar a la ventana o ver al 100–300% y moverse con scroll (diseños de muchos módulos).
+function Visor({ vista, vistas, onCambiar, onCerrar }) {
+  const [zoom, setZoom] = useState(0) // 0 = ajustar a la ventana
+  useEffect(() => {
+    const k = e => { if (e.key === 'Escape') onCerrar(); if (e.key === '+' || e.key === '=') setZoom(z => Math.min(3, (z || 1) + 0.5)); if (e.key === '-') setZoom(z => (z <= 1 ? 0 : z - 0.5)) }
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
+  }, [onCerrar])
+  return (
+    <div className="z-visor" role="dialog" aria-modal="true" aria-label={vista.label} onMouseDown={onCerrar}>
+      <div className="z-visor-barra" onMouseDown={e => e.stopPropagation()}>
+        <div className="z-seg" role="group" aria-label="Vista">{vistas.map(v => <button key={v.key} aria-pressed={v.key === vista.key} onClick={() => { onCambiar(v); setZoom(0) }}>{v.label}</button>)}</div>
+        <div style={{ display:'flex', gap:6, marginLeft:'auto' }}>
+          <button className="btn btn-secondary btn-sm" aria-pressed={zoom === 0} onClick={() => setZoom(0)}>Ajustar</button>
+          {[1, 2, 3].map(z => <button key={z} className="btn btn-secondary btn-sm" aria-pressed={zoom === z} onClick={() => setZoom(z)}>{z * 100}%</button>)}
+          <a className="btn btn-secondary btn-sm" href={vista.src} target="_blank" rel="noreferrer" download={vista.key === 'plano' ? 'plano-tecnico.svg' : undefined}>Abrir aparte</a>
+          <button className="btn btn-primary btn-sm" onClick={onCerrar} aria-label="Cerrar">✕</button>
+        </div>
+      </div>
+      <div className="z-visor-lienzo" style={zoom ? { display: "block", textAlign: "center" } : undefined} onMouseDown={e => e.stopPropagation()}>
+        <img src={vista.src} alt={vista.label} style={zoom ? { width: `${zoom * 100}%`, maxWidth: 'none', background: vista.blanco ? '#fff' : undefined } : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', background: vista.blanco ? '#fff' : undefined }} />
+      </div>
+    </div>
   )
 }

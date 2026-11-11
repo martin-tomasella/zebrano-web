@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
 import { Layout, Topbar } from '../components/Layout'
@@ -480,7 +481,7 @@ export default function Cotizador() {
         )}
       </div>
 
-      {ampliar && <Visor vista={ampliar} vistas={vistas} onCambiar={setAmpliar} onCerrar={() => setAmpliar(null)} />}
+      {ampliar && createPortal(<Visor vista={ampliar} vistas={vistas} onCambiar={setAmpliar} onCerrar={() => setAmpliar(null)} />, document.body)}
     </Layout>
   )
 }

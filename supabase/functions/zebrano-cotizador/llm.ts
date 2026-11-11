@@ -50,7 +50,7 @@ async function claude(msgs, system) {
     usage: { modelo: d.model || model, tokens_in: d.usage?.input_tokens ?? null, tokens_out: d.usage?.output_tokens ?? null } };
 }
 
-// opts.preferir: "claude" lo pone primero si hay clave (lectura de planos con imagen: Gemini flash los lee mal).
+// opts.preferir: proveedores que van primero si tienen clave, en ese orden (planos con imagen: Gemini flash los lee mal).
 export async function callLLM(msgs, system, opts = {}) {
   const intentos = [];
   if (GW) intentos.push(["gateway", () => openaiCompat(`${GW.replace(/\/$/, "")}/chat/completions`, GWK, "agente", msgs, system)]);
@@ -59,9 +59,9 @@ export async function callLLM(msgs, system, opts = {}) {
     // Gemini 2.5 descuenta el razonamiento interno del tope de tokens: con despieces largos se cortaba
     { max_tokens: 32768, reasoning_effort: "low", response_format: { type: "json_object" } })]);
   if (AK) intentos.push(["claude", () => claude(msgs, system)]);
-  if (opts.preferir === "claude" && AK) intentos.unshift(...intentos.splice(intentos.findIndex(([n]) => n === "claude"), 1));
   if (OK) intentos.push(["openai", () => openaiCompat("https://api.openai.com/v1/chat/completions", OK,
     Deno.env.get("COTIZADOR_OPENAI_MODEL") || "gpt-4.1", msgs, system)]);
+  for (const n of [...(opts.preferir ?? [])].reverse()) { const i = intentos.findIndex(([x]) => x === n); if (i > 0) intentos.unshift(...intentos.splice(i, 1)); }
   if (!intentos.length) return { raw: "", parsed: null, apiError: "No hay ningún modelo configurado (gateway, Gemini, Claude u OpenAI)" };
   const errores = [];
   for (const [nombre, fn] of intentos) {

@@ -1,6 +1,12 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v73: ajustes contra el presupuesto 6065 (Agustina, mueble zapatero/TV).**
+  - Placa blanco mate a $75.000 y preencolado blanco a $12.000 el rollo, como la planilla. En el cotizador, el precio de lista cargado a mano gana si su fecha es igual o posterior a la última factura.
+  - Regrueso: la placa es siempre de 18 mm; la pieza regruesada a 36 mm se duplica (tapa y laterales a la vista). Con regrueso, la tapa se suma a los m² a laquear. Antes era una tira de 6 cm "regrueso de mesada".
+  - Laqueado desglosado por insumo: pintura de fondo (base), catalizador, diluyente y pintura de acabado (semimate, brillante u opaca, mismo precio), más lija.
+  - Resumen de la orden: precio sin factura, menos impuesto bancario (1,2%) y flete (3%), utilidad en $ y en %, y precio con factura (+24%). Los porcentajes están en `cotiz_parametros` (`debcred_pct`, `flete_pct`, `factura_pct`). Se ve en el panel del Cotizador AI, en Nuevo trabajo y en Órdenes.
+  - Con el 6065 (2 módulos de 2 m, zócalo, regrueso, laqueado): 4 placas y 2 rollos, como la planilla; precio sin factura $2.092.000, utilidad 40,5%. Falta el precio de la pintura.
 - **Cotizador v72: tiempos reales del taller.**
   - Las horas de corte, canteado y armado salen de la tabla `tiempos_taller` (horas por metro lineal, personas y mínimo por tipo de mueble), no de la estimación de la IA. Referencia de Martín para un mueble TV de 4 m: corte 4 h con 2 personas, canteado 3 h con 1 y armado 7 h (1 día) con 1. Sin laqueado queda en 2 días (14 h de taller).
   - Laqueado o lustrado: se suma la etapa de terminación sola, 21 h (3 días) por cada ~5 m², con 1 persona.

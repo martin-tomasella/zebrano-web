@@ -258,7 +258,7 @@ function Armado({ ot, mods, piezas }) {
   useEffect(() => {
     supabase.from('config_placas').select('material,largo_mm,ancho_mm').eq('activo', true).then(({ data }) => setCfg(data || []));
     // Los módulos con puertas, cajones y estantes vienen del diseño de la cotización; si la OT se cargó a mano, cajas con sus medidas.
-    const desdeOt = () => mods.map(m => ({ nombre: m.nombre, familia: /alacena/i.test(m.nombre) ? 'alacena' : 'bajo', ancho_mm: Math.round((+m.ml || 0) * 1000), alto_mm: Math.round((+m.alto_m || 0.72) * 1000), prof_mm: Math.round((+m.prof_m || 0.55) * 1000), material: m.material, cantidad: 1 })).filter(m => m.ancho_mm > 0);
+    const desdeOt = () => mods.map(m => ({ nombre: m.nombre, familia: /alacena/i.test(m.nombre) ? 'alacena' : (+m.alto_m || 0) > 1.2 ? 'placard' : 'bajo', ancho_mm: Math.round((+m.ml || 0) * 1000), alto_mm: Math.round((+m.alto_m || 0.72) * 1000), prof_mm: Math.round((+m.prof_m || 0.55) * 1000), material: m.material, cantidad: 1 })).filter(m => m.ancho_mm > 0);
     if (!ot.sesion_cotizacion_id) { setModulos(desdeOt()); return; }
     supabase.from('cotizacion_diseno').select('modulos').eq('sesion_id', ot.sesion_cotizacion_id).maybeSingle()
       .then(({ data }) => setModulos(data?.modulos?.length ? data.modulos : desdeOt()));

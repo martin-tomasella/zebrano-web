@@ -42,10 +42,11 @@ const Vista3D = forwardRef(function Vista3D({ modulos, explotado = false, alto =
     const { grupo, camera, controls } = estado.current
     if (!grupo) return
     grupo.clear()
-    const sep = explotado ? 160 : 0
     const mods = escena(modulos)
     mods.forEach((mm, k) => {
-      const dx = explotado ? k * 260 : 0
+      // En el despiezado, cada pieza se separa en proporción al tamaño del módulo y los módulos se apartan entre sí.
+      const sep = explotado ? Math.max(120, 0.15 * Math.max(+mm.modulo.ancho_mm || 0, +mm.modulo.alto_mm || 0)) : 0
+      const dx = explotado ? k * 2.2 * sep : 0
       for (const p of mm.piezas) {
         const g = new THREE.BoxGeometry(p.w, p.h, p.d)
         const mat = new THREE.MeshStandardMaterial({ color: color(mm.modulo.material, p.tipo), roughness: 0.75, transparent: p.tipo === 'frente' && explotado, opacity: p.tipo === 'frente' && explotado ? 0.85 : 1 })

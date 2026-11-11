@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { callLLM } from "./llm.ts";
 import { despiece } from "./despiece.ts";
+import { enderezar } from "./enderezar.ts";
 import { autorizado, ipHash, topeExterno, rendersDeSesion, registrar, TOPES, MSG_TOPE } from "./guard.ts";
 
 const OK = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -212,7 +213,7 @@ LECTURA DE PLANOS (v67):
 - Conta las divisiones dibujadas en la vista frente: cada division es un modulo o un frente (ej. 4,00 m dividido en 8 = 8 modulos de 0,50 m).
 - Un mismo mueble suele tener DOS vistas frente: la exterior (rectangulos con una X o lineas diagonales = puertas de abrir, una por rectangulo) y la interior (lineas punteadas = estantes regulables). Son el MISMO mueble: no lo dupliques ni inventes alacenas, cajones u otros cuerpos que no tengan su propia cota y su propio titulo. Cajones solo si el plano los dibuja (frentes horizontales apilados) o los nombra.
 - Las leyendas de materiales suelen ser de plantilla: usa solo los items que el dibujo referencia. Lo que el plano dice "como adicional" (espejo, otra terminacion) NO va en la base: mencionalo como opcional.
-- Coherencia antes de responder: ningun mueble pasa de 2800 mm de alto; mueble TV, bajo, vanitory o cajonera no pasan de 1000 mm de alto. Si tu lectura no cumple esto, releé el plano (seguro esta girado) y, si sigue sin cerrar, pregunta en vez de seguir.
+- Coherencia antes de responder: ningun mueble pasa de 2800 mm de alto; mueble TV, bajo, vanitory o cajonera no pasan de 1000 mm de alto (un mueble TV suele medir entre 400 y 700 mm). La cota total de alto es la que abarca todas las parciales (ej. 0,60 = 0,10 zocalo + 0,45 interior + 0,02 + 0,03 tapa): no sumes cotas de vistas distintas. Si tu lectura no cumple esto, releé el plano (seguro esta girado) y, si sigue sin cerrar, pregunta en vez de seguir.
 - TERMINACION: si el plano o el usuario no dicen si lleva laqueado o lustrado (o si es melamina), PREGUNTALO siempre: cambia el costo y el plazo.
 
 REGLA 9 - DESPIECE COMO EN EL TALLER:
@@ -341,6 +342,9 @@ Deno.serve(async(req)=>{
       }
     }
     const reg=(f)=>registrar(sb,{canal:canalSeguro,ip_hash:ip,...f});
+    // v69: planos girados -> se enderezan antes de leerlos (y se guardan derechos).
+    if(imagenes_base64.length){const e=await enderezar(imagenes_base64);imagenes_base64.splice(0,imagenes_base64.length,...e.imgs);if(e.usage)await reg({sesion_id:sesion_id??null,modelo:e.usage.modelo??"orientacion",tokens_in:e.usage.tokens_in??null,tokens_out:e.usage.tokens_out??null});}
+    // v69 (11/11/2026): las imagenes se enderezan antes de leerlas (la IA dice cuantos grados, se giran exacto); mueble TV hasta 800 mm de alto.
     // v68 (11/11/2026): laqueado y lustrado como material (terminacion_receta: sellador, laca o barniz, catalizador, diluyente, lija) que tambien pasa a las necesidades de la OT.
     // v67 (11/11/2026): planos girados con control de coherencia; terminacion laqueada o lustrada preguntada y cotizada por m2 (config_pintura).
     // v65 (10/11/2026): flujo por pasos (leer, guardar_diseno, render, cotizar), precio en USD, trabajo agrupado en obra, cliente/prospecto elegidos.
@@ -539,7 +543,7 @@ LECTURA DE PLANOS (v67):
 - Conta las divisiones dibujadas en la vista frente: cada division es un modulo o un frente (ej. 4,00 m dividido en 8 = 8 modulos de 0,50 m).
 - Un mismo mueble suele tener DOS vistas frente: la exterior (rectangulos con una X o lineas diagonales = puertas de abrir, una por rectangulo) y la interior (lineas punteadas = estantes regulables). Son el MISMO mueble: no lo dupliques ni inventes alacenas, cajones u otros cuerpos que no tengan su propia cota y su propio titulo. Cajones solo si el plano los dibuja (frentes horizontales apilados) o los nombra.
 - Las leyendas de materiales suelen ser de plantilla: usa solo los items que el dibujo referencia. Lo que el plano dice "como adicional" (espejo, otra terminacion) NO va en la base: mencionalo como opcional.
-- Coherencia antes de responder: ningun mueble pasa de 2800 mm de alto; mueble TV, bajo, vanitory o cajonera no pasan de 1000 mm de alto. Si tu lectura no cumple esto, releé el plano (seguro esta girado) y, si sigue sin cerrar, pregunta en vez de seguir.
+- Coherencia antes de responder: ningun mueble pasa de 2800 mm de alto; mueble TV, bajo, vanitory o cajonera no pasan de 1000 mm de alto (un mueble TV suele medir entre 400 y 700 mm). La cota total de alto es la que abarca todas las parciales (ej. 0,60 = 0,10 zocalo + 0,45 interior + 0,02 + 0,03 tapa): no sumes cotas de vistas distintas. Si tu lectura no cumple esto, releé el plano (seguro esta girado) y, si sigue sin cerrar, pregunta en vez de seguir.
 - TERMINACION: si el plano o el usuario no dicen si lleva laqueado o lustrado (o si es melamina), PREGUNTALO siempre: cambia el costo y el plazo.`;
         const cont=imagenes_base64.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));cont.push({type:"text",text:mensaje||"Leé el plano adjunto."});
         const{parsed:p,apiError,usage,modelo}=await callLLM([{role:"user",content:cont}],sys,{preferir:imagenes_base64.length?["claude","openai"]:[]});
@@ -553,7 +557,7 @@ LECTURA DE PLANOS (v67):
         p.modulos=p.modulos.flatMap(m=>{const a=Number(m.ancho_mm)||0,n=Math.ceil(a/1000);if(n<2||/placard|vestidor/i.test(String(m.familia??"")))return[m];const r=k=>Math.ceil((Number(m[k])||0)/n);return[{...m,ancho_mm:Math.round(a/n),cantidad:(Number(m.cantidad)||1)*n,puertas:r("puertas"),cajones:r("cajones"),terminaciones:Number(m.terminaciones)?1:0}];});
         const bajoTipo=/mueble ?tv|rack|vanitory|bajo|cajonera|aparador|comoda/i.test(String(p.tipo_trabajo??""));
         const altoMax=Math.max(0,...p.modulos.map(m=>Number(m.alto_mm)||0));
-        if(altoMax>2800||(bajoTipo&&altoMax>1000))p.preguntas.unshift(`Leí ${altoMax} mm de alto, que no es razonable para ${p.tipo_trabajo||"este mueble"}: puede que el plano esté girado y esa cota sea el largo. Revisá alto y largo en la tabla.`);
+        if(altoMax>2800||(bajoTipo&&altoMax>1000)||(/mueble ?tv|rack/i.test(String(p.tipo_trabajo??""))&&altoMax>800))p.preguntas.unshift(`Leí ${altoMax} mm de alto, que no es razonable para ${p.tipo_trabajo||"este mueble"}: puede que el plano esté girado y esa cota sea el largo. Revisá alto y largo en la tabla.`);
         const term=normTerm(p.terminacion);
         if(term==="sin definir"&&!p.preguntas.some(q=>/laque|lustr/i.test(q)))p.preguntas.push("¿Lleva terminación laqueada o lustrada, o queda en melamina? Cambia el costo y el plazo.");
         const g=await guardarDiseno(p.modulos,{tipo_trabajo:p.tipo_trabajo,ambiente:p.ambiente,estilo:p.estilo||"",mano_obra:mo,terminacion:term});

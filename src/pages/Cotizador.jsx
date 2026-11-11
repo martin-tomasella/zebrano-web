@@ -42,7 +42,8 @@ export async function pdfAJpegs(file) {
   for (let i = 1; i <= Math.min(doc.numPages, 4); i++) {
     const page = await doc.getPage(i)
     const v0 = page.getViewport({ scale: 1 })
-    const vp = page.getViewport({ scale: MAX_LADO / Math.max(v0.width, v0.height) })
+    // Los planos traen cotas chicas: los PDF se renderizan más grandes que las fotos.
+    const vp = page.getViewport({ scale: 2200 / Math.max(v0.width, v0.height) })
     const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
     const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height)
     await page.render({ canvasContext: ctx, viewport: vp }).promise

@@ -1,6 +1,10 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v72: tiempos reales del taller.**
+  - Las horas de corte, canteado y armado salen de la tabla `tiempos_taller` (horas por metro lineal, personas y mínimo por tipo de mueble), no de la estimación de la IA. Referencia de Martín para un mueble TV de 4 m: corte 4 h con 2 personas, canteado 3 h con 1 y armado 7 h (1 día) con 1. Sin laqueado queda en 2 días (14 h de taller).
+  - Laqueado o lustrado: se suma la etapa de terminación sola, 21 h (3 días) por cada ~5 m², con 1 persona.
+  - Si el usuario da las horas a mano, se respetan.
 - **Cotizador v71: revisión completa del Cotizador AI (chat).**
   - Planos y fotos se leen con el lector estructurado de Nuevo trabajo, con `gpt-5.5` (`COTIZADOR_OPENAI_VISION_MODEL`). Antes el chat los leía con Gemini Flash y texto libre: con el plano PL2 daba 1,60 m o 0,97 m; ahora da mueble TV, 8 × 500 × 600 × 450.
   - El diseño del chat es estructurado (puertas, cajones, estantes, zócalo, laterales): 3D, plano, render y cotización salen del mismo diseño. Las correcciones por chat ("son 4 cuerpos de 1 m con 2 puertas") actualizan el diseño y el 3D, y se cotiza exactamente lo que se ve.

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 11/11/2026
+- Cotizador AI: el chat queda más angosto y al lado se ve la vista previa (render, plano técnico y plano subido, con el precio en ARS y USD). "Ampliar" abre un visor a pantalla completa con zoom (ajustar, 100%, 200% o 300%) para diseños de muchos módulos. En pantallas de menos de 1100 px el panel se oculta y aparece el botón "Ver diseño".
 - **Cotizador v68.** El laqueado y el lustrado se cotizan como material, no como precio por m² aplicado.
   - Cada terminación tiene una receta (`terminacion_receta`) con el consumo por m² de cada insumo: sellador, laca o barniz, catalizador o acelerante, diluyente, tinte y lija. El costo es consumo × m² × precio vigente del insumo (factura o lista).
   - Los insumos van a las necesidades de la OT, redondeados a litros o pliegos enteros. Las horas de lijado y pintura van en la etapa "terminación" de la mano de obra, y el cotizador avisa si falta.

@@ -1,6 +1,11 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v77: precio con el método de la planilla del taller.**
+  - El agente no llegaba al presupuesto cerrado porque calculaba el precio distinto: costo × 1,81 parejo. La planilla (hoja "Lista de precios") hace: mueble / 0,55 + laqueado / 0,80, dividido por los gastos (0,975 × 0,97 × 0,95 × 0,95), y el presupuesto en efectivo sale de la columna "+ ½ IVA" (× 1,15). Con el 6065: (720.000 / 0,55 + 270.000 / 0,80) / 0,8536 × 1,15 = $2.223.100, presentado como $2.250.000.
+  - El cotizador ahora usa ese mismo método. Parámetros en `cotiz_parametros`: `h_mueble` 0,55, `h_terminacion` 0,80, `recargo_efectivo_pct` 15, `jornal_pintor` 60.000. El pintor se paga por jornal (3 días = $180.000), no a $16.200 la hora.
+  - Tarjeta de confirmación: suma "laterales a la vista del mueble" (0, 1 o 2), que van en los extremos del corrido. Con regrueso se duplican: es la cuarta placa del 6065.
+  - Prueba de punta a punta con el plano PL2 por el chat (leer → no cotiza sin confirmar → confirmar laqueado, regrueso, zócalo 10 cm, blanco, 2 laterales, 1 estante → cotizar): 4 placas, 2 rollos, 35 h, **$2.187.000** contra $2.250.000 del presupuesto cerrado (−2,8%), con la pintura todavía en $0. En melamina: $1.884.000.
 - **Cotizador v76: confirmar antes de cotizar.**
   - Cotizador AI: con un diseño cargado aparece la tarjeta "Confirmá antes de cotizar", con terminación (obligatoria), color o placa, regrueso de 36 mm, zócalo y estantes por cuerpo. Viene con lo que leyó el agente. Sin confirmar, el agente no cotiza (canal interno). Al confirmar, si ya hay render, cotiza directo. Lo confirmado se respeta aunque el modelo traiga otra cosa. Con "Cambiar" se edita. Leer un plano nuevo vuelve a pedir confirmación.
   - Nuevo trabajo: no se cotiza con la terminación "sin definir". Nueva columna "Regrueso 36" en la tabla.

@@ -609,9 +609,12 @@ Deno.serve(async(req)=>{
         if(altoMax>2800||(bajoTipo&&altoMax>1000)||(/mueble ?tv|rack/i.test(String(p.tipo_trabajo??""))&&altoMax>800))p.preguntas.unshift(`Leí ${altoMax} mm de alto, que no es razonable para ${p.tipo_trabajo||"este mueble"}: puede que el plano esté girado y esa cota sea el largo. Revisá alto y largo en la tabla.`);
         return p;};
       // v76: lo que el usuario confirma en la tarjeta (terminacion, regrueso, zocalo, color, estantes) se aplica a los modulos del chat.
-      // Laterales a la vista (total del mueble): en un corrido de varios cuerpos iguales van en los extremos.
-      const conLaterales=(mods,L)=>{if(L===undefined||L===null||mods.length!==1)return mods;const m=mods[0],n=Math.max(1,Number(m.cantidad)||1),l=Math.max(0,Math.min(2*n,Number(L)||0));
-        return l>=n?[{...m,terminaciones:Math.min(2,Math.round(l/n))}]:[{...m,nombre:m.nombre+" (extremo)",cantidad:l,terminaciones:1},{...m,cantidad:n-l,terminaciones:0}].filter(x=>x.cantidad>0);};
+      // Laterales a la vista (total del mueble): van en los extremos del corrido (primer y ultimo cuerpo); las alacenas no se tocan.
+      const conLaterales=(mods,L)=>{if(L===undefined||L===null)return mods;const l=Math.max(0,Math.min(2,Number(L)||0));
+        const u=mods.flatMap(m=>/alacena/i.test(String(m.familia??""))?[{...m,_a:1}]:Array.from({length:Math.max(1,Number(m.cantidad)||1)},()=>({...m,cantidad:1,terminaciones:0})));
+        const b=u.filter(x=>!x._a);if(b.length){if(l>=1)b[0].terminaciones+=1;if(l>=2)b[b.length-1].terminaciones+=1;}
+        const out=[];for(const x of u){const y=out[out.length-1];if(!x._a&&y&&!y._a&&y.nombre===x.nombre&&y.terminaciones===x.terminaciones)y.cantidad+=1;else out.push({...x});}
+        return out.map(({_a,...x})=>x);};
       const aplicarConf=(mods,c)=>!c?mods:conLaterales((mods??[]),c.laterales).map(m=>{const alac=/alacena/i.test(String(m.familia??""));return{...m,...(alac?{}:{zocalo_mm:N(c.zocalo_mm)}),...(/bajo/i.test(String(m.familia??""))?{regrueso:!!c.regrueso}:{}),...(c.material?{material:c.material}:{}),...(c.estantes&&c.estantes[m.nombre]!==undefined?{estantes:N(c.estantes[m.nombre])}:{})};});
       const leerPlano=async(imgs,msj)=>{
         const sys=`Sos el lector de planos de Zebrano, carpinteria a medida (Buenos Aires). Del plano, foto, bosquejo o texto, devolve SOLO este JSON:

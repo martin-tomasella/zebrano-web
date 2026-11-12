@@ -570,14 +570,14 @@ function TarjetaConfirmar({ sesionId, mods, ctx, onListo, onCancelar }) {
   const [zoc, setZoc] = useState(c0 ? +c0.zocalo_mm || 0 : Math.max(0, ...mods.filter(m => !/alacena/i.test(m.familia || '')).map(m => +m.zocalo_mm || 0)))
   const [mat, setMat] = useState(c0?.material || mods[0]?.material || '')
   const [est, setEst] = useState(() => Object.fromEntries(mods.map(m => [m.nombre, +m.estantes || 0])))
-  const [lat, setLat] = useState(c0?.laterales ?? mods.reduce((a, m) => a + (+m.terminaciones || 0) * (+m.cantidad || 1), 0))
+  const [lat, setLat] = useState(c0?.laterales ?? Math.min(2, mods.filter(m => !/alacena/i.test(m.familia || '')).reduce((a, m) => a + (+m.terminaciones || 0) * (+m.cantidad || 1), 0)))
   const [placas, setPlacas] = useState([])
   const [guardando, setGuardando] = useState(false), [error, setError] = useState('')
   useEffect(() => { supabase.from('cotizador_catalogo').select('nombre').eq('categoria', 'placa').ilike('nombre', 'melamina%').order('nombre').then(({ data }) => setPlacas((data || []).map(p => p.nombre))) }, [])
   async function confirmar() {
     setGuardando(true); setError('')
     try {
-      const res = await fetch(FN_COTIZADOR, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ accion:'confirmar', sesion_id: sesionId, confirmar: { terminacion: term, regrueso: reg, zocalo_mm: zoc, material: mat, estantes: est, ...(mods.length === 1 ? { laterales: lat } : {}) } }) })
+      const res = await fetch(FN_COTIZADOR, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ accion:'confirmar', sesion_id: sesionId, confirmar: { terminacion: term, regrueso: reg, zocalo_mm: zoc, material: mat, estantes: est, laterales: lat } }) })
       const data = await res.json()
       if (!data.ok) throw new Error(data.error || 'error desconocido')
       await onListo()
@@ -599,8 +599,8 @@ function TarjetaConfirmar({ sesionId, mods, ctx, onListo, onCancelar }) {
           </select></label>
         <div><div>Regrueso 36 mm (tapa y laterales a la vista)</div>
           <div style={fila}>{[[true, 'Sí'], [false, 'No']].map(([v, l]) => <label key={l} style={{ display:'flex', gap:4, alignItems:'center' }}><input type="radio" checked={reg === v} onChange={() => setReg(v)} /> {l}</label>)}</div></div>
-        {mods.length === 1 && <label>Laterales a la vista (0, 1 o 2)
-          <input type="number" min={0} max={2 * (+mods[0].cantidad || 1)} value={lat} onChange={e => setLat(Number(e.target.value))} style={{ width:'100%' }} /></label>}
+        <label>Laterales a la vista del mueble (0, 1 o 2)
+          <input type="number" min={0} max={2} value={lat} onChange={e => setLat(Number(e.target.value))} style={{ width:'100%' }} /></label>
         <label>Zócalo (mm, 0 = sin zócalo)
           <input type="number" min={0} step={10} value={zoc} onChange={e => setZoc(Number(e.target.value))} style={{ width:'100%' }} /></label>
       </div>

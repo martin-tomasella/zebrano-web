@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 const Vista3D = React.lazy(() => import('../components/Vista3D'))
 import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
@@ -85,12 +85,17 @@ export default function Cotizador() {
   const [leyendo, setLeyendo] = useState(false)
   const [vistaKey, setVistaKey] = useState(null)
   const [ampliar, setAmpliar] = useState(null)
+  const [ctx, setCtx] = useState(null) // contexto_extra de la sesión (terminación, confirmación…)
+  const [editarConf, setEditarConf] = useState(false)
   const visor3d = useRef(null)
   const fileRef = useRef(null)
   const endRef = useRef(null)
+  // La sesión abierta queda en la URL (?sesion=ID): al actualizar el navegador se vuelve a abrir.
+  const [params, setParams] = useSearchParams()
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
-  useEffect(() => { loadSesiones() }, [])
+  useEffect(() => { loadSesiones(); const id = params.get('sesion'); if (id) seleccionarSesion(id) }, [])
+  useEffect(() => { if (sesionId && params.get('sesion') !== sesionId) setParams({ sesion: sesionId }, { replace: true }) }, [sesionId])
 
   async function loadSesiones() {
     const { data, error } = await supabase
@@ -132,12 +137,14 @@ export default function Cotizador() {
   }
 
   async function cargarEstadoCotizacion(id) {
-    const [{ data: d }, { data: r }] = await Promise.all([
+    const [{ data: d }, { data: r }, { data: se }] = await Promise.all([
       supabase.from('cotizacion_diseno').select('*').eq('sesion_id', id).maybeSingle(),
       supabase.from('cotizacion_resumen').select('*').eq('sesion_id', id).maybeSingle(),
+      supabase.from('cotizacion_sesiones').select('contexto_extra').eq('id', id).maybeSingle(),
     ])
     setDiseno(d || null)
     setResumen(r || null)
+    setCtx(se?.contexto_extra || null)
   }
 
   // Presupuesto y hoja de taller viven en el bucket privado "documentos": se abren con un link firmado de 10 minutos.
@@ -244,8 +251,30 @@ export default function Cotizador() {
     setLoading(false)
   }
 
+  // Después de confirmar la tarjeta: si ya hay render, cotiza directo; si no, sigue el flujo (aprobar diseño → render → cotización).
+  async function confirmado() {
+    setEditarConf(false)
+    await cargarEstadoCotizacion(sesionId)
+    if (!(diseno?.render_fotorrealista_url || resumen?.render_url)) {
+      setMessages(m => [...m, { role:'assistant', text:'Listo, confirmado. Aprobá el diseño para generar el render y después calculo el presupuesto.' }])
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch(FN_COTIZADOR, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ accion:'cotizar', sesion_id: sesionId }) })
+      const data = await res.json()
+      setMessages(m => [...m, { role:'assistant', text: data.ok ? data.respuesta : 'No pude cotizar: ' + (data.error || 'error desconocido'), error: !data.ok }])
+      await loadSesiones(); await cargarEstadoCotizacion(sesionId)
+    } catch (e) {
+      setMessages(m => [...m, { role:'assistant', text:'❌ Error al conectar con el agente. Probá de nuevo en un momento.', error: true }])
+    }
+    setLoading(false)
+  }
+
   function nuevaSesion() {
     setSesionId(null)
+    setParams({}, { replace: true })
+    setCtx(null)
     setDiseno(null)
     setResumen(null)
     setMessages([{ role:'assistant', text:'Nueva sesión iniciada. ¿Qué necesita cotizar el cliente?' }])
@@ -385,6 +414,13 @@ export default function Cotizador() {
             </div>
           )}
 
+          {sesionId && mods3d.length > 0 && sesionActiva?.estado !== 'aprobada' && (!ctx?.confirmado || editarConf
+            ? <TarjetaConfirmar sesionId={sesionId} mods={mods3d} ctx={ctx} onListo={confirmado} onCancelar={ctx?.confirmado ? () => setEditarConf(false) : null} />
+            : <div style={{ padding:'8px 24px', borderBottom:'1px solid var(--z-border)', fontSize:12.5, color:'var(--z-text-2)', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <span>✓ Confirmado: {resumenConf(ctx.confirmado_datos)}</span>
+                <button className="btn btn-quiet btn-sm" onClick={() => setEditarConf(true)}>Cambiar</button>
+              </div>)}
+
           <div style={{ flex:1, overflowY:'auto', padding:'22px 28px', display:'flex', flexDirection:'column', gap:16 }}>
             {loadingHist && (
               <div style={{ textAlign:'center', fontSize:12.5, color:'var(--z-text-muted)' }}>Cargando historial...</div>
@@ -518,6 +554,63 @@ function Visor({ vista, vistas, onCambiar, onCerrar }) {
       </div>
       <div className="z-visor-lienzo" style={zoom ? { display: "block", textAlign: "center" } : undefined} onMouseDown={e => e.stopPropagation()}>
         <img src={vista.src} alt={vista.label} style={zoom ? { width: `${zoom * 100}%`, maxWidth: 'none', background: vista.blanco ? '#fff' : undefined } : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', background: vista.blanco ? '#fff' : undefined }} />
+      </div>
+    </div>
+  )
+}
+
+const TERMS = [['melamina', 'Melamina (sin pintar)'], ['laqueado sintetico', 'Laqueado sintético'], ['laqueado al agua', 'Laqueado al agua'], ['lustrado', 'Lustrado']]
+const resumenConf = c => !c ? '' : [TERMS.find(t => t[0] === c.terminacion)?.[1] || c.terminacion, c.regrueso ? 'regrueso 36 mm' : 'sin regrueso', +c.zocalo_mm ? `zócalo ${c.zocalo_mm} mm` : 'sin zócalo', c.material].filter(Boolean).join(' · ')
+
+// v76 (11/11/2026): el Cotizador AI no cotiza hasta que se confirman estos datos. Viene con lo que leyó el agente; la terminación hay que elegirla.
+function TarjetaConfirmar({ sesionId, mods, ctx, onListo, onCancelar }) {
+  const c0 = ctx?.confirmado_datos
+  const [term, setTerm] = useState(c0?.terminacion || (TERMS.some(t => t[0] === ctx?.terminacion) ? ctx.terminacion : ''))
+  const [reg, setReg] = useState(c0 ? !!c0.regrueso : mods.some(m => m.regrueso))
+  const [zoc, setZoc] = useState(c0 ? +c0.zocalo_mm || 0 : Math.max(0, ...mods.filter(m => !/alacena/i.test(m.familia || '')).map(m => +m.zocalo_mm || 0)))
+  const [mat, setMat] = useState(c0?.material || mods[0]?.material || '')
+  const [est, setEst] = useState(() => Object.fromEntries(mods.map(m => [m.nombre, +m.estantes || 0])))
+  const [placas, setPlacas] = useState([])
+  const [guardando, setGuardando] = useState(false), [error, setError] = useState('')
+  useEffect(() => { supabase.from('cotizador_catalogo').select('nombre').eq('categoria', 'placa').ilike('nombre', 'melamina%').order('nombre').then(({ data }) => setPlacas((data || []).map(p => p.nombre))) }, [])
+  async function confirmar() {
+    setGuardando(true); setError('')
+    try {
+      const res = await fetch(FN_COTIZADOR, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ accion:'confirmar', sesion_id: sesionId, confirmar: { terminacion: term, regrueso: reg, zocalo_mm: zoc, material: mat, estantes: est } }) })
+      const data = await res.json()
+      if (!data.ok) throw new Error(data.error || 'error desconocido')
+      await onListo()
+    } catch (e) { setError(e.message) }
+    setGuardando(false)
+  }
+  const fila = { display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }
+  return (
+    <div style={{ padding:'12px 24px', borderBottom:'1px solid var(--z-border)', background:'rgb(var(--z-primary-c) / 0.06)' }} aria-label="Confirmar antes de cotizar">
+      <div style={{ fontWeight:600, marginBottom:8 }}>Confirmá antes de cotizar</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(190px, 1fr))', gap:10, fontSize:13 }}>
+        <label>Terminación
+          <select value={term} onChange={e => setTerm(e.target.value)} style={{ width:'100%' }} aria-invalid={!term}>
+            <option value="">Elegí…</option>{TERMS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select></label>
+        <label>Color / placa
+          <select value={mat} onChange={e => setMat(e.target.value)} style={{ width:'100%' }}>
+            {[...new Set([mat, ...placas].filter(Boolean))].map(p => <option key={p}>{p}</option>)}
+          </select></label>
+        <div><div>Regrueso 36 mm (tapa y laterales a la vista)</div>
+          <div style={fila}>{[[true, 'Sí'], [false, 'No']].map(([v, l]) => <label key={l} style={{ display:'flex', gap:4, alignItems:'center' }}><input type="radio" checked={reg === v} onChange={() => setReg(v)} /> {l}</label>)}</div></div>
+        <label>Zócalo (mm, 0 = sin zócalo)
+          <input type="number" min={0} step={10} value={zoc} onChange={e => setZoc(Number(e.target.value))} style={{ width:'100%' }} /></label>
+      </div>
+      <div style={{ ...fila, marginTop:8, fontSize:13 }}>
+        <span>Estantes de largo completo por cuerpo:</span>
+        {mods.map(m => <label key={m.nombre} style={fila}>{m.nombre} ({m.ancho_mm} mm)
+          <input type="number" min={0} value={est[m.nombre] ?? 0} onChange={e => setEst(x => ({ ...x, [m.nombre]: Number(e.target.value) }))} style={{ width:56 }} /></label>)}
+      </div>
+      <div style={{ ...fila, marginTop:10 }}>
+        <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={!term || guardando}>{guardando ? 'Guardando…' : 'Confirmar y cotizar'}</button>
+        {onCancelar && <button className="btn btn-ghost btn-sm" onClick={onCancelar}>Cancelar</button>}
+        {!term && <span style={{ fontSize:12, color:'var(--z-text-3)' }}>Elegí la terminación: cambia el costo y el plazo.</span>}
+        {error && <span style={{ fontSize:12, color:'var(--z-error)' }}>{error}</span>}
       </div>
     </div>
   )

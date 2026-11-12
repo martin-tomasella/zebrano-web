@@ -600,6 +600,8 @@ Deno.serve(async(req)=>{
         const altoMax=Math.max(0,...p.modulos.map(m=>Number(m.alto_mm)||0));
         if(altoMax>2800||(bajoTipo&&altoMax>1000)||(/mueble ?tv|rack/i.test(String(p.tipo_trabajo??""))&&altoMax>800))p.preguntas.unshift(`Leí ${altoMax} mm de alto, que no es razonable para ${p.tipo_trabajo||"este mueble"}: puede que el plano esté girado y esa cota sea el largo. Revisá alto y largo en la tabla.`);
         return p;};
+      // v76: lo que el usuario confirma en la tarjeta (terminacion, regrueso, zocalo, color, estantes) se aplica a los modulos del chat.
+      const aplicarConf=(mods,c)=>!c?mods:(mods??[]).map(m=>{const alac=/alacena/i.test(String(m.familia??""));return{...m,...(alac?{}:{zocalo_mm:N(c.zocalo_mm)}),...(/bajo/i.test(String(m.familia??""))?{regrueso:!!c.regrueso}:{}),...(c.material?{material:c.material}:{}),...(c.estantes&&c.estantes[m.nombre]!==undefined?{estantes:N(c.estantes[m.nombre])}:{})};});
       const leerPlano=async(imgs,msj)=>{
         const sys=`Sos el lector de planos de Zebrano, carpinteria a medida (Buenos Aires). Del plano, foto, bosquejo o texto, devolve SOLO este JSON:
 {"tipo_trabajo":"cocina|placard|vestidor|vanitory|biblioteca|mueble tv|escritorio|otro","ambiente":"","datos_cliente":{"nombre":"","telefono":"","email":""},"modulos":[{"nombre","familia":"bajo|alacena|columna|placard|cajonera|abierto","ancho_mm","alto_mm","prof_mm" (casco sin puerta),"puertas","cajones","estantes","frentes":"superpuestos|embutidos","zocalo_mm","patas","cantidad","material","terminaciones" (0-2 laterales a la vista, por cada unidad de cantidad: si solo los extremos llevan lateral, separa extremos y centrales en modulos distintos),"regrueso" (bool)}],"mano_obra":[{"etapa":"corte|canteado|armado|terminacion|instalacion","horas_estimadas","operarios"}],"terminacion":"melamina|laqueado sintetico|laqueado al agua|lustrado|sin definir","estilo":"terminaciones y estilo visual en ingles para el render","preguntas":["dudas concretas que el usuario tiene que confirmar"]}
@@ -626,7 +628,7 @@ LECTURA DE PLANOS (v67):
         let term=normTerm(p.terminacion);if(term==="melamina"&&!/melamina|laque|lustr|laca|pintad/i.test(String(msj??"")))term="sin definir";p.terminacion=term;
         if(term==="sin definir"&&!p.preguntas.some(q=>/laque|lustr/i.test(q)))p.preguntas.push("¿Lleva terminación laqueada o lustrada, o queda en melamina? Cambia el costo y el plazo: en la cotización te muestro los dos precios.");
         if(/mueble ?tv|bajo|rack|aparador|comoda/i.test(String(p.tipo_trabajo??""))&&!/regrues|36 ?mm/i.test(String(msj??"")))p.preguntas.push(`¿Tapa y laterales a la vista regruesados en 36 mm (pieza duplicada)? Leí: ${p.modulos.some(m=>m.regrueso)?"sí":"no"}.`);
-        const g=await guardarDiseno(p.modulos,{tipo_trabajo:p.tipo_trabajo,ambiente:p.ambiente,estilo:p.estilo||"",mano_obra:mo,terminacion:term});
+        const g=await guardarDiseno(p.modulos,{tipo_trabajo:p.tipo_trabajo,ambiente:p.ambiente,estilo:p.estilo||"",mano_obra:mo,terminacion:term,confirmado:false,confirmado_datos:null});
         return{g,p,mo,term,modelo};
       };
     // v65 (10/11/2026): flujo por pasos de "Nuevo trabajo": leer -> guardar_diseno -> render -> cotizar -> aprobar_cotizacion.
@@ -652,6 +654,17 @@ LECTURA DE PLANOS (v67):
         if(!(body.modulos??[]).some(m=>Number(m?.ancho_mm)>0&&Number(m?.alto_mm)>0))return json({ok:false,error:"Agregá al menos un módulo con ancho y alto."},400);
         const extra={};for(const k of["tipo_trabajo","ambiente","estilo","mano_obra"])if(body[k]!==undefined)extra[k]=body[k];if(body.terminacion!==undefined)extra.terminacion=normTerm(body.terminacion);if(body.laqueado_m2!==undefined)extra.laqueado_m2=Number(body.laqueado_m2)||0;
         const g=await guardarDiseno(body.modulos,extra);
+        return json({ok:true,sesion_id:sid,modulos:g.mods,svg_tecnico:g.svg});
+      }
+      if(accion==="confirmar"){
+        // v76 (Martin 11/11): en el Cotizador AI no se cotiza hasta confirmar terminacion, regrueso, zocalo, color y estantes.
+        const c=body.confirmar??{},term=normTerm(c.terminacion);
+        if(!/melamina|laque|lustr/.test(term))return json({ok:false,error:"Elegí la terminación."},400);
+        const{data:d2}=await sb.from("cotizacion_diseno").select("modulos,svg_aprobado").eq("sesion_id",sid).maybeSingle();
+        if(!(d2?.modulos??[]).length)return json({ok:false,error:"No hay diseño para confirmar."},400);
+        const conf={terminacion:term,regrueso:!!c.regrueso,zocalo_mm:N(c.zocalo_mm),material:String(c.material||"").slice(0,80),estantes:c.estantes&&typeof c.estantes==="object"?c.estantes:{}};
+        const g=await guardarDiseno(aplicarConf(d2.modulos.map(normMod),conf),{terminacion:term,confirmado:true,confirmado_datos:conf});
+        if(d2.svg_aprobado)await sb.from("cotizacion_diseno").update({svg_aprobado:true}).eq("sesion_id",sid);
         return json({ok:true,sesion_id:sid,modulos:g.mods,svg_tecnico:g.svg});
       }
       if(accion==="render"){
@@ -713,7 +726,7 @@ LECTURA DE PLANOS (v67):
     const dcl=parsed?.datos_cliente??parsed?.datos?.datos_cliente;if(dcl){const upd={};if(String(dcl.nombre||"").trim())upd.cliente_nombre=String(dcl.nombre).trim();if(String(dcl.telefono||"").trim())upd.cliente_telefono=String(dcl.telefono).trim();if(String(dcl.email||"").trim())upd.cliente_email=String(dcl.email).trim();if(Object.keys(upd).length)await sb.from("cotizacion_sesiones").update(upd).eq("id",sid);}
     let texto=String(parsed?.respuesta_texto??raw);
     let svgGenerado=null,renderUrl=null,resumenCot=null;
-    if(etapa==="diseno"&&parsed?.diseno_actualizado?.modulos?.length){const du=parsed.diseno_actualizado;const pr=revisar({modulos:du.modulos,tipo_trabajo:du.tipo_trabajo,preguntas:[]});const{data:sx}=await sb.from("cotizacion_sesiones").select("contexto_extra").eq("id",sid).maybeSingle();const g=await guardarDiseno(pr.modulos,{tipo_trabajo:du.tipo_trabajo||undefined,ambiente:du.ambiente||undefined,estilo:du.estilo||sx?.contexto_extra?.estilo||"",terminacion:du.terminacion?normTerm(du.terminacion):sx?.contexto_extra?.terminacion,mano_obra:du.mano_obra?.length?du.mano_obra:sx?.contexto_extra?.mano_obra});svgGenerado=g.svg;texto+=(pr.preguntas.length?"\n"+pr.preguntas.join(" "):"")+(g.svg?"\n\nDiseño actualizado: miralo en 3D a la derecha y aprobalo para generar el render.":"\n\nNo pude armar el diseño.");}
+    if(etapa==="diseno"&&parsed?.diseno_actualizado?.modulos?.length){const du=parsed.diseno_actualizado;const pr=revisar({modulos:du.modulos,tipo_trabajo:du.tipo_trabajo,preguntas:[]});const{data:sx}=await sb.from("cotizacion_sesiones").select("contexto_extra").eq("id",sid).maybeSingle();const cf=sx?.contexto_extra?.confirmado?sx.contexto_extra.confirmado_datos:null;const g=await guardarDiseno(aplicarConf(pr.modulos,cf),{tipo_trabajo:du.tipo_trabajo||undefined,ambiente:du.ambiente||undefined,estilo:du.estilo||sx?.contexto_extra?.estilo||"",terminacion:cf?cf.terminacion:du.terminacion?normTerm(du.terminacion):sx?.contexto_extra?.terminacion,mano_obra:du.mano_obra?.length?du.mano_obra:sx?.contexto_extra?.mano_obra});svgGenerado=g.svg;texto+=(pr.preguntas.length?"\n"+pr.preguntas.join(" "):"")+(g.svg?"\n\nDiseño actualizado: miralo en 3D a la derecha y aprobalo para generar el render.":"\n\nNo pude armar el diseño.");}
     if(etapa==="render"&&parsed?.render_prompt){const newPrompt=String(parsed.render_prompt);await sb.from("cotizacion_diseno").update({render_prompt_actual:newPrompt}).eq("sesion_id",sid);if(!(await puedeRender())){texto+="\n\n"+SIN_RENDER;}else{const prev=!base3d&&da?.render_fotorrealista_url&&mensaje?await renderPrevio(da.render_fotorrealista_url):null;const{url,error:re,modelo:rm}=prev?await renderFoto(sb,String(mensaje).slice(0,400),prev,"foto"):await renderFoto(sb,newPrompt,base3d);await reg({sesion_id:sid,modelo:rm??"render-error",renders:url?1:0});renderUrl=url;if(renderUrl){await sb.from("cotizacion_diseno").update({render_fotorrealista_url:renderUrl,render_generado_at:new Date().toISOString()}).eq("sesion_id",sid);await sb.from("cotizacion_resumen").upsert({sesion_id:sid,render_url:renderUrl,costo_materiales:0,costo_herrajes:0,costo_mano_obra:0,costo_laqueado:0,costo_total_interno:0,margen_pct:35,precio_sugerido:0},{onConflict:"sesion_id"});texto+="\n\nRender listo. Lo aprobas para calcular el presupuesto?";}else{texto+=`\n\nNo pude generar el render (${re}). Igual podemos seguir: decime "cotizá" y calculo el presupuesto con el diseño aprobado.`;}}}
     // v59: el flujo es plano -> render -> presupuesto. Sin plano aprobado, los modulos que leyo el agente se muestran como plano primero.
     let etapaOut=etapa;
@@ -729,7 +742,11 @@ LECTURA DE PLANOS (v67):
       // Si en este mensaje el usuario cambio algo, el modelo trae los modulos corregidos: pasan a ser el diseño (y el 3D se actualiza).
       if(parsed.datos.modulos?.length&&da?.svg_aprobado!==undefined){const pr=revisar({modulos:parsed.datos.modulos,tipo_trabajo:parsed.datos.tipo_trabajo,preguntas:[]});const g=await guardarDiseno(pr.modulos,{tipo_trabajo:parsed.datos.tipo_trabajo||undefined,ambiente:parsed.datos.ambiente||undefined,...(parsed.datos.mano_obra?.length?{mano_obra:parsed.datos.mano_obra}:{}),...(parsed.datos.terminacion?{terminacion:normTerm(parsed.datos.terminacion)}:{})});svgGenerado=g.svg;parsed.datos.modulos=g.mods;}
       const dm=parsed.datos.modulos?.length?[]:(da?.modulos??[]).filter(m=>m&&m.puertas!==undefined);if(dm.length){parsed.datos.modulos=dm.map(normMod);const{data:sx}=await sb.from("cotizacion_sesiones").select("contexto_extra").eq("id",sid).maybeSingle();const cx=sx?.contexto_extra??{};if(!parsed.datos.mano_obra?.length&&cx.mano_obra?.length)parsed.datos.mano_obra=cx.mano_obra;if(!parsed.datos.terminacion&&cx.terminacion)parsed.datos.terminacion=cx.terminacion;}
-      const r=await cotizarDat(parsed.datos,hist,mensaje);texto+=r.texto;resumenCot=r.resumenCot;}
+      // v76: sin confirmar no se cotiza (canal interno); confirmado, se cotiza con lo confirmado aunque el modelo traiga otra cosa.
+      const{data:sxc}=await sb.from("cotizacion_sesiones").select("contexto_extra").eq("id",sid).maybeSingle();const cxc=sxc?.contexto_extra??{};
+      if(canalSeguro==="interno"&&!cxc.confirmado){texto="Antes de cotizar, confirmá en la tarjeta de arriba del chat la terminación, el regrueso, el zócalo, el color y los estantes. Apenas confirmes, calculo el presupuesto.";etapaOut="confirmar";}
+      else{if(cxc.confirmado){parsed.datos.modulos=aplicarConf(parsed.datos.modulos,cxc.confirmado_datos);parsed.datos.terminacion=cxc.confirmado_datos?.terminacion??cxc.terminacion;}
+      const r=await cotizarDat(parsed.datos,hist,mensaje);texto+=r.texto;resumenCot=r.resumenCot;}}
     if(canalSeguro==="externo"){
       // Blindaje adicional independiente del prompt: aunque el modelo fallara y filtrara
       // numeros de costo interno en el texto, para canal externo nunca se los devolvemos

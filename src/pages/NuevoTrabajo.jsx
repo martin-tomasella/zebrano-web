@@ -16,7 +16,7 @@ const ETAPAS_MO = ['corte', 'canteado', 'armado', 'terminacion', 'instalacion']
 const TERMINACIONES = [['sin definir', 'Sin definir (preguntar)'], ['melamina', 'Melamina (sin pintar)'], ['laqueado sintetico', 'Laqueado sintético'], ['laqueado al agua', 'Laqueado al agua'], ['lustrado', 'Lustrado poliuretano']]
 const COLS = [['nombre', 'Módulo', 'text', 130], ['familia', 'Familia', FAMILIAS, 95], ['ancho_mm', 'Ancho', 'n'], ['alto_mm', 'Alto', 'n'], ['prof_mm', 'Prof.', 'n'],
   ['puertas', 'Puertas', 'n'], ['cajones', 'Cajones', 'n'], ['estantes', 'Estantes', 'n'], ['frentes', 'Frentes', ['superpuestos', 'embutidos'], 110],
-  ['patas', 'Patas', 'n'], ['zocalo_mm', 'Zócalo', 'n'], ['terminaciones', 'Lat. term.', 'n'], ['cantidad', 'Cant.', 'n'], ['material', 'Material', 'text', 190]]
+  ['patas', 'Patas', 'n'], ['zocalo_mm', 'Zócalo', 'n'], ['regrueso', 'Regrueso 36', 'b'], ['terminaciones', 'Lat. term.', 'n'], ['cantidad', 'Cant.', 'n'], ['material', 'Material', 'text', 190]]
 const $ = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('es-AR')
 const nuevoModulo = mat => ({ nombre: 'Módulo', familia: 'bajo', ancho_mm: 600, alto_mm: 720, prof_mm: 550, puertas: 2, cajones: 0, estantes: 1, frentes: 'superpuestos', patas: 0, zocalo_mm: 0, terminaciones: 0, cantidad: 1, material: mat || 'Melamina blanco mate 18mm' })
 
@@ -28,7 +28,7 @@ async function llamar(body) {
 }
 
 export default function NuevoTrabajo() {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const [paso, setPaso] = useState(0)
   const [ocupado, setOcupado] = useState('')
@@ -95,6 +95,7 @@ export default function NuevoTrabajo() {
     const d = await llamar({ accion: 'leer', origen: 'web', mensaje: texto, imagenes_base64: imagenes.map(x => x.split(',')[1]),
       ...(para === 'cliente' ? { cliente_id: clienteId || null, obra_id: obraId || null } : {}), ...(para === 'prospecto' ? { prospecto_id: prospectoId || null } : {}) })
     setSid(d.sesion_id)
+    setParams({ sesion: d.sesion_id }, { replace: true }) // al actualizar el navegador vuelve a este diseño
     const c = para === 'cliente' ? clientes.find(x => x.id === clienteId) : prospectos.find(x => x.id === prospectoId)
     if (c) await supabase.from('cotizacion_sesiones').update({ cliente_nombre: [c.nombre, c.apellido].filter(Boolean).join(' '), cliente_telefono: c.telefono || null, cliente_email: c.email || null }).eq('id', d.sesion_id)
     setModulos(d.modulos); setManoObra(d.mano_obra || []); setEstilo(d.estilo || ''); setTipo(d.tipo_trabajo || ''); setTerminacion(d.terminacion || 'sin definir'); setPreguntas(d.preguntas || []); setSvg(d.svg_tecnico)
@@ -165,7 +166,8 @@ export default function NuevoTrabajo() {
             <SectionTitle action={<Btn small variant="ghost" icon="add" onClick={() => setModulos(m => [...m, nuevoModulo(m[0]?.material)])}>Módulo</Btn>}>Módulos (medidas del casco, en mm)</SectionTitle>
             <div style={{ overflowX: 'auto' }}><table className="z-table"><thead><tr>{COLS.map(c => <th key={c[0]}>{c[1]}</th>)}<th /></tr></thead>
               <tbody>{modulos.map((m, i) => <tr key={i}>{COLS.map(([k, , t, w]) => <td key={k}>
-                {Array.isArray(t) ? <select value={m[k]} onChange={e => setMod(i, k, e.target.value)} style={{ width: w }} aria-label={k}>{t.map(o => <option key={o}>{o}</option>)}</select>
+                {t === 'b' ? <input type="checkbox" checked={!!m[k]} onChange={e => setMod(i, k, e.target.checked)} aria-label={k} />
+                  : Array.isArray(t) ? <select value={m[k]} onChange={e => setMod(i, k, e.target.value)} style={{ width: w }} aria-label={k}>{t.map(o => <option key={o}>{o}</option>)}</select>
                   : <input value={m[k] ?? ''} type={t === 'n' ? 'number' : 'text'} min={0} onChange={e => setMod(i, k, t === 'n' ? Number(e.target.value) : e.target.value)} style={{ width: w || 70 }} aria-label={k} />}</td>)}
                 <td><button className="btn btn-quiet btn-sm" aria-label="Quitar módulo" onClick={() => setModulos(ms => ms.filter((_, j) => j !== i))}>✕</button></td></tr>)}</tbody></table></div>
           </Card>
@@ -179,7 +181,7 @@ export default function NuevoTrabajo() {
               <Btn small variant="ghost" icon="add" onClick={() => setManoObra(ms => [...ms, { etapa: 'armado', horas_estimadas: 0, operarios: 1 }])}>Etapa</Btn>
               <label style={{ display: 'block', marginTop: 12 }}>Terminación<select value={terminacion} onChange={e => setTerminacion(e.target.value)}>
                 {TERMINACIONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-              {/laque|lustr/.test(terminacion) && <label style={{ display: 'block', marginTop: 8 }}>m² a terminar (vacío = frentes de ambas caras + laterales a la vista)
+              {/laque|lustr/.test(terminacion) && <label style={{ display: 'block', marginTop: 8 }}>m² a terminar (vacío = caras a la vista: frentes, laterales, tapa y zócalo)
                 <input type="number" min={0} step="0.1" value={m2Term} onChange={e => setM2Term(e.target.value)} /></label>}
               <label style={{ display: 'block', marginTop: 12 }}>Estilo para el render<input value={estilo} onChange={e => setEstilo(e.target.value)} /></label>
             </Card>
@@ -193,7 +195,8 @@ export default function NuevoTrabajo() {
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Btn icon="image" disabled={!!ocupado || !modulos.length} onClick={() => pedirRender(false)}>Aprobar diseño y generar render</Btn>
-            <Btn variant="secondary" disabled={!!ocupado || !modulos.length} onClick={() => cotizar(true)}>Cotizar sin render</Btn>
+            <Btn variant="secondary" disabled={!!ocupado || !modulos.length || terminacion === 'sin definir'} onClick={() => cotizar(true)}>Cotizar sin render</Btn>
+            {terminacion === 'sin definir' && <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--z-text-3)' }}>Para cotizar, elegí la terminación (melamina, laqueado o lustrado) y revisá regrueso, zócalo, color y estantes en la tabla.</span>}
           </div>
         </>}
 
@@ -202,7 +205,7 @@ export default function NuevoTrabajo() {
           <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
             <input style={{ flex: '1 1 300px' }} value={cambio} onChange={e => setCambio(e.target.value)} placeholder="Pedir un cambio (ej.: tiradores negros, sin alacena del medio)" aria-label="Cambio del render" />
             <Btn variant="secondary" icon="edit" disabled={!!ocupado || !cambio.trim()} onClick={() => pedirRender(true)}>Rehacer render</Btn>
-            <Btn icon="request_quote" disabled={!!ocupado} onClick={() => cotizar(false)}>Cotizar</Btn>
+            <Btn icon="request_quote" disabled={!!ocupado || terminacion === 'sin definir'} title={terminacion === 'sin definir' ? 'Elegí la terminación en el paso anterior' : undefined} onClick={() => cotizar(false)}>Cotizar</Btn>
           </div>
           <p style={{ color: 'var(--z-text-2)', fontSize: 13, marginTop: 8 }}>Para cambiar medidas o módulos volvé al paso 2: el render es solo la imagen.</p>
         </Card>}

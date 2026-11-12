@@ -421,7 +421,9 @@ Deno.serve(async(req)=>{
     const tiemposTaller=async(mods,tipo,moIn)=>{
       TT=TT??((await sb.from("tiempos_taller").select("tipo,etapa,horas_por_ml,personas,minimo_h")).data??[]);
       const ml=(mods??[]).reduce((a,m)=>a+(Number(m.ancho_mm)||0)*(Number(m.cantidad)||1),0)/1000;
-      const filas=TT.filter(r=>{try{return new RegExp(r.tipo,"i").test(String(tipo??""));}catch{return false;}});
+      const pr=t=>TT.filter(r=>{try{return new RegExp(r.tipo,"i").test(t);}catch{return false;}});
+      // v76: si el tipo vino generico ("otro"), se busca por la familia de los modulos (ej. "bajo").
+      let filas=pr(String(tipo??""));if(!filas.length)filas=pr([...new Set((mods??[]).map(m=>String(m.familia??"")))].join(" "));
       if(!filas.length||!(ml>0))return moIn??[];
       const out=(moIn??[]).filter(m=>!filas.some(r=>r.etapa===String(m.etapa??"").toLowerCase()));
       for(const r of filas){const h=Math.max(Number(r.minimo_h)||0,Math.round(ml*Number(r.horas_por_ml)*2)/2);if(h>0)out.push({etapa:r.etapa,horas_estimadas:h,operarios:r.personas,fuente:"taller"});}
@@ -709,7 +711,7 @@ LECTURA DE PLANOS (v67):
     if(imagenes_base64.length&&canalSeguro==="interno"){
       const L=await leerPlano(imagenes_base64,mensaje);
       if(L.error)return json({ok:false,sesion_id:sid,error:L.error},L.status);
-      const t=`${L.p.tipo_trabajo?L.p.tipo_trabajo[0].toUpperCase()+L.p.tipo_trabajo.slice(1)+": ":""}leí ${L.g.mods.reduce((a,m)=>a+m.cantidad,0)} módulo${L.g.mods.reduce((a,m)=>a+m.cantidad,0)===1?"":"s"} (${L.g.mods.map(m=>`${m.cantidad>1?m.cantidad+" × ":""}${m.nombre} ${m.ancho_mm}×${m.alto_mm}×${m.prof_mm} mm${detalle(m)?`, ${detalle(m)}`:""}`).join("; ")}).\nMiralo en 3D a la derecha. Si algo no coincide con el plano, decímelo (ej. "son 4 cuerpos de 1 m con 2 puertas") o editalo en la tabla; si está bien, aprobá el diseño para generar el render.${L.p.preguntas.length?"\nPara confirmar: "+L.p.preguntas.join(" "):""}`;
+      const t=`${L.p.tipo_trabajo?L.p.tipo_trabajo[0].toUpperCase()+L.p.tipo_trabajo.slice(1)+": ":""}leí ${L.g.mods.reduce((a,m)=>a+m.cantidad,0)} módulo${L.g.mods.reduce((a,m)=>a+m.cantidad,0)===1?"":"s"} (${L.g.mods.map(m=>`${m.cantidad>1?m.cantidad+" × ":""}${m.nombre} ${m.ancho_mm}×${m.alto_mm}×${m.prof_mm} mm${detalle(m)?`, ${detalle(m)}`:""}`).join("; ")}).\nMiralo en 3D a la derecha. Si algo no coincide con el plano, decímelo (ej. "son 2 cuerpos de 2 m con 4 puertas") o editalo en la tabla; si está bien, aprobá el diseño para generar el render.${L.p.preguntas.length?"\nPara confirmar: "+L.p.preguntas.join(" "):""}`;
       await sb.from("cotizacion_mensajes").insert({sesion_id:sid,rol:"agent",contenido:t,imagenes:[],metadata:{etapa:"diseno",accion:"leer",_modelo:L.modelo}});
       return json({ok:true,sesion_id:sid,respuesta:t,etapa:"diseno",svg_tecnico:L.g.svg,modulos:L.g.mods,canal:canalSeguro,modelo:L.modelo});
     }

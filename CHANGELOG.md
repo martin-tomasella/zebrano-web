@@ -1,6 +1,12 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v75: lectura de planos como arma el taller.**
+  - Error de v67: la regla del lector decía "4,00 m dividido en 8 = 8 módulos de 0,50 m" y partía todo en cascos de hasta 1 m. Ahora las divisiones del frente son puertas, y el taller arma cuerpos de hasta 2 m (mueble de 4 m = 2 cuerpos de 2 m con 4 puertas). Si igual vuelve una caja por puerta, el código las agrupa en cuerpos de hasta 2 m.
+  - "Estantes" son los de largo completo del cuerpo (antes podía leer 8 por cuerpo).
+  - El plano dice el material, no la terminación que se vende: si el usuario no dijo melamina o laqueado, queda "sin definir" y el agente pregunta. Toda cotización sin laqueado muestra también el precio con laqueado (+3 días del pintor), en el texto y en el resumen.
+  - El agente pregunta siempre si la tapa y los laterales a la vista van regruesados, si el usuario no lo dijo.
+  - Mismo plano PL2, dos lecturas: las dos dan 2 cuerpos de 2 m con 4 puertas. Siguen variando lo que el plano no define (estantes, regrueso, zócalo, color): son las preguntas de "Para confirmar".
 - **Cotizador v74: tiempos y laqueado como los da el taller.**
   - Mueble TV / bajo (`tiempos_taller`): corte medio día (3,5 h) con 1 persona y armado 1 día y medio (10,5 h) con 2 personas, con el canteado incluido. Sin laqueado: 2 días. Ya no se fuerzan 2 personas en el corte.
   - Laqueado o lustrado: 3 días (21 h) del pintor, 1 persona, fijo; no depende de la superficie. Con laqueado: 5 días entre 3 personas (45,5 h-persona).

@@ -1,6 +1,12 @@
 # Changelog
 
 ## 11/11/2026
+- **Cotizador v76: confirmar antes de cotizar.**
+  - Cotizador AI: con un diseño cargado aparece la tarjeta "Confirmá antes de cotizar", con terminación (obligatoria), color o placa, regrueso de 36 mm, zócalo y estantes por cuerpo. Viene con lo que leyó el agente. Sin confirmar, el agente no cotiza (canal interno). Al confirmar, si ya hay render, cotiza directo. Lo confirmado se respeta aunque el modelo traiga otra cosa. Con "Cambiar" se edita. Leer un plano nuevo vuelve a pedir confirmación.
+  - Nuevo trabajo: no se cotiza con la terminación "sin definir". Nueva columna "Regrueso 36" en la tabla.
+  - La sesión abierta queda en la URL (`?sesion=`): al actualizar el navegador vuelve a abrirse, en el Cotizador AI y en Nuevo trabajo.
+  - Tiempos del taller: si el lector devuelve un tipo genérico ("otro"), se buscan por la familia de los módulos (ej. "bajo").
+  - Prueba con el plano PL2 por el chat: el agente no cotizó hasta confirmar. Con laqueado, regrueso, zócalo 10 cm y blanco: $2.005.000 sin factura, 35 h (5 días).
 - **Cotizador v75: lectura de planos como arma el taller.**
   - Error de v67: la regla del lector decía "4,00 m dividido en 8 = 8 módulos de 0,50 m" y partía todo en cascos de hasta 1 m. Ahora las divisiones del frente son puertas, y el taller arma cuerpos de hasta 2 m (mueble de 4 m = 2 cuerpos de 2 m con 4 puertas). Si igual vuelve una caja por puerta, el código las agrupa en cuerpos de hasta 2 m.
   - "Estantes" son los de largo completo del cuerpo (antes podía leer 8 por cuerpo).

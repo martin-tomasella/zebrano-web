@@ -124,7 +124,8 @@ function persona(acento, semilla = 0) {
   return { g, cuerpo, cabeza, bI, bD, pI, pD, sentar }
 }
 
-// Escritorio blanco con patas negras, monitor (luz de estado abajo, del lado de la cámara), teclado y silla negra.
+// Escritorio blanco con patas negras, monitor mirando a la cámara (luz de estado bajo la pantalla), teclado y silla negra.
+// El agente se sienta del lado de la cámara, de espaldas, frente a su pantalla encendida.
 function escritorio(x, z, estado, acento) {
   const g = new THREE.Group()
   const tapa = caja(1.6, 0.04, 0.8, '#f3f3f1', { roughness: 0.4 }); tapa.position.y = 0.74
@@ -134,23 +135,23 @@ function escritorio(x, z, estado, acento) {
     ;[-0.34, 0.34].forEach(pz => { const p = lado.clone(); p.position.set(px, 0.36, pz); g.add(p) })
     const travesano = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.72), patas); travesano.position.set(px, 0.04, 0); g.add(travesano)
   })
-  const faldon = caja(1.48, 0.28, 0.02, '#e7e7e4'); faldon.position.set(0, 0.58, 0.36)
+  const faldon = caja(1.48, 0.28, 0.02, '#e7e7e4'); faldon.position.set(0, 0.58, -0.36)
   g.add(tapa, faldon)
   // Monitor: pantalla hacia el agente; atrás (hacia la cámara) una tira de luz con el color del estado
-  const mon = new THREE.Group(); mon.position.set(0, 0.76, 0.12)
+  const mon = new THREE.Group(); mon.position.set(0, 0.76, -0.14); mon.rotation.y = Math.PI
   const pie = caja(0.2, 0.012, 0.16, '#202225', { metalness: 0.4, roughness: 0.3 }); pie.position.y = 0.006
   const brazo = caja(0.03, 0.2, 0.03, '#202225', { metalness: 0.4, roughness: 0.3 }); brazo.position.set(0, 0.1, 0.03)
   const panel = caja(0.62, 0.36, 0.025, '#17181a', { roughness: 0.35 }); panel.position.set(0, 0.36, 0.03)
   const pantalla = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.32), luz(estado === 'trabajando' ? '#9cc4ff' : estado === 'trabado' ? '#5a2226' : '#3a3f46'))
   pantalla.position.set(0, 0.36, 0.016); pantalla.rotation.y = Math.PI
-  const led = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.018, 0.005), luz(COLOR_ESTADO[estado] || '#9aa0a6')); led.position.set(0, 0.2, 0.045)
+  const led = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.018, 0.005), luz(COLOR_ESTADO[estado] || '#9aa0a6')); led.position.set(0, 0.194, 0.014)
   mon.add(pie, brazo, panel, pantalla, led)
-  const teclado = caja(0.42, 0.015, 0.13, '#d9dadc', { roughness: 0.5 }); teclado.position.set(0, 0.768, -0.12)
-  const mouse = caja(0.06, 0.02, 0.09, '#d9dadc'); mouse.position.set(0.32, 0.77, -0.12)
-  const vaso = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.11, 16), mat('#ffffff', { roughness: 0.3 })); vaso.position.set(-0.6, 0.815, 0.15)
+  const teclado = caja(0.42, 0.015, 0.13, '#d9dadc', { roughness: 0.5 }); teclado.position.set(0, 0.768, 0.14)
+  const mouse = caja(0.06, 0.02, 0.09, '#d9dadc'); mouse.position.set(0.32, 0.77, 0.14)
+  const vaso = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.11, 16), mat('#ffffff', { roughness: 0.3 })); vaso.position.set(-0.6, 0.815, -0.15)
   g.add(mon, teclado, mouse, vaso)
   // Silla ejecutiva negra, con una línea del color del agente en el respaldo
-  const silla = new THREE.Group(); silla.position.set(0, 0, -0.8)
+  const silla = new THREE.Group(); silla.position.set(0, 0, 0.8); silla.rotation.y = Math.PI
   const tela = mat('#1f2124', { roughness: 0.9 })
   const asiento = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.48), tela); asiento.position.y = 0.47
   const respaldo = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.62, 0.05), tela); respaldo.position.set(0, 0.86, -0.24); respaldo.rotation.x = -0.1
@@ -293,7 +294,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
         const descansa = a.estado === 'libre' && (!ult || ahora - ult > 864e5)
         p.sentar()
         if (descansa) { const D = AREAS.descanso; p.g.position.set(D.x - 1.05 + (enSillon % 3) * 1.05, 0, D.z - 0.95); p.g.userData.sillon = enSillon++ }
-        else p.g.position.set(x, 0, zD - 0.86)
+        else { p.g.position.set(x, 0, zD + 0.86); p.g.rotation.y = Math.PI }
         s.dinamico.add(p.g)
         const tag = cartel(a.nombre, s.k, { punto: COLOR_ESTADO[a.estado], badge: a.pendientes || 0 })
         tag.position.set(0, 1.6 + ((p.g.userData.sillon ?? 0) % 3) * 0.36, 0); p.g.add(tag)
@@ -343,7 +344,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
       const tag = cartel(`${ag.nombre} → ${dest?.nombre}: ${ps.tarea.slice(0, 32)}${ps.tarea.length > 32 ? '…' : ''}`, s.k, { punto: '#3a7bd5', px: 20 })
       tag.position.set(0, 1.9, 0); w.g.add(tag)
       const V = (x, z) => new THREE.Vector3(x, 0, z)
-      const ruta = [V(de.x, de.z + 1.0), V(de.x, 0), V(a.x, 0), V(a.x, a.z + 1.0)]
+      const ruta = [V(de.x + 0.9, de.z + 1.2), V(de.x + 0.9, 0), V(a.x + 0.9, 0), V(a.x + 0.9, a.z + 1.2)]
       const tramos = ruta.slice(1).map((p, i) => ruta[i].distanceTo(p)), total = tramos.reduce((x, y) => x + y, 0), vel = 1.3
       const ciclo = total / vel + 2.5, off = k * 4
       s.anim.push(t => {

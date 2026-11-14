@@ -84,7 +84,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     const maceta = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.5, 10), new THREE.MeshStandardMaterial({ color: '#d9d4cc' })); maceta.position.set(d.x + 2.2, 0.25, d.z - 0.3)
     const planta = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.3, 7), new THREE.MeshStandardMaterial({ color: '#4f7a4a' })); planta.position.set(d.x + 2.2, 1.1, d.z - 0.3)
     scene.add(sofa, resp, mesita, maceta, planta)
-    const lblDesc = cartel(d.label, { tam: 30, alto: 0.5 }); lblDesc.position.set(d.x, 2.3, d.z); scene.add(lblDesc)
+    const lblDesc = cartel(d.label, { tam: 32, alto: 0.8 }); lblDesc.position.set(d.x, 2.3, d.z); scene.add(lblDesc)
 
     // TV del tablero (textura que se actualiza con los datos)
     const tvCanvas = document.createElement('canvas'); tvCanvas.width = 1024; tvCanvas.height = 576
@@ -136,7 +136,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
       const mesa = caja(largo, 0.06, 1.3, '#b98b5e'); mesa.position.set(A.x, 0.76, A.z); mesa.castShadow = true; mesa.receiveShadow = true
       const patas = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([i, j]) => { const p = caja(0.06, 0.74, 0.06, '#444'); p.position.set(A.x + i * (largo / 2 - 0.1), 0.37, A.z + j * 0.55); return p })
       s.dinamico.add(mesa, ...patas)
-      const lbl = cartel(A.label, { tam: 30, alto: 0.48 }); lbl.position.set(A.x, 2.9, A.z - 0.9); s.dinamico.add(lbl)
+      const lbl = cartel(A.label, { tam: 32, alto: 0.8 }); lbl.position.set(A.x, 3.1, A.z - 0.9); s.dinamico.add(lbl)
       lista.forEach((a, i) => {
         const x = A.x - largo / 2 + 1.5 + i * 2.2, z = A.z + 1.15
         // Monitor y silla
@@ -154,8 +154,8 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
         if (enDescanso) { const dd = AREAS.descanso, k = (s.dinamico.children.filter(o => o.userData.descanso).length); p.g.position.set(dd.x - 1.1 + (k % 3) * 1.1, 0.0, dd.z + 0.05); p.g.userData.descanso = true }
         else { p.g.position.set(x, 0.02, z); p.g.rotation.y = Math.PI }
         s.dinamico.add(p.g)
-        const tag = cartel(a.nombre + (a.pendientes ? `  ·  ${a.pendientes}` : ''), { punto: COLOR_ESTADO[a.estado], tam: 30, alto: 0.36 })
-        tag.position.set(0, 1.85, 0); p.g.add(tag)
+        const tag = cartel(a.nombre + (a.pendientes ? `  ·  ${a.pendientes}` : ''), { punto: COLOR_ESTADO[a.estado], tam: 32, alto: 0.62 })
+        tag.position.set(0, 2.05, 0); p.g.add(tag)
         if (a.estado === 'trabado') { const aro = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.6, 24), new THREE.MeshBasicMaterial({ color: '#e5484d', side: THREE.DoubleSide })); aro.rotation.x = -Math.PI / 2; aro.position.y = 0.03; p.g.add(aro) }
         s.puestos[a.slug] = { obj: p.g, x, z }
         const fase = i * 0.7 + area.length
@@ -171,7 +171,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
       if (!de || !a || !ag) return
       const w = persona(ag.color); w.g.traverse(o => { if (o.isMesh) o.castShadow = true })
       const dest = agentes.find(x => x.slug === ps.a)
-      const tag = cartel(`${ag.nombre} · llevándole a ${dest?.nombre}: ${ps.tarea.slice(0, 38)}${ps.tarea.length > 38 ? '…' : ''}`, { punto: '#3a7bd5', tam: 26, alto: 0.3 })
+      const tag = cartel(`${ag.nombre} · llevándole a ${dest?.nombre}: ${ps.tarea.slice(0, 38)}${ps.tarea.length > 38 ? '…' : ''}`, { punto: '#3a7bd5', tam: 28, alto: 0.5 })
       tag.position.set(0, 1.85, 0); w.g.add(tag); s.dinamico.add(w.g)
       const desde = new THREE.Vector3(de.x, 0.02, de.z + 0.9), hasta = new THREE.Vector3(a.x, 0.02, a.z + 0.9), T = 9, off = k * 3
       s.anim.push(t => {
@@ -206,7 +206,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     if (seguir) return
     const A = vista && AREAS[vista]
     if (A) { s.controls.target.set(A.x, 0.8, A.z); s.camera.position.set(A.x + 4, 7, A.z + 10) }
-    else { s.controls.target.set(1, 0, 0.5); s.camera.position.set(4, 21, 26) }
+    else { s.controls.target.set(0, 0, 2); s.camera.position.set(0, 24, 31) }
     s.controls.update()
   }, [vista, seguir])
 

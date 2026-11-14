@@ -40,11 +40,11 @@ export default function Oficina() {
       <Topbar title="Oficina" subtitle="El equipo de agentes de Zebrano: qué hace cada uno, qué espera tu aprobación y qué está trabado" actions={
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {!lista && <>
-            <select value={vista} onChange={e => { setVista(e.target.value); setSeguir('') }} aria-label="Cámara">
+            <select style={{ width: 'auto' }} value={vista} onChange={e => { setVista(e.target.value); setSeguir('') }} aria-label="Cámara">
               <option value="">Plano general</option>
               {Object.entries(AREAS).map(([k, a]) => <option key={k} value={k}>{a.label.charAt(0) + a.label.slice(1).toLowerCase()}</option>)}
             </select>
-            <select value={seguir} onChange={e => setSeguir(e.target.value)} aria-label="Seguir a un agente">
+            <select style={{ width: 'auto' }} value={seguir} onChange={e => setSeguir(e.target.value)} aria-label="Seguir a un agente">
               <option value="">Seguir a…</option>
               {agentes.map(a => <option key={a.slug} value={a.slug}>{a.nombre}</option>)}
             </select>
@@ -54,7 +54,7 @@ export default function Oficina() {
       } />
       {error && <div className="z-glass" style={{ padding: 12, color: 'var(--z-error)', marginBottom: 12 }}>No pude cargar la oficina: {error}</div>}
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ flex: '3 1 560px', minWidth: 0 }}>
+        <div style={{ flex: '3 1 620px', minWidth: 0 }}>
           {lista
             ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
                 {agentes.map(a => <TarjetaAgente key={a.slug} a={a} activo={sel === a.slug} onClick={() => setSel(a.slug)} />)}
@@ -64,7 +64,7 @@ export default function Oficina() {
               </Suspense>}
           <Leyenda />
         </div>
-        <div style={{ flex: '1 1 340px', minWidth: 300, maxWidth: 520 }}>
+        <div style={{ flex: '1 1 300px', minWidth: 280, maxWidth: 440 }}>
           {agente ? <PanelAgente a={agente} onCerrar={() => setSel(null)} onCambio={cargar} />
             : <div className="z-glass" style={{ borderRadius: 'var(--radius-lg)', padding: 16 }}>
                 <div style={{ fontWeight: 600, marginBottom: 6 }}>Tocá un agente</div>

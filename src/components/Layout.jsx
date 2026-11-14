@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 const NAV_SECTIONS = [
   { label: null, items: [
     { path: '/', icon: 'grid', label: 'Inicio', moduloKey: 'dashboard' },
+    { path: '/oficina', icon: 'office', label: 'Oficina', moduloKey: 'oficina' },
   ]},
   { label: 'Ventas', items: [
     { path: '/prospeccion', icon: 'travel_explore', label: 'Prospección', moduloKey: 'prospeccion' },
@@ -46,7 +47,7 @@ const NAV_SECTIONS = [
 ]
 
 const ICON_MAP = {
-  grid: 'space_dashboard', funnel: 'filter_alt', users: 'groups', spark: 'auto_awesome', layers: 'view_kanban',
+  grid: 'space_dashboard', office: 'groups_3', funnel: 'filter_alt', users: 'groups', spark: 'auto_awesome', layers: 'view_kanban',
   gear: 'carpenter', tiktok: 'music_note', rrss: 'photo_camera', upload: 'add_photo_alternate', globe: 'language',
   user: 'manage_accounts', logout: 'logout', chevron: 'chevron_right', wallet: 'account_balance',
   truck: 'local_shipping', clock: 'schedule', chart: 'monitoring', box: 'inventory_2',

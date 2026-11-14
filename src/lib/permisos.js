@@ -40,6 +40,7 @@ export const ROLES_SELECCIONABLES = Object.keys(ROLES);
 // Cada modulo declara su ruta base y a que categoria pertenece.
 // `match` define como se compara contra location.pathname.
 export const MODULOS = [
+  { key:'oficina',      label:'Oficina de agentes',  path:'/oficina',       categoria:'Principal' },
   { key:'dashboard',    label:'Dashboard',           path:'/',              categoria:'Principal' },
 
   { key:'prospectos',   label:'Prospectos',          path:'/prospectos',    categoria:'Ventas' },

@@ -31,6 +31,7 @@ import Mercado          from './pages/Mercado'
 import Personal         from './pages/Personal'
 import HorasTrabajo     from './pages/HorasTrabajo'
 import Metricas         from './pages/Metricas'
+import Oficina          from './pages/Oficina'
 
 function PrivateRoute({ children }) {
   const { user, profile, loading } = useAuth()
@@ -84,6 +85,7 @@ function AppRoutes() {
       <Route path="/materiales"       element={<PrivateRoute><Materiales /></PrivateRoute>} />
       <Route path="/horas-trabajo"    element={<PrivateRoute><HorasTrabajo /></PrivateRoute>} />
       <Route path="/metricas"         element={<PrivateRoute><Metricas /></PrivateRoute>} />
+      <Route path="/oficina"          element={<PrivateRoute><Oficina /></PrivateRoute>} />
       <Route path="*"                 element={<Navigate to="/" replace />} />
     </Routes>
   )

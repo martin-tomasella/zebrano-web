@@ -1,5 +1,19 @@
 # Changelog
 
+## 14/11/2026
+- **Oficina de agentes** (`/oficina`, en el menú arriba de todo).
+  - Oficina 3D al estilo del video de MobileFirst, con 8 agentes: Zebrano (jefe), Roble (contactos), Cedro (seguimiento y cierre), Algarrobo (prospector), Nogal (cotizador), Lapacho (redes), Quebracho (mercado) y Guatambú (compras y taller). Cada uno tiene su escritorio en un área y un estado: trabajando, esperando aprobación (el número junto al nombre), trabado (con el motivo) o sin tareas (los que no trabajan hace más de un día se van al sillón).
+  - Pases: cuando uno le pasa trabajo a otro, camina hasta su escritorio con un cartel (por ejemplo, "Nogal → Cedro: Cotizó mueble TV: $2.187.000").
+  - TV con el tablero: consultas, cotizaciones, aprobadas, por aprobar y aprendizajes. Cámaras: "Plano general", por área y "Seguir a…". En el celular, vista en lista.
+  - Al tocar un agente se abre su panel con estado, bloqueo, bandeja (Aprobar, Aprobar con corrección, Descartar) e historial.
+- **Actividad real, sin tocar cada función.** Triggers sobre las tablas que ya usan los agentes (cotizaciones, prospectos, prospección, mercado, facturas, OT, propuestas y el ciclo del agente) escriben en `agentes_actividad`. Tablas nuevas: `agentes` y `agentes_actividad`; función `oficina_estado()`.
+- **Doble aprobación.** `agente-zebrano` v7 suma `POST /oficina/resolver` (JWT de admin, gestión o ventas). Aprobar en la Oficina ejecuta lo mismo que `/alfred/ejecutar` y le manda un informe a Alfred. Si después llega la aprobación de Alfred, responde "Ya estaba aprobada en la Oficina" y no repite el envío.
+- **Base de conocimiento y aprendizaje (cotizador v78).**
+  - Cada cotización aprobada se guarda sola en `conocimiento_cotizaciones`: módulos, lo confirmado, terminación, render, placas, piezas, herrajes, horas, costo y precio.
+  - La primera confirmación de la tarjeta compara lo que leyó el agente con lo que confirmó el taller. Cada diferencia se guarda en `cotizador_aprendizajes` (por ejemplo, "material: leyó rovere, corrigieron a blanco").
+  - El lector de planos recibe esas correcciones y los trabajos aprobados recientes como "experiencia del taller" en cada lectura.
+- Verificado: aprobación desde la Oficina (realtime, informe a Alfred, sin doble ejecución), aprendizajes y conocimiento con una sesión de prueba (después borrada). Con la clave pública, `oficina_estado`, `agentes`, `agentes_actividad`, `cotizador_aprendizajes`, el cotizador y `/oficina/resolver` responden 401.
+
 ## 11/11/2026
 - **Cotizador v77: precio con el método de la planilla del taller.**
   - El agente no llegaba al presupuesto cerrado porque calculaba el precio distinto: costo × 1,81 parejo. La planilla (hoja "Lista de precios") hace: mueble / 0,55 + laqueado / 0,80, dividido por los gastos (0,975 × 0,97 × 0,95 × 0,95), y el presupuesto en efectivo sale de la columna "+ ½ IVA" (× 1,15). Con el 6065: (720.000 / 0,55 + 270.000 / 0,80) / 0,8536 × 1,15 = $2.223.100, presentado como $2.250.000.

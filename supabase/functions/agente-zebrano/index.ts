@@ -1,12 +1,16 @@
 // agente-zebrano — agente de la unidad Zebrano según "Agentes de unidad — contrato con Alfred".
 // Endpoints (header x-alfred-key): GET /alfred/estado, POST /alfred/consulta, POST /alfred/encargo, POST /alfred/ejecutar
 // Interno (misma clave): POST /ciclo — revisa la base, manda propuestas a Alfred y el informe de los viernes.
-// Nada sale hacia terceros sin un /alfred/ejecutar. Modelo: llm-gateway (gratis) si está configurado; si no, respuestas armadas con datos.
+// Oficina (14/11/2026): POST /oficina/resolver con el JWT de un empleado (admin, gestión o ventas). Aprobar en la Oficina ejecuta
+// lo mismo que /alfred/ejecutar y le avisa a Alfred; lo ya resuelto en un lado no se ejecuta dos veces en el otro.
+// Nada sale hacia terceros sin un /alfred/ejecutar o una aprobación en la Oficina. Modelo: llm-gateway (gratis) si está configurado; si no, respuestas armadas con datos.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
+// CORS: la Oficina del ERP llama desde el navegador (con el JWT del empleado).
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
+const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json", ...CORS } });
 const $ = (n: number) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const hace = (dias: number) => new Date(Date.now() - dias * 864e5).toISOString();
 
@@ -129,9 +133,87 @@ async function estado() {
   };
 }
 
+// Ejecuta una propuesta aprobada (en Alfred o en la Oficina). Devuelve el resultado en texto.
+async function ejecutarPropuesta(p: any, texto_final: string, accion?: any): Promise<string> {
+  let resultado = "";
+  const tipo = p?.tipo || accion?.tipo || accion;
+  const pmid = p?.accion?.prosp_mensaje_id;
+  if (pmid) {
+    // Prospección: se vuelve a pasar el control de bajas al momento de enviar (aunque ya esté aprobado)
+    const { data: m } = await sb.from("prosp_mensajes").select("*, prosp_empresas(*)").eq("id", pmid).single();
+    const dom = String(m?.para || "").split("@")[1] || "";
+    const { data: baja } = await sb.from("prosp_bajas").select("valor").in("valor", [String(m?.para || "").toLowerCase(), dom]);
+    const { data: c } = await sb.from("prosp_config").select("remitente_email,remitente_nombre").eq("id", 1).maybeSingle();
+    if (!m) resultado = "No encontré el mensaje de prospección.";
+    else if (baja?.length) { await sb.from("prosp_mensajes").update({ estado: "bloqueado", error: "en bajas" }).eq("id", pmid); resultado = "No se envió: la dirección está en bajas."; }
+    else {
+      const cuerpo = texto_final && texto_final.trim().length > 20 ? texto_final : m.cuerpo;
+      const envio = await enviarMail(m.para, m.asunto, cuerpo, c?.remitente_email ? `${c.remitente_nombre || ""} <${c.remitente_email}>` : null);
+      // El lead pasa al CRM de Zebrano (prospectos) aunque el envío quede manual
+      let pid = m.prosp_empresas?.prospecto_id;
+      if (!pid) {
+        const e = m.prosp_empresas || {};
+        const { data: np } = await sb.from("prospectos").insert({ nombre: e.nombre, email: m.para, telefono: e.telefono, canal_origen: "prospeccion", handle_rrss: e.instagram, estado: "contactado", tipo_trabajo: e.segmento, notas: `Prospección (${e.rubro || ""}${e.zona ? ", " + e.zona : ""}). Web: ${e.web || "-"}`, activo: true }).select("id").single();
+        pid = np?.id;
+        if (pid) await sb.from("prosp_empresas").update({ prospecto_id: pid }).eq("id", m.empresa_id);
+      }
+      if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: "email", direccion: "saliente", contenido: `${m.asunto}\n\n${cuerpo}`, tipo: "texto" });
+      await sb.from("prosp_mensajes").update({ estado: envio.ok ? "enviado" : "aprobado", cuerpo, enviado_at: envio.ok ? new Date().toISOString() : null, error: envio.ok ? null : envio.motivo }).eq("id", pmid);
+      await sb.from("prosp_empresas").update({ estado: "contactada" }).eq("id", m.empresa_id);
+      resultado = envio.ok ? `Mail enviado a ${m.para}.` : `Aprobado y registrado en el CRM. No se envió: ${envio.motivo}. Mandalo a mano a ${m.para}.`;
+    }
+  } else if (tipo === "contactar_lead" || tipo === "enviar_cotizacion" || tipo === "responder_consulta") {
+    // Sin WhatsApp/mail conectados todavía: queda registrado en la conversación del prospecto, listo para enviar.
+    const pid = p?.accion?.prospecto_id;
+    if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: p?.accion?.canal || "whatsapp", direccion: "saliente", contenido: texto_final, tipo: "texto", enviado_por: null });
+    await sb.from("prospectos").update({ ultimo_contacto: new Date().toISOString() }).eq("id", pid ?? "00000000-0000-0000-0000-000000000000");
+    resultado = "Mensaje aprobado y registrado en la conversación del prospecto. WhatsApp Business aún no está conectado: enviarlo a mano desde el ERP.";
+  } else if (tipo === "publicar_rrss") {
+    resultado = "Publicación aprobada y guardada. Se publica cuando la cuenta de la red esté conectada.";
+  } else {
+    resultado = "Registrado como tarea aprobada.";
+  }
+  return resultado;
+}
+
+// ── Oficina: aprobar, corregir o descartar desde el ERP ─────────────────────
+async function oficina(req: Request, path: string) {
+  const tok = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  const { data: u } = tok ? await sb.auth.getUser(tok) : { data: null } as any;
+  if (!u?.user) return json({ ok: false, error: "no autorizado" }, 401);
+  const { data: emp } = await sb.from("empleados").select("activo,rol,nombre").eq("auth_user_id", u.user.id).maybeSingle();
+  if (!emp || emp.activo === false) return json({ ok: false, error: "no autorizado" }, 401);
+  if (!["admin", "gestion", "ventas"].includes(String(emp.rol))) return json({ ok: false, error: "Solo admin, gestión o ventas aprueban propuestas." }, 403);
+  if (path !== "/oficina/resolver" || req.method !== "POST") return json({ ok: false, error: "Ruta no encontrada" }, 404);
+  const body = await req.json().catch(() => ({}));
+  const { data: p } = await sb.from("agente_propuestas").select("*").eq("id", String(body.propuesta_id || "")).maybeSingle();
+  if (!p) return json({ ok: false, error: "No encontré la propuesta." }, 404);
+  if (p.estado === "ejecutada" || p.estado === "descartada") return json({ ok: true, resultado: `Ya estaba ${p.estado === "ejecutada" ? "aprobada" : "descartada"}${p.aprobado_via ? " en " + (p.aprobado_via === "oficina" ? "la Oficina" : "Alfred") : ""}.`, estado: p.estado });
+  const quien = emp.nombre || u.user.email || "un empleado";
+  let resultado = "", estado = "";
+  if (body.decision === "descartar") {
+    estado = "descartada"; resultado = `Descartada en la Oficina por ${quien}.`;
+    await sb.from("agente_propuestas").update({ estado, aprobado_via: "oficina", resuelta_por: u.user.id, resultado, ejecutada_at: new Date().toISOString() }).eq("id", p.id);
+  } else if (body.decision === "aprobar") {
+    const texto = typeof body.texto_final === "string" && body.texto_final.trim() ? body.texto_final.slice(0, 8000) : (p.accion?.texto || p.descripcion || "");
+    resultado = await ejecutarPropuesta(p, texto, p.accion);
+    estado = "ejecutada";
+    await sb.from("agente_propuestas").update({ estado, aprobado_via: "oficina", resuelta_por: u.user.id, texto_final: texto, resultado, ejecutada_at: new Date().toISOString() }).eq("id", p.id);
+  } else return json({ ok: false, error: "decision: aprobar o descartar" }, 400);
+  await log("oficina", { propuesta: p.id, decision: body.decision, por: u.user.id });
+  // Alfred se entera: si después la aprueban allá, /alfred/ejecutar ve que ya está resuelta y no la repite.
+  try {
+    const { data: k } = await sb.rpc("alfred_key_zebrano");
+    if (k) await alfred("informe", { titulo: `${estado === "ejecutada" ? "Aprobada" : "Descartada"} en la Oficina: ${p.titulo || p.tipo}`, texto: `${resultado}\nPropuesta ${p.origen}. Si sigue en tu cola, ya no hace falta aprobarla.`, prioridad: "baja" }, k);
+  } catch (e) { await log("oficina_aviso_alfred_error", { error: (e as Error).message }); }
+  return json({ ok: true, estado, resultado });
+}
+
 // ── Endpoints ───────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   const path = new URL(req.url).pathname.replace(/^.*\/agente-zebrano/, "") || "/";
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  if (path.startsWith("/oficina/")) return oficina(req, path);
   const key = req.headers.get("x-alfred-key") || "";
   const esperado = await ctx("alfred_key_sha256");
   if (!esperado || !key || (await sha256(key)) !== esperado) return json({ error: "x-alfred-key inválida" }, 401);
@@ -182,46 +264,10 @@ Deno.serve(async (req) => {
         if (p) await sb.from("agente_propuestas").update({ estado: "ejecutada", texto_final, resultado: "prueba recibida", ejecutada_at: new Date().toISOString() }).eq("id", p.id);
         return json({ ok: true, resultado: "prueba recibida" });
       }
-      let resultado = "";
-      const tipo = p?.tipo || accion?.tipo || accion;
-      const pmid = p?.accion?.prosp_mensaje_id;
-      if (pmid) {
-        // Prospección: se vuelve a pasar el control de bajas al momento de enviar (aunque ya esté aprobado)
-        const { data: m } = await sb.from("prosp_mensajes").select("*, prosp_empresas(*)").eq("id", pmid).single();
-        const dom = String(m?.para || "").split("@")[1] || "";
-        const { data: baja } = await sb.from("prosp_bajas").select("valor").in("valor", [String(m?.para || "").toLowerCase(), dom]);
-        const { data: c } = await sb.from("prosp_config").select("remitente_email,remitente_nombre").eq("id", 1).maybeSingle();
-        if (!m) resultado = "No encontré el mensaje de prospección.";
-        else if (baja?.length) { await sb.from("prosp_mensajes").update({ estado: "bloqueado", error: "en bajas" }).eq("id", pmid); resultado = "No se envió: la dirección está en bajas."; }
-        else {
-          const cuerpo = texto_final && texto_final.trim().length > 20 ? texto_final : m.cuerpo;
-          const envio = await enviarMail(m.para, m.asunto, cuerpo, c?.remitente_email ? `${c.remitente_nombre || ""} <${c.remitente_email}>` : null);
-          // El lead pasa al CRM de Zebrano (prospectos) aunque el envío quede manual
-          let pid = m.prosp_empresas?.prospecto_id;
-          if (!pid) {
-            const e = m.prosp_empresas || {};
-            const { data: np } = await sb.from("prospectos").insert({ nombre: e.nombre, email: m.para, telefono: e.telefono, canal_origen: "prospeccion", handle_rrss: e.instagram, estado: "contactado", tipo_trabajo: e.segmento, notas: `Prospección (${e.rubro || ""}${e.zona ? ", " + e.zona : ""}). Web: ${e.web || "-"}`, activo: true }).select("id").single();
-            pid = np?.id;
-            if (pid) await sb.from("prosp_empresas").update({ prospecto_id: pid }).eq("id", m.empresa_id);
-          }
-          if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: "email", direccion: "saliente", contenido: `${m.asunto}\n\n${cuerpo}`, tipo: "texto" });
-          await sb.from("prosp_mensajes").update({ estado: envio.ok ? "enviado" : "aprobado", cuerpo, enviado_at: envio.ok ? new Date().toISOString() : null, error: envio.ok ? null : envio.motivo }).eq("id", pmid);
-          await sb.from("prosp_empresas").update({ estado: "contactada" }).eq("id", m.empresa_id);
-          resultado = envio.ok ? `Mail enviado a ${m.para}.` : `Aprobado y registrado en el CRM. No se envió: ${envio.motivo}. Mandalo a mano a ${m.para}.`;
-        }
-      } else if (tipo === "contactar_lead" || tipo === "enviar_cotizacion" || tipo === "responder_consulta") {
-        // Sin WhatsApp/mail conectados todavía: queda registrado en la conversación del prospecto, listo para enviar.
-        const pid = p?.accion?.prospecto_id;
-        if (pid) await sb.from("prospecto_conversaciones").insert({ prospecto_id: pid, canal: p?.accion?.canal || "whatsapp", direccion: "saliente", contenido: texto_final, tipo: "texto", enviado_por: null });
-        await sb.from("prospectos").update({ ultimo_contacto: new Date().toISOString() }).eq("id", pid ?? "00000000-0000-0000-0000-000000000000");
-        resultado = "Mensaje aprobado y registrado en la conversación del prospecto. WhatsApp Business aún no está conectado: enviarlo a mano desde el ERP.";
-      } else if (tipo === "publicar_rrss") {
-        resultado = "Publicación aprobada y guardada. Se publica cuando la cuenta de la red esté conectada.";
-      } else {
-        resultado = "Registrado como tarea aprobada.";
-      }
-      if (p) await sb.from("agente_propuestas").update({ estado: "ejecutada", texto_final, resultado, ejecutada_at: new Date().toISOString() }).eq("id", p.id);
-      await log("ejecutar", { ref, tipo, ok: true });
+      if (p && (p.estado === "ejecutada" || p.estado === "descartada")) return json({ ok: true, resultado: `Ya estaba ${p.estado === "ejecutada" ? "aprobada" : "descartada"}${p.aprobado_via === "oficina" ? " en la Oficina" : ""}: ${p.resultado || ""}`.trim() });
+      const resultado = await ejecutarPropuesta(p, texto_final, accion);
+      if (p) await sb.from("agente_propuestas").update({ estado: "ejecutada", aprobado_via: "alfred", texto_final, resultado, ejecutada_at: new Date().toISOString() }).eq("id", p.id);
+      await log("ejecutar", { ref, tipo: p?.tipo, ok: true });
       return json({ ok: true, resultado });
     }
 

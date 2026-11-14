@@ -616,6 +616,18 @@ Deno.serve(async(req)=>{
         const out=[];for(const x of u){const y=out[out.length-1];if(!x._a&&y&&!y._a&&y.nombre===x.nombre&&y.terminaciones===x.terminaciones)y.cantidad+=1;else out.push({...x});}
         return out.map(({_a,...x})=>x);};
       const aplicarConf=(mods,c)=>!c?mods:conLaterales((mods??[]),c.laterales).map(m=>{const alac=/alacena/i.test(String(m.familia??""));return{...m,...(alac?{}:{zocalo_mm:N(c.zocalo_mm)}),...(/bajo/i.test(String(m.familia??""))?{regrueso:!!c.regrueso}:{}),...(c.material?{material:c.material}:{}),...(c.estantes&&c.estantes[m.nombre]!==undefined?{estantes:N(c.estantes[m.nombre])}:{})};});
+      // v78 (14/11/2026): el lector aprende del taller. Lee las correcciones que se hicieron en la tarjeta de confirmación
+      // (cotizador_aprendizajes) y los trabajos aprobados (conocimiento_cotizaciones), y los suma a sus reglas.
+      const experiencia=async()=>{try{
+        const[{data:ap},{data:kc}]=await Promise.all([
+          sb.from("cotizador_aprendizajes").select("tipo_trabajo,campo,leido,corregido").order("created_at",{ascending:false}).limit(200),
+          sb.from("conocimiento_cotizaciones").select("titulo,tipo_trabajo,descripcion,terminacion,precio_final,origen").order("created_at",{ascending:false}).limit(12)]);
+        const g={};for(const a of ap??[]){const k=`${a.tipo_trabajo||"general"}|${a.campo}|${a.leido}|${a.corregido}`;g[k]=(g[k]||0)+1;}
+        const lec=Object.entries(g).sort((x,y)=>y[1]-x[1]).slice(0,15).map(([k,n])=>{const[t,c,l,r]=k.split("|");return`- ${t}: en "${c}" leíste ${l} y el taller corrigió a ${r} (${n} vez${n>1?"es":""}).`;});
+        const tr=(kc??[]).slice(0,8).map(k=>`- ${k.titulo} (${k.tipo_trabajo||"?"}${k.terminacion?", "+k.terminacion:""}): ${String(k.descripcion||"").slice(0,160)}${k.precio_final&&canalSeguro==="interno"?` · cerrado en $${Math.round(k.precio_final).toLocaleString("es-AR")}`:""}`);
+        if(!lec.length&&!tr.length)return"";
+        return`\n\nEXPERIENCIA DEL TALLER (aprendé de esto; las cotas del plano siguen mandando):${lec.length?"\nCorrecciones que hizo el taller a lecturas anteriores. Si el plano se parece, aplicalas y avisalo en preguntas:\n"+lec.join("\n"):""}${tr.length?"\nTrabajos aprobados recientes (como arma el taller cuerpos, regrueso, zocalo y terminacion):\n"+tr.join("\n"):""}`;
+      }catch{return"";}};
       const leerPlano=async(imgs,msj)=>{
         const sys=`Sos el lector de planos de Zebrano, carpinteria a medida (Buenos Aires). Del plano, foto, bosquejo o texto, devolve SOLO este JSON:
 {"tipo_trabajo":"cocina|placard|vestidor|vanitory|biblioteca|mueble tv|escritorio|otro","ambiente":"","datos_cliente":{"nombre":"","telefono":"","email":""},"modulos":[{"nombre","familia":"bajo|alacena|columna|placard|cajonera|abierto","ancho_mm","alto_mm","prof_mm" (casco sin puerta),"puertas","cajones","estantes","frentes":"superpuestos|embutidos","zocalo_mm","patas","cantidad","material","terminaciones" (0-2 laterales a la vista, por cada unidad de cantidad: si solo los extremos llevan lateral, separa extremos y centrales en modulos distintos),"regrueso" (bool)}],"mano_obra":[{"etapa":"corte|canteado|armado|terminacion|instalacion","horas_estimadas","operarios"}],"terminacion":"melamina|laqueado sintetico|laqueado al agua|lustrado|sin definir","estilo":"terminaciones y estilo visual en ingles para el render","preguntas":["dudas concretas que el usuario tiene que confirmar"]}
@@ -630,7 +642,7 @@ LECTURA DE PLANOS (v67):
 - Coherencia antes de responder: ningun mueble pasa de 2800 mm de alto; mueble TV, bajo, vanitory o cajonera no pasan de 1000 mm de alto (un mueble TV suele medir entre 400 y 700 mm). La cota total de alto es la que abarca todas las parciales (ej. 0,60 = 0,10 zocalo + 0,45 interior + 0,02 + 0,03 tapa): no sumes cotas de vistas distintas. Si tu lectura no cumple esto, releé el plano (seguro esta girado) y, si sigue sin cerrar, pregunta en vez de seguir.
 - TERMINACION: si el plano o el usuario no dicen si lleva laqueado o lustrado (o si es melamina), PREGUNTALO siempre: cambia el costo y el plazo.`;
         const cont=imgs.map(b=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));cont.push({type:"text",text:msj||"Leé el plano adjunto."});
-        const{parsed:p,apiError,usage,modelo}=await callLLM([{role:"user",content:cont}],sys,imgs.length?{preferir:["claude","openai"],modeloOpenai:VISION_OPENAI,esfuerzo:"medium"}:{});
+        const{parsed:p,apiError,usage,modelo}=await callLLM([{role:"user",content:cont}],sys+(await experiencia()),imgs.length?{preferir:["claude","openai"],modeloOpenai:VISION_OPENAI,esfuerzo:"medium"}:{});
         await reg({sesion_id:sid,modelo:usage?.modelo??modelo??"error",tokens_in:usage?.tokens_in??null,tokens_out:usage?.tokens_out??null});
         if(apiError||!p?.modulos?.length)return{error:apiError||"No pude leer módulos. Agregá medidas o una imagen más clara.",status:apiError?502:422};
         const dc=p.datos_cliente||{};const upd={};if(String(dc.nombre||"").trim())upd.cliente_nombre=String(dc.nombre).trim();if(String(dc.telefono||"").trim())upd.cliente_telefono=String(dc.telefono).trim();if(String(dc.email||"").trim())upd.cliente_email=String(dc.email).trim();if(Object.keys(upd).length)await sb.from("cotizacion_sesiones").update(upd).eq("id",sid);
@@ -677,6 +689,14 @@ LECTURA DE PLANOS (v67):
         const{data:d2}=await sb.from("cotizacion_diseno").select("modulos,svg_aprobado").eq("sesion_id",sid).maybeSingle();
         if(!(d2?.modulos??[]).length)return json({ok:false,error:"No hay diseño para confirmar."},400);
         const conf={terminacion:term,regrueso:!!c.regrueso,zocalo_mm:N(c.zocalo_mm),material:String(c.material||"").slice(0,80),estantes:c.estantes&&typeof c.estantes==="object"?c.estantes:{},...(c.laterales!==undefined?{laterales:N(c.laterales)}:{})};
+        // v78: la primera confirmacion compara lo que leyo el agente con lo que confirmo el taller y guarda cada diferencia como aprendizaje.
+        try{const{data:sc}=await sb.from("cotizacion_sesiones").select("contexto_extra,tipo_trabajo").eq("id",sid).maybeSingle();const cx=sc?.contexto_extra??{};
+          if(!cx.confirmado){const ms=d2.modulos.map(normMod),pie=ms.filter(m=>!/alacena/i.test(String(m.familia??"")));
+            const leido={terminacion:cx.terminacion||"sin definir",regrueso:pie.some(m=>m.regrueso)?"sí":"no",zocalo_mm:String(Math.max(0,...pie.map(m=>N(m.zocalo_mm)))),material:ms[0]?.material||"",laterales:String(Math.min(2,pie.reduce((a,m)=>a+N(m.terminaciones)*Math.max(1,N(m.cantidad)),0)))};
+            const nuevo={terminacion:term,regrueso:conf.regrueso?"sí":"no",zocalo_mm:String(conf.zocalo_mm),material:conf.material||leido.material,laterales:conf.laterales!==undefined?String(conf.laterales):leido.laterales};
+            const filas=Object.keys(leido).filter(k=>leido[k]!==nuevo[k]&&!(k==="terminacion"&&leido[k]==="sin definir")).map(k=>({sesion_id:sid,tipo_trabajo:sc?.tipo_trabajo||null,campo:k,leido:leido[k],corregido:nuevo[k]}));
+            for(const m of ms){const e=conf.estantes?.[m.nombre];if(e!==undefined&&N(e)!==N(m.estantes))filas.push({sesion_id:sid,tipo_trabajo:sc?.tipo_trabajo||null,campo:"estantes por cuerpo",leido:String(N(m.estantes)),corregido:String(N(e))});}
+            if(filas.length)await sb.from("cotizador_aprendizajes").insert(filas);}}catch{}
         const g=await guardarDiseno(aplicarConf(d2.modulos.map(normMod),conf),{terminacion:term,confirmado:true,confirmado_datos:conf});
         if(d2.svg_aprobado)await sb.from("cotizacion_diseno").update({svg_aprobado:true}).eq("sesion_id",sid);
         return json({ok:true,sesion_id:sid,modulos:g.mods,svg_tecnico:g.svg});

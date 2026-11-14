@@ -236,7 +236,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
         }
         s.dinamico.add(p.g)
         const tag = cartel(a.nombre, { punto: COLOR_ESTADO[a.estado], badge: a.pendientes || 0 })
-        tag.position.set(0, 2.35 + ((p.g.userData.sillon ?? 0) % 2) * 0.55, 0); p.g.add(tag)
+        tag.position.set(0, 2.35 + ((p.g.userData.sillon ?? 0) % 3) * 0.5, 0); p.g.add(tag)
         if (a.estado === 'trabado') {
           const aro = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: '#e5484d' }))
           aro.rotation.x = Math.PI / 2; aro.position.y = 2.0; p.g.add(aro)

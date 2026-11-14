@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback, Suspense } from 'react'
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { authFetch as fetch } from '../lib/authFetch'
-import { Layout, Topbar } from '../components/Layout'
+import { Layout, Topbar, PageContent } from '../components/Layout'
 import { AREAS, COLOR_ESTADO, ETAPAS } from '../lib/oficina'
 const Oficina3D = React.lazy(() => import('../components/Oficina3D'))
 
@@ -65,6 +65,7 @@ export default function Oficina() {
           </select>
         </div>
       } />
+      <PageContent>
       {error && <div className="z-glass" style={{ padding: 12, color: 'var(--z-error)', marginBottom: 12 }}>No pude cargar la oficina: {error}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -91,11 +92,12 @@ export default function Oficina() {
       {movil && <div style={{ marginTop: 16 }}>
         <div style={{ ...titulo, marginBottom: 8 }}>Equipo</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
-          {agentes.map(a => <TarjetaAgente key={a.slug} a={a} activo={sel === a.slug} onClick={() => { setSel(a.slug); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />)}
+          {agentes.map(a => <TarjetaAgente key={a.slug} a={a} activo={sel === a.slug} onClick={() => setSel(a.slug)} />)}
         </div>
       </div>}
 
-      <Etapas agentes={agentes} actividad={actividad} onSel={a => { setSel(a); if (movil) window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+      <Etapas agentes={agentes} actividad={actividad} onSel={setSel} />
+      </PageContent>
     </Layout>
   )
 }
@@ -225,8 +227,10 @@ function PanelAgente({ a, onCerrar, onCambio, alto }) {
     setAct(ac || []); setProps(pr || []); setCargando(false)
   }, [a.slug])
   useEffect(() => { setCargando(true); traer() }, [traer, a.pendientes, a.ultima?.at])
+  const ref = useRef(null)
+  useEffect(() => { ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [a.slug])
 
-  return <div className="z-glass" style={{ borderRadius: 16, padding: 16, height: alto, boxSizing: 'border-box', overflowY: 'auto' }} aria-label={`Panel de ${a.nombre}`}>
+  return <div ref={ref} className="z-glass" style={{ borderRadius: 16, padding: 16, height: alto, boxSizing: 'border-box', overflowY: 'auto' }} aria-label={`Panel de ${a.nombre}`}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <Avatar a={a} tam={40} />
       <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 16 }}>{a.nombre}</div><div style={{ fontSize: 12.5, color: 'var(--z-text-3)' }}>{a.puesto}</div></div>

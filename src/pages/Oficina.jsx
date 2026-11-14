@@ -105,7 +105,7 @@ function PanelAgente({ a, onCerrar, onCambio }) {
   const traer = useCallback(async () => {
     const [{ data: ac }, { data: pr }] = await Promise.all([
       supabase.from('agentes_actividad').select('estado,tarea,hacia,created_at').eq('agente', a.slug).order('created_at', { ascending: false }).limit(15),
-      supabase.from('agente_propuestas').select('id,tipo,titulo,descripcion,accion,estado,prioridad,created_at,error').eq('agente', a.slug).in('estado', ['pendiente', 'enviada', 'error_envio']).order('created_at', { ascending: false }).limit(30),
+      supabase.from('agente_propuestas').select('id,tipo,titulo,descripcion,accion,estado,prioridad,created_at,error').eq('agente', a.slug).in('estado', ['nueva', 'enviada', 'error_envio']).order('created_at', { ascending: false }).limit(30),
     ])
     setAct(ac || []); setProps(pr || []); setCargando(false)
   }, [a.slug])

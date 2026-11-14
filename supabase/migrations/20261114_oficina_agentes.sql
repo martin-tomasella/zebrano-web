@@ -193,7 +193,7 @@ create or replace function public.oficina_estado() returns jsonb language sql st
   with ult as (
     select distinct on (agente) agente, estado, tarea, hacia, created_at from agentes_actividad order by agente, created_at desc
   ), pend as (
-    select agente, count(*) n from agente_propuestas where estado in ('pendiente','enviada','error_envio') group by agente
+    select agente, count(*) n from agente_propuestas where estado in ('nueva','enviada','error_envio') group by agente
   ), fact as (
     select count(*) n from facturas_compra where estado = 'pendiente'
   )
@@ -216,7 +216,7 @@ create or replace function public.oficina_estado() returns jsonb language sql st
       'cotizaciones_7d', (select count(*) from cotizacion_resumen where precio_sugerido > 0 and updated_at > now() - interval '7 days'),
       'monto_7d', (select coalesce(sum(precio_sugerido), 0) from cotizacion_resumen where precio_sugerido > 0 and updated_at > now() - interval '7 days'),
       'aprobadas_30d', (select count(*) from cotizacion_sesiones where estado = 'aprobada' and updated_at > now() - interval '30 days'),
-      'por_aprobar', (select count(*) from agente_propuestas where estado in ('pendiente','enviada','error_envio')),
+      'por_aprobar', (select count(*) from agente_propuestas where estado in ('nueva','enviada','error_envio')),
       'aprendizajes', (select count(*) from conocimiento_cotizaciones)
     )
   );

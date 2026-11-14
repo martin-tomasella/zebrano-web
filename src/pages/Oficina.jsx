@@ -72,7 +72,7 @@ export default function Oficina() {
         <Kpi label="Consultas · 7 d" valor={tb.consultas_7d} />
         <Kpi label="Cotizaciones · 7 d" valor={tb.cotizaciones_7d} nota={tb.monto_7d ? money(tb.monto_7d) : ''} />
         <Kpi label="Aprobadas · 30 d" valor={tb.aprobadas_30d} />
-        <Kpi label="Aprendidos" valor={tb.aprendizajes} color="var(--z-primary)" />
+        <Kpi label="Aprendidos" valor={(tb.conocimiento || 0) + (tb.aprendizajes || 0)} color="var(--z-primary)" />
       </div>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: movil ? 'wrap' : 'nowrap' }}>

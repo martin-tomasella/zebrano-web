@@ -18,6 +18,11 @@
   - Se sientan de espaldas a la cámara, frente a su monitor encendido, para que el escritorio no los tape. Bajo la pantalla, una luz con el color del estado.
   - Oficina: piso de roble claro, zonas con alfombra gris y una línea verde Zebrano, escritorios blancos con patas negras, sillas ejecutivas negras, plantas en maceta grafito, ventanal con marcos finos y un living con sofá gris oscuro y mesa ratona blanca.
   - Los carteles tienen tamaño fijo en pantalla: ya no se agigantan al acercar la cámara.
+- **Paleta en la línea de Theron** (pedido: azul, marrón, negro y magenta).
+  - Fondo azul casi negro (`#030A14`) y ventanal nocturno.
+  - Piso y escritorios de nogal, alfombras azul profundo con líneas de luz azul eléctrico (`#00A3FF`).
+  - Sillas y patas negras, credenciales magenta, living con sofá magenta y línea magenta.
+  - Sacos en azul, gris, marrón y negro. TV con la gráfica de Theron.
 
 ## 14/11/2026
 - **Oficina de agentes** (`/oficina`, en el menú arriba de todo).

@@ -190,7 +190,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     const piso = caja(ancho, 0.3, fondo, '#d2c3aa', { roughness: 0.8 }); piso.position.set(cx, -0.15, cz); piso.receiveShadow = true; scene.add(piso)
     const canto = caja(ancho + 0.04, 0.12, fondo + 0.04, '#2a2d31', { roughness: 0.5 }); canto.position.set(cx, -0.36, cz); scene.add(canto)
     const atras = cz - fondo / 2
-    const vidrio = new THREE.MeshStandardMaterial({ color: '#bcd3e0', roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.55 })
+    const vidrio = new THREE.MeshBasicMaterial({ color: '#dbe9f2', toneMapped: false })
     const marco = mat('#1d1f22', { roughness: 0.35, metalness: 0.5 })
     const ventanal = new THREE.Mesh(new THREE.BoxGeometry(ancho, 3, 0.04), vidrio); ventanal.position.set(cx, 1.5, atras + 0.05); scene.add(ventanal)
     for (let x = cx - ancho / 2; x <= cx + ancho / 2 + 0.01; x += 1.7) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, 3, 0.08), marco); m.position.set(x, 1.5, atras + 0.05); scene.add(m) }
@@ -297,7 +297,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
         else { p.g.position.set(x, 0, zD + 0.86); p.g.rotation.y = Math.PI }
         s.dinamico.add(p.g)
         const tag = cartel(a.nombre, s.k, { punto: COLOR_ESTADO[a.estado], badge: a.pendientes || 0 })
-        tag.position.set(0, 1.6 + ((p.g.userData.sillon ?? 0) % 3) * 0.36, 0); p.g.add(tag)
+        tag.position.set(0, 2.05 + ((p.g.userData.sillon ?? 0) % 3) * 0.36, 0); p.g.add(tag)
         s.puestos[a.slug] = { obj: p.g, x, z: zD }
         const f = i * 0.9 + area.length, { bI, bD, cabeza } = p
         // Brazos apoyados en el escritorio, listos para tipear

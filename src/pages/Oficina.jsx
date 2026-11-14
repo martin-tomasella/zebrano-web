@@ -164,7 +164,7 @@ function Etapas({ agentes, actividad, onSel }) {
           const hechos = actividad.filter(x => e.agentes.includes(x.agente)).slice(0, 4)
           return <div key={e.k} style={{ background: 'var(--z-bg-2)', border: '1px solid var(--z-border)', borderRadius: 14, padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 220 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--z-text)', color: 'var(--z-bg)', fontSize: 12, fontWeight: 700, display: 'grid', placeItems: 'center' }}>{n + 1}</span>
+              <span style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--z-primary)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'grid', placeItems: 'center' }}>{n + 1}</span>
               <strong style={{ fontSize: 14.5 }}>{e.nombre}</strong>
             </div>
             {suyos.map(a => <button key={a.slug} onClick={() => onSel(a.slug)} style={{ font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 10, border: '1px solid var(--z-border)', background: 'var(--z-card)' }}>

@@ -297,7 +297,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
         else { p.g.position.set(x, 0, zD + 0.86); p.g.rotation.y = Math.PI }
         s.dinamico.add(p.g)
         const tag = cartel(a.nombre, s.k, { punto: COLOR_ESTADO[a.estado], badge: a.pendientes || 0 })
-        tag.position.set(0, 2.05 + ((p.g.userData.sillon ?? 0) % 3) * 0.36, 0); p.g.add(tag)
+        tag.position.set(0, 2.05 + ((p.g.userData.sillon ?? 0) % 3) * 0.75, 0); p.g.add(tag)
         s.puestos[a.slug] = { obj: p.g, x, z: zD }
         const f = i * 0.9 + area.length, { bI, bD, cabeza } = p
         // Brazos apoyados en el escritorio, listos para tipear

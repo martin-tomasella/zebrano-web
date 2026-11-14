@@ -1,5 +1,19 @@
 # Changelog
 
+## 14/11/2026 (noche) — Oficina rediseñada
+- **Centro de mando + oficina 3D + tablero por etapas** en una sola pantalla. Se eligió la dirección B del lienzo de diseño, más el tablero de la C.
+  - Arriba, 5 indicadores compactos. "Aprendidos" suma la base de conocimiento y los aprendizajes.
+  - Al medio, la oficina 3D. A su derecha, "Necesita tu decisión": bandejas con pendientes y agentes trabados, ordenados por cantidad, más "En vivo" con la actividad.
+  - Abajo, "Del contacto al taller", con 6 etapas: Buscar, Atender, Cotizar, Cerrar, Producir y Difundir. Cada etapa muestra su agente, lo que tiene por aprobar, el motivo si está trabado y lo que hizo en la semana.
+- **Oficina 3D nueva** (`Oficina3D.jsx`).
+  - Planta tipo maqueta, compacta y ancha. La cámara la encuadra según el ancho de la pantalla.
+  - Cada área tiene su alfombra con el nombre pintado en el piso, y cada agente su escritorio con notebook: la tapa tiene el color del estado.
+  - Agentes más grandes, con cara. Los carteles muestran el nombre y el globo con lo pendiente.
+  - Animaciones: tipea si está trabajando, levanta la mano si espera, sacude la cabeza con un aro rojo si está trabado. El que hace un pase camina por el pasillo.
+  - La rueda del mouse desplaza la página; el zoom se hace desde "Plano general / área" o "Seguir a…".
+- **Celular:** no se muestra ni se descarga la oficina 3D (three.js). Se ve el centro de mando, el equipo en tarjetas y el tablero con desplazamiento horizontal.
+- Sin cambios de backend ni de permisos.
+
 ## 14/11/2026
 - **Oficina de agentes** (`/oficina`, en el menú arriba de todo).
   - Oficina 3D al estilo del video de MobileFirst, con 8 agentes: Zebrano (jefe), Roble (contactos), Cedro (seguimiento y cierre), Algarrobo (prospector), Nogal (cotizador), Lapacho (redes), Quebracho (mercado) y Guatambú (compras y taller). Cada uno tiene su escritorio en un área y un estado: trabajando, esperando aprobación (el número junto al nombre), trabado (con el motivo) o sin tareas (los que no trabajan hace más de un día se van al sillón).

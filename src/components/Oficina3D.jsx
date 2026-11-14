@@ -15,8 +15,8 @@ const PLANTA = { cx: 2.6, cz: -0.4, ancho: 34, fondo: 15 }
 const VERDE = '#0d7665'
 const PIEL = ['#e9c4a3', '#c99a74', '#a8754f', '#f1d2b8', '#7d5238']
 const PELO = ['#2a2420', '#5a4030', '#16130f', '#8c6a4a', '#3d3a38']
-const SACO = ['#2b2f36', '#3b4652', '#1f2a3a', '#4a4d52', '#2f3a33', '#5a5f66']
-const PANT = ['#25282d', '#33373d', '#1c2230']
+const SACO = ['#3d5a80', '#6b7280', '#9a8a72', '#4f6d5e', '#56598f', '#7a5c58']
+const PANT = ['#2c3138', '#3f444b', '#2a3344']
 
 const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, ...o })
 const caja = (w, h, d, color, o) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, o))
@@ -50,7 +50,7 @@ function rotulo(texto, maxAncho) {
   const fuente = `600 ${tam}px ${FUENTE}`; x.font = fuente
   const esp = 12, tw = Math.ceil(x.measureText(texto).width + esp * texto.length) + 16
   c.width = tw; c.height = tam + 24
-  x.font = fuente; x.fillStyle = 'rgba(70,74,79,0.75)'; x.textBaseline = 'middle'
+  x.font = fuente; x.fillStyle = 'rgba(38,42,46,0.8)'; x.textBaseline = 'middle'
   if ('letterSpacing' in x) x.letterSpacing = `${esp}px`
   x.fillText(texto, 8, c.height / 2 + 2)
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8
@@ -119,8 +119,8 @@ function persona(acento, semilla = 0) {
     cuerpo.add(hombro); return { hombro, codo }
   }
   const bI = brazo(-1), bD = brazo(1)
-  sombra(g)
-  const sentar = () => { cuerpo.position.y = -0.42; pI.cadera.rotation.x = pD.cadera.rotation.x = -Math.PI / 2; pI.rodilla.rotation.x = pD.rodilla.rotation.x = Math.PI / 2 }
+  sombra(g); g.scale.setScalar(1.2)
+  const sentar = () => { cuerpo.position.y = -0.47; pI.cadera.rotation.x = pD.cadera.rotation.x = -Math.PI / 2; pI.rodilla.rotation.x = pD.rodilla.rotation.x = Math.PI / 2 }
   return { g, cuerpo, cabeza, bI, bD, pI, pD, sentar }
 }
 
@@ -171,12 +171,12 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     const el = caja3d.current, w = el.clientWidth || 900
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setSize(w, alto); renderer.setClearColor(0, 0)
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.92
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap
     el.appendChild(renderer.domElement)
     const scene = new THREE.Scene()
-    scene.add(new THREE.HemisphereLight('#ffffff', '#b8bcc2', 1.6))
-    const sol = new THREE.DirectionalLight('#ffffff', 1.9); sol.position.set(-8, 22, 10); sol.castShadow = true
+    scene.add(new THREE.HemisphereLight('#ffffff', '#a89e90', 1.15))
+    const sol = new THREE.DirectionalLight('#fff6ea', 1.7); sol.position.set(-8, 22, 10); sol.castShadow = true
     sol.shadow.mapSize.set(2048, 2048); sol.shadow.bias = -0.0004; sol.shadow.radius = 4
     Object.assign(sol.shadow.camera, { left: -22, right: 22, top: 14, bottom: -14 }); sol.target.position.set(PLANTA.cx, 0, PLANTA.cz); scene.add(sol, sol.target)
     const relleno = new THREE.DirectionalLight('#dfe9ff', 0.5); relleno.position.set(12, 8, 16); scene.add(relleno)
@@ -186,7 +186,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
 
     // Maqueta: losa de cemento claro, canto oscuro, ventanal con marcos finos y pared lateral blanca
     const { cx, cz, ancho, fondo } = PLANTA
-    const piso = caja(ancho, 0.3, fondo, '#e6e5e1', { roughness: 0.9 }); piso.position.set(cx, -0.15, cz); piso.receiveShadow = true; scene.add(piso)
+    const piso = caja(ancho, 0.3, fondo, '#d2c3aa', { roughness: 0.8 }); piso.position.set(cx, -0.15, cz); piso.receiveShadow = true; scene.add(piso)
     const canto = caja(ancho + 0.04, 0.12, fondo + 0.04, '#2a2d31', { roughness: 0.5 }); canto.position.set(cx, -0.36, cz); scene.add(canto)
     const atras = cz - fondo / 2
     const vidrio = new THREE.MeshStandardMaterial({ color: '#bcd3e0', roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.55 })
@@ -198,7 +198,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
 
     // Living: alfombra gris, sofá grafito, mesa ratona redonda blanca y plantas
     const D = AREAS.descanso
-    const alfD = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.6), mat('#d3d5d2', { roughness: 1 })); alfD.rotation.x = -Math.PI / 2; alfD.position.set(D.x, 0.004, D.z); alfD.receiveShadow = true
+    const alfD = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.6), mat('#b3b9b4', { roughness: 1 })); alfD.rotation.x = -Math.PI / 2; alfD.position.set(D.x, 0.004, D.z); alfD.receiveShadow = true
     const tapiz = mat('#3c4046', { roughness: 0.95 })
     const sofa = new THREE.Group()
     const base = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 0.95), tapiz); base.position.y = 0.25
@@ -276,7 +276,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
       const A = AREAS[area] || AREAS.direccion, n = lista.length
       const largo = Math.max(area === 'direccion' ? 6 : 5, n * 2.4 + 1.4)
       // Zona: alfombra gris con una línea verde Zebrano al frente
-      const zona = new THREE.Mesh(new THREE.PlaneGeometry(largo, 4.4), mat('#d9d9d5', { roughness: 1 }))
+      const zona = new THREE.Mesh(new THREE.PlaneGeometry(largo, 4.4), mat('#a9adb0', { roughness: 1 }))
       zona.rotation.x = -Math.PI / 2; zona.position.set(A.x, 0.004, A.z); zona.receiveShadow = true
       const linea = new THREE.Mesh(new THREE.PlaneGeometry(largo, 0.05), luz(VERDE)); linea.rotation.x = -Math.PI / 2; linea.position.set(A.x, 0.006, A.z + 2.2)
       const r = rotulo(A.label, largo - 0.6); r.position.set(A.x - largo / 2 + 0.3 + r.userData.ancho / 2, 0.012, A.z + 1.85)
@@ -292,11 +292,11 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
         const ult = a.ultima?.at ? new Date(a.ultima.at).getTime() : 0
         const descansa = a.estado === 'libre' && (!ult || ahora - ult > 864e5)
         p.sentar()
-        if (descansa) { const D = AREAS.descanso; p.g.position.set(D.x - 1.05 + (enSillon % 3) * 1.05, 0.06, D.z - 0.95); p.g.userData.sillon = enSillon++ }
-        else p.g.position.set(x, 0.06, zD - 0.82)
+        if (descansa) { const D = AREAS.descanso; p.g.position.set(D.x - 1.05 + (enSillon % 3) * 1.05, 0, D.z - 0.95); p.g.userData.sillon = enSillon++ }
+        else p.g.position.set(x, 0, zD - 0.86)
         s.dinamico.add(p.g)
         const tag = cartel(a.nombre, s.k, { punto: COLOR_ESTADO[a.estado], badge: a.pendientes || 0 })
-        tag.position.set(0, 1.85 + ((p.g.userData.sillon ?? 0) % 3) * 0.42, 0); p.g.add(tag)
+        tag.position.set(0, 1.6 + ((p.g.userData.sillon ?? 0) % 3) * 0.36, 0); p.g.add(tag)
         s.puestos[a.slug] = { obj: p.g, x, z: zD }
         const f = i * 0.9 + area.length, { bI, bD, cabeza } = p
         // Brazos apoyados en el escritorio, listos para tipear
@@ -341,7 +341,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
       const w = persona(ag.color, ag.slug.length * 3 + 1); s.dinamico.add(w.g)
       const carpeta = caja(0.24, 0.32, 0.03, '#f3f3f1'); carpeta.position.set(0, -0.3, 0.06); w.bD.codo.add(carpeta)
       const tag = cartel(`${ag.nombre} → ${dest?.nombre}: ${ps.tarea.slice(0, 32)}${ps.tarea.length > 32 ? '…' : ''}`, s.k, { punto: '#3a7bd5', px: 20 })
-      tag.position.set(0, 2.1, 0); w.g.add(tag)
+      tag.position.set(0, 1.9, 0); w.g.add(tag)
       const V = (x, z) => new THREE.Vector3(x, 0, z)
       const ruta = [V(de.x, de.z + 1.0), V(de.x, 0), V(a.x, 0), V(a.x, a.z + 1.0)]
       const tramos = ruta.slice(1).map((p, i) => ruta[i].distanceTo(p)), total = tramos.reduce((x, y) => x + y, 0), vel = 1.3

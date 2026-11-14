@@ -13,6 +13,11 @@
   - La rueda del mouse desplaza la página; el zoom se hace desde "Plano general / área" o "Seguir a…".
 - **Celular:** no se muestra ni se descarga la oficina 3D (three.js). Se ve el centro de mando, el equipo en tarjetas y el tablero con desplazamiento horizontal.
 - Sin cambios de backend ni de permisos.
+- **Estética corporativa de la oficina 3D** (pedido de Martín: algo más actual que los muñecos).
+  - Agentes con proporciones reales y ropa de oficina: saco y pantalón en tonos medios, credencial del color del agente y peinados variados. Están articulados (hombro y codo, cadera y rodilla): se sientan de verdad, tipean, levantan la mano si esperan tu OK, cruzan los brazos si están trabados y caminan con rodillas.
+  - Se sientan de espaldas a la cámara, frente a su monitor encendido, para que el escritorio no los tape. Bajo la pantalla, una luz con el color del estado.
+  - Oficina: piso de roble claro, zonas con alfombra gris y una línea verde Zebrano, escritorios blancos con patas negras, sillas ejecutivas negras, plantas en maceta grafito, ventanal con marcos finos y un living con sofá gris oscuro y mesa ratona blanca.
+  - Los carteles tienen tamaño fijo en pantalla: ya no se agigantan al acercar la cámara.
 
 ## 14/11/2026
 - **Oficina de agentes** (`/oficina`, en el menú arriba de todo).

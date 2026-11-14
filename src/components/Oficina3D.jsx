@@ -61,7 +61,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     controls.enableDamping = true; controls.maxPolarAngle = Math.PI / 2.15; controls.minDistance = 6; controls.maxDistance = 60
 
     // Piso, ventanal y ciudad
-    const piso = new THREE.Mesh(new THREE.PlaneGeometry(44, 30), new THREE.MeshStandardMaterial({ color: '#cfccc6', roughness: 0.95 }))
+    const piso = new THREE.Mesh(new THREE.PlaneGeometry(70, 60), new THREE.MeshStandardMaterial({ color: '#cfccc6', roughness: 0.95 }))
     piso.rotation.x = -Math.PI / 2; piso.receiveShadow = true; scene.add(piso)
     const vidrio = new THREE.MeshStandardMaterial({ color: '#a9c7d6', transparent: true, opacity: 0.18, roughness: 0.1 })
     for (let i = -22; i <= 22; i += 2.2) { const m = caja(0.08, 3.6, 0.08, '#55595f'); m.position.set(i, 1.8, -13.5); scene.add(m) }
@@ -206,7 +206,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     if (seguir) return
     const A = vista && AREAS[vista]
     if (A) { s.controls.target.set(A.x, 0.8, A.z); s.camera.position.set(A.x + 4, 7, A.z + 10) }
-    else { s.controls.target.set(0, 0, 2); s.camera.position.set(0, 24, 31) }
+    else { s.controls.target.set(1, 0, 1.5); s.camera.position.set(1, 19.5, 25) }
     s.controls.update()
   }, [vista, seguir])
 

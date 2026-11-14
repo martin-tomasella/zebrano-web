@@ -6,6 +6,6 @@ export const AREAS = {
   operaciones: { label: 'OPERACIONES · COMPRAS · TALLER', x: -10, z: 2.5 },
   mercado:     { label: 'MERCADO', x: 12, z: 2.5 },
   direccion:   { label: 'DIRECCIÓN', x: 2, z: 1 },
-  descanso:    { label: 'DESCANSO', x: -12, z: 9.5 },
+  descanso:    { label: 'DESCANSO', x: -8, z: 8.5 },
 }
 export const COLOR_ESTADO = { trabajando: '#2fbf71', esperando: '#f2b01e', trabado: '#e5484d', libre: '#9aa0a6' }

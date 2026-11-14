@@ -260,11 +260,11 @@ Deno.serve(async (req) => {
       let { data: p } = await sb.from("agente_propuestas").select("*").or(`alfred_id.eq.${ref},origen.eq.${ref}`).maybeSingle();
       if (!p && (body.origen || accion?.origen)) ({ data: p } = await sb.from("agente_propuestas").select("*").eq("origen", body.origen || accion.origen).maybeSingle());
       await log("ejecutar_req", body);
+      if (p && (p.estado === "ejecutada" || p.estado === "descartada")) return json({ ok: true, resultado: `Ya estaba ${p.estado === "ejecutada" ? "aprobada" : "descartada"}${p.aprobado_via === "oficina" ? " en la Oficina" : ""}: ${p.resultado || ""}`.trim() });
       if (p?.origen?.includes(":prueba:") || ref.includes(":prueba:")) {
         if (p) await sb.from("agente_propuestas").update({ estado: "ejecutada", texto_final, resultado: "prueba recibida", ejecutada_at: new Date().toISOString() }).eq("id", p.id);
         return json({ ok: true, resultado: "prueba recibida" });
       }
-      if (p && (p.estado === "ejecutada" || p.estado === "descartada")) return json({ ok: true, resultado: `Ya estaba ${p.estado === "ejecutada" ? "aprobada" : "descartada"}${p.aprobado_via === "oficina" ? " en la Oficina" : ""}: ${p.resultado || ""}`.trim() });
       const resultado = await ejecutarPropuesta(p, texto_final, accion);
       if (p) await sb.from("agente_propuestas").update({ estado: "ejecutada", aprobado_via: "alfred", texto_final, resultado, ejecutada_at: new Date().toISOString() }).eq("id", p.id);
       await log("ejecutar", { ref, tipo: p?.tipo, ok: true });

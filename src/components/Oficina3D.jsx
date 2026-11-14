@@ -206,7 +206,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     if (seguir) return
     const A = vista && AREAS[vista]
     if (A) { s.controls.target.set(A.x, 0.8, A.z); s.camera.position.set(A.x + 4, 7, A.z + 10) }
-    else { s.controls.target.set(1, 0, 1.5); s.camera.position.set(1, 19.5, 25) }
+    else { s.controls.target.set(1, 0, 1.5); s.camera.position.set(1, 22.5, 29) }
     s.controls.update()
   }, [vista, seguir])
 

@@ -126,7 +126,7 @@ export default function Oficina3D({ datos, vista, seguir, onSelect, alto = 560 }
     Object.assign(sol.shadow.camera, { left: -22, right: 22, top: 14, bottom: -14 }); sol.target.position.set(PLANTA.cx, 0, PLANTA.cz); scene.add(sol, sol.target)
     const camera = new THREE.PerspectiveCamera(26, w / alto, 0.1, 300)
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true; controls.maxPolarAngle = Math.PI / 2.3; controls.minDistance = 5; controls.maxDistance = 70
+    controls.enableDamping = true; controls.enableZoom = false; controls.maxPolarAngle = Math.PI / 2.3; controls.minDistance = 5; controls.maxDistance = 70
 
     // Maqueta: piso con espesor, pared del fondo con ventanas y pared izquierda
     const { cx, cz, ancho, fondo } = PLANTA

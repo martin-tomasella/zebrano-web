@@ -38,6 +38,7 @@ export default function NuevoTrabajo() {
   const [para, setPara] = useState(params.get('prospecto') ? 'prospecto' : 'cliente')
   const [clientes, setClientes] = useState([]), [prospectos, setProspectos] = useState([]), [obras, setObras] = useState([])
   const [clienteId, setClienteId] = useState(params.get('cliente') || ''), [prospectoId, setProspectoId] = useState(params.get('prospecto') || ''), [obraId, setObraId] = useState(params.get('obra') || '')
+  const [nuevo, setNuevo] = useState({ nombre: '', telefono: '', email: '' })
   const [texto, setTexto] = useState('')
   const [imagenes, setImagenes] = useState([])
   // Paso 2+
@@ -96,7 +97,7 @@ export default function NuevoTrabajo() {
       ...(para === 'cliente' ? { cliente_id: clienteId || null, obra_id: obraId || null } : {}), ...(para === 'prospecto' ? { prospecto_id: prospectoId || null } : {}) })
     setSid(d.sesion_id)
     setParams({ sesion: d.sesion_id }, { replace: true }) // al actualizar el navegador vuelve a este diseño
-    const c = para === 'cliente' ? clientes.find(x => x.id === clienteId) : prospectos.find(x => x.id === prospectoId)
+    const c = para === 'cliente' ? clientes.find(x => x.id === clienteId) : para === 'prospecto' ? prospectos.find(x => x.id === prospectoId) : { nombre: nuevo.nombre.trim(), telefono: nuevo.telefono.trim(), email: nuevo.email.trim() }
     if (c) await supabase.from('cotizacion_sesiones').update({ cliente_nombre: [c.nombre, c.apellido].filter(Boolean).join(' '), cliente_telefono: c.telefono || null, cliente_email: c.email || null }).eq('id', d.sesion_id)
     setModulos(d.modulos); setManoObra(d.mano_obra || []); setEstilo(d.estilo || ''); setTipo(d.tipo_trabajo || ''); setTerminacion(d.terminacion || 'sin definir'); setPreguntas(d.preguntas || []); setSvg(d.svg_tecnico)
     setPaso(1)
@@ -143,7 +144,12 @@ export default function NuevoTrabajo() {
           </div>}
           {para === 'prospecto' && <label style={{ display: 'block', marginBottom: 14 }}>Prospecto<select value={prospectoId} onChange={e => setProspectoId(e.target.value)}>
             <option value="">Elegí un prospecto…</option>{prospectos.map(p => <option key={p.id} value={p.id}>{[p.nombre, p.apellido].filter(Boolean).join(' ')}{p.tipo_trabajo ? ` · ${p.tipo_trabajo}` : ''}</option>)}</select></label>}
-          {para === 'nuevo' && <p style={{ color: 'var(--z-text-2)', marginBottom: 14 }}>Poné nombre y teléfono en el texto: el cliente se crea al aprobar la cotización.</p>}
+          {para === 'nuevo' && <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            <label style={{ flex: '1 1 220px' }}>Nombre y apellido<input value={nuevo.nombre} onChange={e => setNuevo(n => ({ ...n, nombre: e.target.value }))} /></label>
+            <label style={{ flex: '1 1 160px' }}>Teléfono<input type="tel" value={nuevo.telefono} onChange={e => setNuevo(n => ({ ...n, telefono: e.target.value }))} /></label>
+            <label style={{ flex: '1 1 220px' }}>Email (opcional)<input type="email" value={nuevo.email} onChange={e => setNuevo(n => ({ ...n, email: e.target.value }))} /></label>
+            <p style={{ color: 'var(--z-text-2)', margin: 0, flexBasis: '100%' }}>El cliente queda en la cotización y se da de alta al aprobarla.</p>
+          </div>}
           <SectionTitle>¿Qué hay que hacer?</SectionTitle>
           <textarea rows={5} style={{ width: '100%' }} value={texto} onChange={e => setTexto(e.target.value)} aria-label="Descripción y medidas"
             placeholder="Ej.: cocina con bajo mesada de 2,40 m (720 x 550) con cajonera de 3 cajones, alacena de 1,80 m (700 x 350), melamina blanca, patas regulables." />
@@ -156,7 +162,7 @@ export default function NuevoTrabajo() {
               <button className="btn btn-quiet btn-sm" title="Quitar" aria-label={`Quitar adjunto ${i + 1}`} onClick={() => setImagenes(im => im.filter((_, j) => j !== i))}>✕</button></span>)}
             {imagenes.length > 0 && <span className="text-[12px]" style={{ color: 'var(--z-text-3)' }}>Si el plano está de costado, giralo con ↻ hasta que los textos se lean derechos: el agente lo lee mucho mejor.</span>}
           </div>
-          <Btn icon="auto_awesome" onClick={leer} disabled={!!ocupado || (para === 'cliente' && !clienteId) || (para === 'prospecto' && !prospectoId)}>Leer y armar el diseño</Btn>
+          <Btn icon="auto_awesome" onClick={leer} disabled={!!ocupado || (para === 'cliente' && !clienteId) || (para === 'prospecto' && !prospectoId) || (para === 'nuevo' && !nuevo.nombre.trim())}>Leer y armar el diseño</Btn>
         </Card>}
 
         {paso === 1 && <>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 15/11/2026
+- **Cliente nuevo en Nuevo trabajo** (web y app v12): campos de nombre, teléfono y email. Se guardan en la cotización desde el primer paso y el cliente se da de alta al aprobarla, igual que antes con los clientes cargados en el texto.
+- **Datos de prueba de cotizaciones borrados**: las 2 consultas de prueba (una web del 14/11 y la cocina del 14/11 asignada a Alberto), con su actividad en la Oficina y su consumo de IA. Copia en el esquema `backup_20261115`. Los 18 clientes no se tocaron: salen de órdenes y presupuestos reales.
+- **Catálogo estándar** (14/11): cada producto guarda su costeo con el motor de la planilla y la comparación con Mercado Libre. Ninguno se publica hasta que se apruebe su precio. Se descartaron las 9 publicaciones de Lapacho que llevaban los precios mal calculados ($3.630–$6.050).
+
 ## 14/11/2026 (noche) — Oficina rediseñada
 - **Centro de mando + oficina 3D + tablero por etapas** en una sola pantalla. Se eligió la dirección B del lienzo de diseño, más el tablero de la C.
   - Arriba, 5 indicadores compactos. "Aprendidos" suma la base de conocimiento y los aprendizajes.

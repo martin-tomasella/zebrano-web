@@ -24,7 +24,18 @@ async function serie(id: number, desde: string, hasta: string): Promise<Map<stri
   return out;
 }
 
+// Auditoría 23/11/2026: solo service role o x-kb-secret (pg_cron la llama con x-kb-secret).
+async function interno(req: Request): Promise<boolean> {
+  const tok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (tok && tok === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) return true;
+  const llave = req.headers.get("x-kb-secret");
+  if (!llave) return false;
+  const { data } = await sb.rpc("kb_sync_secret");
+  return !!data && llave === data;
+}
+
 Deno.serve(async (req) => {
+  if (!(await interno(req))) return json({ ok: false, error: "no autorizado" }, 401);
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const hasta = new Date().toISOString().slice(0, 10);
